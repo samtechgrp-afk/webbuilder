@@ -4,6 +4,7 @@ import { getTenant } from "@/lib/tenant";
 import { run } from "./action-result";
 import { bulkAction, createEntry, listEntryRevisions, restoreEntryRevision, saveEntry, type BulkAction, type EntryInput } from "./cms/entries";
 import { deleteAssets, tagAssets, updateAssetMeta } from "./cms/media-service";
+import { saveSiteIdentity } from "./cms/site-service";
 import {
   createSingleTemplate,
   deleteFieldGroup,
@@ -82,4 +83,9 @@ export async function deleteAssetsAction(input: WithSite<{ ids: string[]; force?
 }
 export async function tagAssetsAction(input: WithSite<{ ids: string[]; tag: string }>) {
   return run(async () => tagAssets(await getTenant(input.siteId), input));
+}
+
+// Site identity
+export async function saveSiteIdentityAction(input: WithSite<Parameters<typeof saveSiteIdentity>[1]>) {
+  return run(async () => saveSiteIdentity(await getTenant(input.siteId), input));
 }

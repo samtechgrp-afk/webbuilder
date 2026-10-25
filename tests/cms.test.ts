@@ -182,6 +182,14 @@ describe("dynamic binding", () => {
     assert.equal(applyDynamic(doc, { site, post: entry(7), loops: {} }).nodes["hero-title"].props.text, "Coming soon");
   });
 
+  it("binds an image to the site logo", () => {
+    const doc = buildAureliaHome(images);
+    const id = Object.values(doc.nodes).find((n) => n.type === "image")!.id;
+    doc.nodes[id].bindings = { image: { source: "site", key: "logo" } };
+    const logo = { assetId: "logo", src: "/uploads/logo.webp", alt: "Aurelia" };
+    assert.deepEqual(applyDynamic(doc, { site: { ...site, logo }, post: null, loops: {} }).nodes[id].props.image, logo);
+  });
+
   it("never renders a stored rich text prop, only server-resolved HTML", () => {
     const doc = buildAureliaHome(images);
     const { node } = createWidgetTree(doc, "richtext");

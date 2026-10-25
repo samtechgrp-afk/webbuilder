@@ -409,7 +409,7 @@ function BindingEditor({ nodeId }: { nodeId: string }) {
         {loopId
           ? "This widget is inside a loop grid, so it can show data from each entry the loop lists."
           : contextPostTypeId
-            ? "Show data from the entry this template renders, or from the site."
+            ? "Show data from this page (or, in a single template, the entry it renders), or from the site."
             : "Show site-wide data here. Put the widget in a loop grid to show entries."}{" "}
         Bound values are read only for clients.
       </p>

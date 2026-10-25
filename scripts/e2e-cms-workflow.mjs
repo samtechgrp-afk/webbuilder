@@ -140,6 +140,13 @@ try {
   await designer.screenshot({ path: path.join(SHOTS, "cms-loop-binding.png") });
   step("Card text bound to the Client name custom field");
 
+  // Bind the hero eyebrow to the site tagline (global site metadata).
+  await designer.locator('[data-node-id="hero-eyebrow"]').click();
+  await designer.getByRole("tab", { name: "dynamic" }).click();
+  await designer.getByLabel("Text", { exact: true }).selectOption("site:tagline");
+  await designer.locator('[data-node-id="hero-eyebrow"]', { hasText: "Interior architecture in New England" }).waitFor();
+  step("Hero eyebrow bound to the Site tagline");
+
   await designer.getByRole("button", { name: "Publish" }).click();
   await designer.getByText("Published. Your changes are live.").waitFor();
   await designer.getByRole("link", { name: "← Aurelia Interiors" }).click();
@@ -183,6 +190,14 @@ try {
   const stored = await readFile(path.join("public", src), "utf8");
   if (/script|onclick/i.test(stored) || !stored.includes("<circle")) fail(`SVG not sanitised: ${stored}`);
   step("SVG upload sanitised (script and handlers removed) and alt text saved");
+
+  // ── 5b2. Site identity drives Site bindings ──────────────────────────────
+  await designer.goto(`${BASE}${siteBase}/settings`, { waitUntil: "networkidle" });
+  await designer.getByLabel("Tagline").fill("Calm, considered homes");
+  await designer.locator("[data-save-identity]").click();
+  await designer.getByText("Saved. The live site shows the new identity.").waitFor();
+  if (!(await liveHtml("/sites/aurelia")).html.includes("Calm, considered homes")) fail("Live site did not pick up the new tagline");
+  step("Changing the tagline in Site settings updates every Site-bound widget on the live site");
 
   // ── 5c. Bulk trash ────────────────────────────────────────────────────────
   await client.goto(`${BASE}${siteBase}/content`);

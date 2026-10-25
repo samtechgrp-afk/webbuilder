@@ -119,7 +119,7 @@ async function main() {
 
   // ── Tenant 1: Aurelia Interiors ────────────────────────────────────────────
   const aurelia = await createSite({ name: "Aurelia Interiors", subdomain: "aurelia", branding: { accent: "#2B2620", logoText: "Aurelia" }, tokens: aureliaTokens });
-  await prisma.site.update({ where: { id: aurelia.site.id }, data: { settings: { tagline: "Interior architecture in New England" } } });
+
   await prisma.membership.createMany({
     data: [
       { userId: designer.id, siteId: aurelia.site.id, roleId: roles.designer },
@@ -128,6 +128,13 @@ async function main() {
     ],
   });
   const images = await seedImages(aurelia.site.id, designer.id);
+  // Site identity for "Site" bindings: tagline and a monogram logo.
+  const logo = await processImage(aurelia.site.id, Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><rect width="240" height="240" rx="48" fill="#2B2620"/><text x="120" y="158" font-family="Georgia, serif" font-size="128" fill="#F4EFE7" text-anchor="middle">A</text></svg>`), "aurelia-monogram.png");
+  const logoAsset = await prisma.mediaAsset.create({ data: { ...logo, siteId: aurelia.site.id, uploadedById: designer.id, altText: "Aurelia Interiors", title: "Aurelia monogram", tags: ["brand"] } });
+  await prisma.site.update({
+    where: { id: aurelia.site.id },
+    data: { settings: { tagline: "Interior architecture in New England" }, branding: { accent: "#2B2620", logoText: "Aurelia", logoAssetId: logoAsset.id } },
+  });
   const home = await publishPage(aurelia.site.id, aurelia.page.id, designer.id, "Home", "home", buildAureliaHome(images), {
     seoTitle: "Aurelia Interiors · Interior architecture in New England",
     seoDescription: "Calm, considered homes designed from the first sketch to the last cushion.",
