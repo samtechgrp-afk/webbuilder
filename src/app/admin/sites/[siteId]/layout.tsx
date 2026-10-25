@@ -26,6 +26,7 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/adm
               { href: "/content", label: "Content" },
               { href: "/media", label: "Media" },
               ...(t.can("schema.manage") ? [{ href: "/cpts", label: "Post types" }, { href: "/fields", label: "Fields" }] : []),
+              ...(t.can("content.edit") || t.can("site.settings") ? [{ href: "/seo", label: "SEO" }] : []),
               ...(t.can("design.tokens") ? [{ href: "/design-system", label: "Design system" }] : []),
               ...(t.can("site.settings") ? [{ href: "/settings", label: "Settings" }] : []),
             ]}

@@ -38,7 +38,7 @@ export interface RevisionMeta {
   template?: string | null;
   parentId?: string | null;
   authorName?: string | null;
-  seo?: { seoTitle?: string | null; seoDescription?: string | null; noIndex?: boolean };
+  seo?: { seoTitle?: string | null; seoDescription?: string | null; noIndex?: boolean; canonicalUrl?: string | null; ogImageId?: string | null };
 }
 
 /** Non-builder entries keep their body as `{ type: "html", html }` in Post.draft. */

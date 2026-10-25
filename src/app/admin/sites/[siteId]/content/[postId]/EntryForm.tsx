@@ -10,6 +10,8 @@ import { Button, Card, Field, Notice, StatusBadge, Toggle, inputClass } from "@/
 import { emptyValue, type FieldDef } from "@/lib/cms/fields";
 import { matchesLocation } from "@/lib/cms/location";
 import { slugify } from "@/lib/cms/slug";
+import { DESCRIPTION_MAX, TITLE_MAX, resolveSeo } from "@/lib/seo/meta";
+import type { SiteSeo } from "@/lib/seo/settings";
 import { saveEntryAction } from "@/server/cms-actions";
 import { RevisionDrawer } from "../RevisionDrawer";
 
@@ -29,7 +31,7 @@ interface Props {
     menuOrder: number;
     termIds: string[];
     fields: Record<string, unknown>;
-    seo: { seoTitle: string | null; seoDescription: string | null; noIndex: boolean };
+    seo: { seoTitle: string | null; seoDescription: string | null; noIndex: boolean; canonicalUrl: string | null; ogImageId: string | null };
     scheduledAt: string | null;
     publishedAt: string | null;
     isLive: boolean;
@@ -52,6 +54,8 @@ interface Props {
   parents: { id: string; title: string }[];
   perms: { publish: boolean; submit: boolean; designer: boolean; upload: boolean; visual: boolean; restore: boolean; canPreview: boolean };
   lockedBy: string | null;
+  /** Site defaults, so the search and social previews match the live page. */
+  seoContext: { siteName: string; seo: SiteSeo; base: string; path: string; isHome: boolean };
 }
 
 type Intent = "draft" | "submit" | "publish" | "schedule";
@@ -79,7 +83,7 @@ function takeCarriedNotice(postId: string) {
   return n;
 }
 
-export function EntryForm({ siteId, version, post, postType, groups, ctxData, parents, perms, lockedBy }: Props) {
+export function EntryForm({ siteId, version, post, postType, groups, ctxData, parents, perms, lockedBy, seoContext }: Props) {
   const router = useRouter();
   const [title, setTitle] = useState(post.title);
   const [slug, setSlug] = useState(post.slug);
@@ -423,13 +427,43 @@ export function EntryForm({ siteId, version, post, postType, groups, ctxData, pa
             </Field>
           </Card>
 
-          <Card title="Search engines">
+          <Card title="Search & social">
             <div className="space-y-4">
-              <Field label="SEO title" hint={`${(seo.seoTitle ?? "").length}/70`}>
+              <SearchPreview
+                resolved={resolveSeo(
+                  { title, path: seoContext.path, isHome: seoContext.isHome, excerpt, seo },
+                  { name: seoContext.siteName, seo: seoContext.seo },
+                  seoContext.base,
+                )}
+                image={assets.find((x) => x.id === (seo.ogImageId ?? featured ?? seoContext.seo.defaultOgImageId))?.url ?? null}
+                siteName={seoContext.siteName}
+              />
+              <Field label="SEO title" hint={`${(seo.seoTitle ?? "").length}/70 · search results show about ${TITLE_MAX}`}>
                 {(a) => <input {...a} disabled={readOnly} maxLength={70} value={seo.seoTitle ?? ""} onChange={(e) => change(setSeo)({ ...seo, seoTitle: e.target.value })} className={inputClass} placeholder={title} />}
               </Field>
-              <Field label="Meta description" hint={`${(seo.seoDescription ?? "").length}/170`}>
+              <Field label="Meta description" hint={`${(seo.seoDescription ?? "").length}/170 · aim for under ${DESCRIPTION_MAX}`}>
                 {(a) => <textarea {...a} disabled={readOnly} rows={3} maxLength={170} value={seo.seoDescription ?? ""} onChange={(e) => change(setSeo)({ ...seo, seoDescription: e.target.value })} className={inputClass} />}
+              </Field>
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium text-zinc-800">Share image</p>
+                <p className="text-xs text-zinc-500">For links shared on social media. Falls back to the featured image, then the site default.</p>
+                <MediaField
+                  siteId={siteId}
+                  label="Share image"
+                  value={seo.ogImageId ? [seo.ogImageId] : []}
+                  onChange={(ids) => change(setSeo)({ ...seo, ogImageId: ids[0] ?? null })}
+                  assets={assets}
+                  kind="image"
+                  disabled={readOnly}
+                  canUpload={perms.upload}
+                  onUploaded={(a) => setAssets((l) => [a, ...l])}
+                />
+                {errors.ogImage && <p className="text-xs text-red-700">{errors.ogImage}</p>}
+              </div>
+              <Field label="Canonical URL" hint="Only if this content's original lives at another address. Leave empty otherwise.">
+                {(a) => (
+                  <input {...a} disabled={readOnly} type="url" maxLength={500} value={seo.canonicalUrl ?? ""} onChange={(e) => change(setSeo)({ ...seo, canonicalUrl: e.target.value })} className={inputClass} placeholder="https://" />
+                )}
               </Field>
               <div className="flex items-center justify-between gap-3">
                 <span id="noindex-label" className="text-sm text-zinc-800">Hide from search engines</span>
@@ -456,5 +490,34 @@ export function EntryForm({ siteId, version, post, postType, groups, ctxData, pa
         <p className="sr-only">Some errors are on fields that are hidden by the current settings.</p>
       )}
     </main>
+  );
+}
+
+/** How the page appears in a search result and as a shared link, from the same rules the live page uses. */
+function SearchPreview({ resolved, image, siteName }: { resolved: ReturnType<typeof resolveSeo>; image: string | null; siteName: string }) {
+  const host = resolved.canonical.replace(/^https?:\/\//, "");
+  return (
+    <div className="space-y-3" data-seo-preview="">
+      <div className="rounded-lg border border-zinc-200 p-3">
+        <p className="truncate text-xs text-zinc-600">{host}</p>
+        <p className="truncate text-base leading-snug text-indigo-800" data-preview-title="">
+          {resolved.title}
+        </p>
+        <p className="line-clamp-2 text-xs text-zinc-600">{resolved.description ?? "No description yet: search engines will pick text from the page."}</p>
+        {!resolved.index && <p className="mt-1 text-[11px] font-medium text-amber-700">Hidden from search engines</p>}
+      </div>
+      <div className="overflow-hidden rounded-lg border border-zinc-200">
+        {image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={image} alt="" className="aspect-[1.91/1] w-full object-cover" />
+        ) : (
+          <div className="flex aspect-[1.91/1] items-center justify-center bg-zinc-100 text-xs text-zinc-400">No share image</div>
+        )}
+        <div className="border-t border-zinc-200 bg-zinc-50 px-3 py-2">
+          <p className="truncate text-[11px] uppercase text-zinc-500">{siteName}</p>
+          <p className="truncate text-sm font-medium text-zinc-900">{resolved.title}</p>
+        </div>
+      </div>
+    </div>
   );
 }
