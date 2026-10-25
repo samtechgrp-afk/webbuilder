@@ -2,10 +2,11 @@
 
 import { useState, type ReactNode } from "react";
 import { isSafeHref } from "@/lib/builder/content";
-import { nodeCapabilities } from "@/lib/builder/policy";
+import { isDesigner, nodeCapabilities } from "@/lib/builder/policy";
 import { contrastRatio, resolveColor, type DesignTokens } from "@/lib/builder/styles";
 import type { BuilderDocument, ImageValue, LinkValue, PriceValue, StyleKey } from "@/lib/builder/types";
 import { WIDGETS, type ContentField } from "@/lib/builder/widgets";
+import { DesignPanel } from "./DesignPanel";
 import { MediaPicker, type PickerAsset } from "./MediaPicker";
 import { parentOf, useEditor } from "./store";
 
@@ -23,12 +24,14 @@ export function Inspector(props: InspectorProps) {
   const selectedId = useEditor((s) => s.selectedId);
   const node = selectedId ? doc.nodes[selectedId] : null;
 
-  if (!node) return <Overview />;
+  if (!node) return isDesigner(ctx) ? <DesignerOverview /> : <Overview />;
 
   const caps = nodeCapabilities(doc, node.id, ctx);
   const def = WIDGETS[node.type];
   const parentId = parentOf(doc, node.id);
   const parentCaps = parentId ? nodeCapabilities(doc, parentId, ctx) : null;
+
+  if (caps.isDesigner) return <DesignerInspector key={node.id} nodeId={node.id} {...props} />;
 
   return (
     <div className="space-y-5 p-4">
@@ -63,6 +66,68 @@ export function Inspector(props: InspectorProps) {
           <LockToggles nodeId={node.id} />
         </Group>
       )}
+    </div>
+  );
+}
+
+function DesignerInspector({ nodeId, ...props }: { nodeId: string } & InspectorProps) {
+  const node = useEditor((s) => s.doc.nodes[nodeId]);
+  const def = WIDGETS[node.type];
+  const [tab, setTab] = useState<"style" | "content" | "guardrails">(def.contentFields.length ? "content" : "style");
+  const tabs = [...(def.contentFields.length ? (["content"] as const) : []), "style" as const, "guardrails" as const];
+  return (
+    <div>
+      <div className="sticky top-0 z-10 space-y-2 border-b border-zinc-200 bg-white px-4 pb-2 pt-3">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">{def.label}</p>
+          <h2 className="text-sm font-semibold text-zinc-900">{node.name ?? def.label}</h2>
+        </div>
+        <div className="flex gap-1" role="tablist">
+          {tabs.map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              onClick={() => setTab(t)}
+              className={`rounded-md px-2.5 py-1 text-xs capitalize ${tab === t ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-100"}`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="px-4 py-2">
+        {tab === "content" &&
+          def.contentFields.map((field) => (
+            <div key={field.key} className="space-y-2 py-2">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{field.label}</h3>
+              <ContentEditor nodeId={node.id} field={field} value={node.props[field.key]} {...props} />
+            </div>
+          ))}
+        {tab === "style" && <DesignPanel node={node} tokens={props.tokens} />}
+        {tab === "guardrails" && (
+          <div className="py-2">
+            <LockToggles nodeId={node.id} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DesignerOverview() {
+  return (
+    <div className="space-y-3 p-4 text-sm text-zinc-600">
+      <h2 className="text-sm font-semibold text-zinc-900">Design mode</h2>
+      <p>Drag widgets from Add onto the page, or rearrange anything by dragging it on the canvas or in Layers.</p>
+      <ul className="space-y-1.5 text-[13px]">
+        <li><kbd className="rounded bg-zinc-100 px-1">Delete</kbd> removes the selection</li>
+        <li><kbd className="rounded bg-zinc-100 px-1">⌘/Ctrl D</kbd> duplicates it</li>
+        <li><kbd className="rounded bg-zinc-100 px-1">⌘/Ctrl Z</kbd> undoes, <kbd className="rounded bg-zinc-100 px-1">⇧⌘/Ctrl Z</kbd> redoes</li>
+        <li><kbd className="rounded bg-zinc-100 px-1">Esc</kbd> selects the parent</li>
+      </ul>
+      <p className="text-[13px]">Styles apply to the screen size you are previewing and every smaller one. Use Guardrails to decide what your client can change.</p>
     </div>
   );
 }

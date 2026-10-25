@@ -4,7 +4,8 @@ import { updateTag } from "next/cache";
 import { contentSchema } from "@/lib/builder/content";
 import { authorizeChanges, diffDocuments, type Violation } from "@/lib/builder/policy";
 import { isBuilderDocument, type BuilderDocument, type ImageValue } from "@/lib/builder/types";
-import { contentField } from "@/lib/builder/widgets";
+import { structuralProblem } from "@/lib/builder/tree";
+import { WIDGETS, contentField } from "@/lib/builder/widgets";
 import type { TenantContext } from "@/lib/tenant";
 import { siteCacheTag } from "./public-site";
 
@@ -64,6 +65,8 @@ function assertWellFormed(doc: unknown): asserts doc is BuilderDocument {
       if (!doc.nodes[child]) throw new EditError("Dangling child reference", "invalid");
     }
   }
+  const problem = structuralProblem(doc);
+  if (problem) throw new EditError(problem, "invalid");
 }
 
 /**
@@ -87,7 +90,8 @@ async function normaliseContent(t: TenantContext, next: BuilderDocument, changed
     if (def.kind === "image") {
       const img = parsed.data as ImageValue;
       if (!img.assetId) {
-        violations.push({ nodeId, message: "Choose an image from the media library" });
+        // An empty image slot (a freshly dropped widget) renders as a placeholder.
+        node.props = { ...node.props, [field]: { assetId: null, src: "", alt: img.alt } satisfies ImageValue };
         continue;
       }
       const asset = await t.db.mediaAsset.findUnique({ where: { id: img.assetId } });
@@ -136,7 +140,14 @@ export async function saveDocument(
   await normaliseContent(
     t,
     next,
-    changes.flatMap((c) => (c.kind === "content" ? [{ nodeId: c.nodeId, field: c.field }] : [])),
+    changes.flatMap((c) => {
+      if (c.kind === "content") return [{ nodeId: c.nodeId, field: c.field }];
+      // New elements bring content of their own; it gets the same checks as an edit.
+      if (c.kind === "structure" && c.detail === "node added") {
+        return WIDGETS[next.nodes[c.nodeId].type].contentFields.map((f) => ({ nodeId: c.nodeId, field: f.key }));
+      }
+      return [];
+    }),
   );
 
   if (!changes.length && input.intent === "draft") return { version: current, changed: 0 };
