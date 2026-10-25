@@ -67,6 +67,7 @@ const BASE_CSS = `
 .site-root h1,.site-root h2,.site-root h3,.site-root h4,.site-root p{margin:0}
 .site-root [data-w="text"]{white-space:pre-line}
 .site-root [data-w="image"]{overflow:hidden}
+.site-root [data-w="image"]:not(:has(img)){min-height:120px;background:repeating-linear-gradient(135deg,rgba(0,0,0,.04) 0 12px,rgba(0,0,0,.08) 12px 24px)}
 .site-root [data-w="image"] img{display:block;width:100%;height:100%;object-fit:inherit}
 .site-root a[data-w="button"]{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease}
 .site-root a[data-w="button"]:hover{transform:translateY(-1px)}

@@ -2,7 +2,8 @@
 
 import { create } from "zustand";
 import { nodeCapabilities, parentMap, type EditContext } from "@/lib/builder/policy";
-import type { Breakpoint, BuilderDocument, LockSettings, StyleKey } from "@/lib/builder/types";
+import { createWidget, duplicateNode, findParent, insertNode, moveNode, removeNode } from "@/lib/builder/tree";
+import type { Breakpoint, BuilderDocument, LockSettings, SemanticTag, StyleKey, WidgetType } from "@/lib/builder/types";
 
 /**
  * Live canvas state: the working document, selection, viewport and an
@@ -17,6 +18,9 @@ const HISTORY_LIMIT = 100;
 
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
+/** What is being dragged: a new widget from the palette, or an existing node. */
+export type DragItem = { kind: "new"; type: WidgetType } | { kind: "move"; id: string };
+
 interface EditorState {
   doc: BuilderDocument;
   savedDoc: BuilderDocument;
@@ -29,6 +33,7 @@ interface EditorState {
   version: number;
   saveState: SaveState;
   message: { tone: "info" | "error" | "success"; text: string; details?: string[] } | null;
+  drag: DragItem | null;
 
   init(doc: BuilderDocument, ctx: EditContext, version: number): void;
   select(id: string | null): void;
@@ -38,6 +43,14 @@ interface EditorState {
   setStyle(nodeId: string, key: StyleKey, value: string | undefined): boolean;
   moveChild(parentId: string, childId: string, direction: -1 | 1): boolean;
   setLocks(nodeId: string, locks: LockSettings): boolean;
+  /** Designer tree edits. Each returns false when the policy or the tree refuses it. */
+  insertWidget(type: WidgetType, parentId: string, index: number): boolean;
+  moveNodeTo(nodeId: string, parentId: string, index: number): boolean;
+  removeNode(nodeId: string): boolean;
+  duplicate(nodeId: string): boolean;
+  setTag(nodeId: string, tag: SemanticTag | undefined): boolean;
+  setName(nodeId: string, name: string): boolean;
+  setDrag(item: DragItem | null): void;
   undo(): void;
   redo(): void;
   markSaved(version: number, doc?: BuilderDocument): void;
@@ -70,6 +83,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   version: 0,
   saveState: "idle",
   message: null,
+  drag: null,
 
   init: (doc, ctx, version) =>
     set({ doc, savedDoc: doc, ctx, version, past: [], future: [], selectedId: null, editingTextId: null, saveState: "idle" }),
@@ -133,6 +147,71 @@ export const useEditor = create<EditorState>((set, get) => ({
     );
     return true;
   },
+
+  insertWidget: (type, parentId, index) => {
+    const s = get();
+    if (!nodeCapabilities(s.doc, parentId, s.ctx).isDesigner) return false;
+    const node = createWidget(s.doc, type);
+    const next = insertNode(s.doc, node, parentId, index);
+    if (!next) return false;
+    set({ ...commit(s, next), selectedId: node.id });
+    return true;
+  },
+
+  moveNodeTo: (nodeId, parentId, index) => {
+    const s = get();
+    const caps = nodeCapabilities(s.doc, parentId, s.ctx);
+    // Clients may only reorder inside a layout-unlocked parent; designers move anywhere.
+    if (!caps.isDesigner && !(caps.canReorderChildren && findParent(s.doc, nodeId) === parentId)) return false;
+    const next = moveNode(s.doc, nodeId, parentId, index);
+    if (!next) return false;
+    if (next !== s.doc) set(commit(s, next));
+    return true;
+  },
+
+  removeNode: (nodeId) => {
+    const s = get();
+    if (!nodeCapabilities(s.doc, nodeId, s.ctx).isDesigner) return false;
+    const parent = findParent(s.doc, nodeId);
+    const next = removeNode(s.doc, nodeId);
+    if (!next) return false;
+    set({ ...commit(s, next), selectedId: parent ?? null, editingTextId: null });
+    return true;
+  },
+
+  duplicate: (nodeId) => {
+    const s = get();
+    if (!nodeCapabilities(s.doc, nodeId, s.ctx).isDesigner) return false;
+    const result = duplicateNode(s.doc, nodeId);
+    if (!result) return false;
+    set({ ...commit(s, result.doc), selectedId: result.id });
+    return true;
+  },
+
+  setTag: (nodeId, tag) => {
+    const s = get();
+    if (!nodeCapabilities(s.doc, nodeId, s.ctx).isDesigner) return false;
+    set(
+      commit(
+        s,
+        withNode(s.doc, nodeId, (n) => {
+          const next = { ...n, tag };
+          if (!tag) delete next.tag;
+          return next;
+        }),
+      ),
+    );
+    return true;
+  },
+
+  setName: (nodeId, name) => {
+    const s = get();
+    if (!nodeCapabilities(s.doc, nodeId, s.ctx).isDesigner) return false;
+    set(commit(s, withNode(s.doc, nodeId, (n) => ({ ...n, name: name.trim().slice(0, 60) || undefined }))));
+    return true;
+  },
+
+  setDrag: (drag) => set({ drag }),
 
   undo: () => {
     const s = get();

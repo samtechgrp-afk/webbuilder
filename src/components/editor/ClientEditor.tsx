@@ -9,7 +9,8 @@ import { heartbeatEditLock, leaveEditor, restorePageRevision, savePage } from "@
 import { Canvas } from "./Canvas";
 import { Inspector } from "./Inspector";
 import type { PickerAsset } from "./MediaPicker";
-import { selectIsDirty, useEditor } from "./store";
+import { DesignSidebar } from "./DesignSidebar";
+import { parentOf, selectIsDirty, useEditor } from "./store";
 
 export interface RevisionSummary {
   id: string;
@@ -48,6 +49,7 @@ export function ClientEditor(props: ClientEditorProps) {
   const dirty = useEditor(selectIsDirty);
   const can = (p: string) => props.permissions.includes(p);
   const readOnly = !!lockLost;
+  const designMode = can("design.layout") && !readOnly;
 
   // Load the server document once per page/version. A read-only session gets no permissions at all.
   useEffect(() => {
@@ -71,14 +73,28 @@ export function ClientEditor(props: ClientEditorProps) {
   // Keyboard shortcuts and the unsaved-changes guard.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (!mod) return;
       const target = e.target as HTMLElement;
-      if (target.isContentEditable || ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
-      if (e.key.toLowerCase() === "z") {
+      if (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
+      const s = useEditor.getState();
+      const mod = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
+      if (mod && key === "z") {
         e.preventDefault();
-        if (e.shiftKey) useEditor.getState().redo();
-        else useEditor.getState().undo();
+        if (e.shiftKey) s.redo();
+        else s.undo();
+      } else if (mod && key === "y") {
+        e.preventDefault();
+        s.redo();
+      } else if (!s.selectedId) {
+        return;
+      } else if (mod && key === "d") {
+        // Designer shortcuts; the store refuses them for anyone without design rights.
+        e.preventDefault();
+        s.duplicate(s.selectedId);
+      } else if (!mod && (key === "delete" || key === "backspace")) {
+        if (s.removeNode(s.selectedId)) e.preventDefault();
+      } else if (key === "escape") {
+        s.select(parentOf(s.doc, s.selectedId) ?? null);
       }
     };
     const onUnload = (e: BeforeUnloadEvent) => {
@@ -135,7 +151,7 @@ export function ClientEditor(props: ClientEditorProps) {
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{post.title}</p>
           <p className="text-[11px] text-zinc-400">
-            {props.roleName} · {saveLabel(s.saveState, dirty)}
+            {designMode ? "Design mode" : "Client mode"} · {props.roleName} · {saveLabel(s.saveState, dirty)}
           </p>
         </div>
 
@@ -221,6 +237,7 @@ export function ClientEditor(props: ClientEditorProps) {
       )}
 
       <div className="flex min-h-0 flex-1">
+        {designMode && <DesignSidebar />}
         <Canvas tokens={props.tokens} />
         <aside className="w-80 shrink-0 overflow-y-auto border-l border-zinc-200 bg-white" aria-label="Inspector">
           <Inspector
