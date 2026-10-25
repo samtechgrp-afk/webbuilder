@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Website Builder
 
-## Getting Started
+A visual website builder and multi-tenant CMS with a client portal. Designers build premium sites with full control; clients sign in to their own portal and edit words, images, links and prices directly on the live page, inside guardrails the designer sets.
 
-First, run the development server:
+**Status: phase 1.** Multi-tenant foundation, full Prisma schema, RBAC, Client Mode editor with locked containers, revisions and rollback, media ingest (WebP), and the end-to-end "client edits hero and publishes" workflow. The designer canvas (drag and drop, add widgets), token editor, CPT admin screens, SEO screens, sitemap and export engine come next.
+
+## Quick start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env            # set DATABASE_URL and SESSION_SECRET
+npm install
+npm run db:migrate              # creates the schema
+npm run db:seed                 # two demo tenants, users, media, published pages
+npm run dev                     # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Demo logins (password `demo-password-2026`):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Email | Role | Sees |
+| --- | --- | --- |
+| `client@aurelia.test` | Client Admin | Aurelia only: edit content, publish, restore |
+| `author@aurelia.test` | Author | Aurelia only: no inline page editing, can submit posts |
+| `designer@studio.test` | Designer | Both sites: full control, can toggle locks |
+| `client@northwind.test` | Client Admin | Northwind only |
+| `admin@platform.test` | Super Admin | Everything |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Live sites: `/sites/aurelia`, `/sites/northwind`, or `aurelia.localhost:3000` once your hosts resolve subdomains.
 
-## Learn More
+## Checks
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run typecheck
+npm test                         # guardrail policy + tenant isolation (needs seeded DB)
+npm run build && npm start       # then, in another shell:
+npm run e2e                      # Playwright: login → edit hero → publish → live site → isolation
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Where things live
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Path | What |
+| --- | --- |
+| `prisma/schema.prisma` | Data model: tenants, users, roles, memberships, CPTs, posts, revisions, edit locks, custom fields, taxonomies, media, audit log |
+| `src/proxy.ts` | Host routing (subdomain / custom domain → tenant) and the admin auth gate |
+| `src/lib/tenant-db.ts` | `tenantDb(siteId)`: Prisma client that forces every query into one site |
+| `src/lib/tenant.ts` | `getTenant(siteId)`: session + membership + permissions + scoped DB, 404 for non-members |
+| `src/lib/rbac.ts` | Permission keys and system roles |
+| `src/lib/builder/types.ts` | Builder document (flat node tree, responsive styles, locks) |
+| `src/lib/builder/policy.ts` | Guardrail engine: lock inheritance, document diffing, change authorisation |
+| `src/lib/builder/render.tsx` | One renderer for the live site and the editor canvas |
+| `src/lib/builder/styles.ts` | Style injection (container queries), design tokens → CSS vars, WCAG contrast |
+| `src/components/editor/*` | Client Mode editor: Zustand store with undo/redo, canvas overlay, inspector, media picker, history |
+| `src/server/content-service.ts` | Save / submit / publish / restore, edit locks, optimistic concurrency |
+| `src/server/media-processing.ts` | Upload → WebP + responsive variants + blur placeholder + alt text |
+| `src/app/admin/sites/[siteId]` | Client portal dashboard and editor routes |
+| `src/app/sites/[site]/[[...slug]]` | Public site, cached per tenant, expired on publish |
