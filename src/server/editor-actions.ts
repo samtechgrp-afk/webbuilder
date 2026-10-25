@@ -1,32 +1,16 @@
 "use server";
 
-import type { Violation } from "@/lib/builder/policy";
-import type { BuilderDocument } from "@/lib/builder/types";
-import { Forbidden, getTenant } from "@/lib/tenant";
-import { TenantViolation } from "@/lib/tenant-db";
+import type { BuilderDocument, LoopQuery } from "@/lib/builder/types";
+import { getTenant } from "@/lib/tenant";
+import { run } from "./action-result";
+import { loopItems } from "./cms/dynamic";
 import {
-  EditError,
   acquireEditLock,
   releaseEditLock,
   restoreRevision,
   saveDocument,
   type SaveIntent,
 } from "./content-service";
-
-export type ActionResult<T> =
-  | ({ ok: true } & T)
-  | { ok: false; error: string; code?: string; violations?: Violation[] };
-
-async function run<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
-  try {
-    return { ok: true, ...(await fn()) };
-  } catch (err) {
-    if (err instanceof EditError) return { ok: false, error: err.message, code: err.code, violations: err.violations };
-    if (err instanceof Forbidden) return { ok: false, error: "You don't have permission to do that.", code: "forbidden" };
-    if (err instanceof TenantViolation) return { ok: false, error: "That request crossed a site boundary.", code: "forbidden" };
-    throw err; // redirect()/notFound() and real bugs
-  }
-}
 
 export async function savePage(input: {
   siteId: string;
@@ -54,5 +38,14 @@ export async function leaveEditor(input: { siteId: string; postId: string }) {
   return run(async () => {
     await releaseEditLock(await getTenant(input.siteId), input.postId);
     return {};
+  });
+}
+
+/** Live canvas preview for a loop grid: the published entries its query returns. */
+export async function previewLoop(input: { siteId: string; query: LoopQuery }) {
+  return run(async () => {
+    const t = await getTenant(input.siteId);
+    if (!t.can("design.layout") && !t.can("content.edit")) return { items: [] };
+    return { items: await loopItems(t.db, input.query) };
   });
 }

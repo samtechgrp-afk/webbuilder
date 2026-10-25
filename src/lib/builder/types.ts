@@ -54,7 +54,9 @@ export interface StyleProps {
 export type StyleKey = keyof StyleProps;
 export type ResponsiveStyle = Partial<Record<Breakpoint, StyleProps>>;
 
-export type WidgetType = "section" | "container" | "heading" | "text" | "image" | "button" | "price";
+export type WidgetType =
+  | "section" | "container" | "heading" | "text" | "image" | "button" | "price"
+  | "gallery" | "richtext" | "loop";
 
 export type SemanticTag =
   | "section" | "header" | "main" | "footer" | "article" | "aside" | "nav" | "div"
@@ -83,6 +85,8 @@ export interface ImageValue {
   alt: string;
   width?: number;
   height?: number;
+  /** Responsive WebP variants ("…-640.webp 640w, …"). Filled from the media library, never from the browser. */
+  srcSet?: string;
 }
 
 export interface LinkValue {
@@ -98,6 +102,33 @@ export interface PriceValue {
   compareAt?: number | null;
 }
 
+/**
+ * Where a dynamic value comes from (Elementor's "dynamic tags").
+ *  - post:  the current entry (the page itself, the entry a single template
+ *           renders, or the item inside a loop grid). Keys in POST_SOURCES.
+ *  - field: a custom field of the current entry, by field key.
+ *  - site:  site identity. Keys in SITE_SOURCES.
+ */
+export interface Binding {
+  source: "post" | "field" | "site";
+  key: string;
+  /** Shown when the source is empty. */
+  fallback?: string;
+}
+
+/**
+ * Loop grid query. Ids are checked against the site on save; `limit` is
+ * capped so one widget can't ask for the whole database.
+ */
+export interface LoopQuery {
+  postTypeId: string | null;
+  limit: number;
+  orderBy: "date" | "title" | "menu";
+  order: "asc" | "desc";
+  termId?: string | null;
+  offset?: number;
+}
+
 export interface BuilderNode {
   id: string;
   type: WidgetType;
@@ -108,6 +139,8 @@ export interface BuilderNode {
   style: ResponsiveStyle;
   locks?: LockSettings;
   children?: string[];
+  /** Dynamic data per bindable target (see BINDABLE in widgets.ts). Designer-only. */
+  bindings?: Record<string, Binding>;
 }
 
 export interface BuilderDocument {

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 
@@ -11,24 +11,81 @@ import sharp from "sharp";
 
 export interface StorageAdapter {
   put(key: string, body: Buffer, contentType: string): Promise<string>;
+  remove(key: string): Promise<void>;
 }
+
+const uploadsDir = () => path.join(process.cwd(), "public", "uploads");
 
 export const localStorage: StorageAdapter = {
   async put(key, body) {
-    const file = path.join(process.cwd(), "public", "uploads", key);
+    const file = path.join(uploadsDir(), key);
     await mkdir(path.dirname(file), { recursive: true });
     await writeFile(file, body);
     return `/uploads/${key}`;
   },
+  async remove(key) {
+    const file = path.resolve(uploadsDir(), key);
+    // Keys come from our own rows, but never let one escape the uploads folder.
+    if (!file.startsWith(uploadsDir() + path.sep)) return;
+    await rm(file, { force: true });
+  },
 };
 
-const VARIANT_WIDTHS = [640, 1280];
+/** Responsive widths generated for every raster image (never upscaled). */
+export const VARIANT_WIDTHS = [320, 640, 960, 1280, 1920];
 const MAX_WIDTH = 2400;
 
 /** Alt text from the filename until a vision model is wired in ("sunset-over-lake.jpg" → "Sunset over lake"). */
 export function altFromFilename(name: string) {
   const base = name.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
   return base ? base[0].toUpperCase() + base.slice(1) : "";
+}
+
+export function titleFromFilename(name: string) {
+  return altFromFilename(name).slice(0, 120) || "Untitled";
+}
+
+/** Upload kinds the library accepts, with the extension each is stored under. */
+export const FILE_KINDS: Record<string, { ext: string; kind: "video" | "document"; maxMb: number }> = {
+  "video/mp4": { ext: "mp4", kind: "video", maxMb: 100 },
+  "video/webm": { ext: "webm", kind: "video", maxMb: 100 },
+  "application/pdf": { ext: "pdf", kind: "document", maxMb: 25 },
+  "text/plain": { ext: "txt", kind: "document", maxMb: 5 },
+  "text/csv": { ext: "csv", kind: "document", maxMb: 10 },
+  "application/msword": { ext: "doc", kind: "document", maxMb: 25 },
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": { ext: "docx", kind: "document", maxMb: 25 },
+  "application/vnd.ms-excel": { ext: "xls", kind: "document", maxMb: 25 },
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": { ext: "xlsx", kind: "document", maxMb: 25 },
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": { ext: "pptx", kind: "document", maxMb: 50 },
+  "application/zip": { ext: "zip", kind: "document", maxMb: 50 },
+};
+
+/**
+ * Non-image files are stored as-is, under a random name with an extension
+ * from the allowlist above (never the uploader's), so a file can't pick how
+ * it's served.
+ */
+export async function processFile(siteId: string, input: Buffer, originalName: string, mimeType: string, storage: StorageAdapter = localStorage) {
+  const spec = FILE_KINDS[mimeType];
+  if (!spec) throw new Error("Unsupported file type");
+  const storageKey = `${siteId}/${randomUUID()}.${spec.ext}`;
+  const url = await storage.put(storageKey, input, mimeType);
+  return { storageKey, url, title: titleFromFilename(originalName), mimeType, sizeBytes: input.length, variants: {}, originalName, altText: null };
+}
+
+/** Sanitised SVG, stored as SVG (vector logos and icons stay crisp). */
+export async function processSvg(siteId: string, clean: string, originalName: string, storage: StorageAdapter = localStorage) {
+  const body = Buffer.from(clean, "utf8");
+  const storageKey = `${siteId}/${randomUUID()}.svg`;
+  const url = await storage.put(storageKey, body, "image/svg+xml");
+  const vb = clean.match(/viewBox="[\d.\s-]*?\s([\d.]+)\s+([\d.]+)"/);
+  const w = Number(clean.match(/<svg[^>]*\swidth="([\d.]+)/)?.[1] ?? vb?.[1]) || null;
+  const h = Number(clean.match(/<svg[^>]*\sheight="([\d.]+)/)?.[1] ?? vb?.[2]) || null;
+  return {
+    storageKey, url, title: titleFromFilename(originalName), mimeType: "image/svg+xml", sizeBytes: body.length,
+    width: w ? Math.round(w) : null, height: h ? Math.round(h) : null, variants: {},
+    altText: altFromFilename(originalName), altTextSource: "FILENAME" as const, originalName,
+  };
 }
 
 export async function processImage(siteId: string, input: Buffer, originalName: string, storage: StorageAdapter = localStorage) {
@@ -53,6 +110,7 @@ export async function processImage(siteId: string, input: Buffer, originalName: 
   return {
     storageKey,
     url,
+    title: titleFromFilename(originalName),
     mimeType: "image/webp",
     sizeBytes: main.data.length,
     width: main.info.width,

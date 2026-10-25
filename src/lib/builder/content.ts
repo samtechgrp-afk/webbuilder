@@ -51,6 +51,8 @@ export function contentSchema(field: ContentField) {
       return linkSchema;
     case "price":
       return priceSchema;
+    case "gallery":
+      return z.array(imageSchema.extend({ assetId: z.string().min(1) })).max(30);
   }
 }
 

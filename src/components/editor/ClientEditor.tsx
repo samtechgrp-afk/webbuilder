@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import type { DesignTokens } from "@/lib/builder/styles";
 import { BREAKPOINT_ORDER, BREAKPOINTS, type BuilderDocument } from "@/lib/builder/types";
-import { heartbeatEditLock, leaveEditor, restorePageRevision, savePage } from "@/server/editor-actions";
+import type { DynamicData } from "@/lib/cms/binding";
+import type { LoopQuery } from "@/lib/builder/types";
+import { heartbeatEditLock, leaveEditor, previewLoop, restorePageRevision, savePage } from "@/server/editor-actions";
 import { Canvas } from "./Canvas";
 import { Inspector } from "./Inspector";
 import type { PickerAsset } from "./MediaPicker";
 import { DesignSidebar } from "./DesignSidebar";
-import { parentOf, selectIsDirty, useEditor } from "./store";
+import { parentOf, selectIsDirty, useEditor, type BindingCatalog } from "./store";
 
 export interface RevisionSummary {
   id: string;
@@ -33,6 +35,11 @@ export interface ClientEditorProps {
   assets: PickerAsset[];
   revisions: RevisionSummary[];
   lock: { ok: true } | { ok: false; holder: string };
+  dynamic: DynamicData | null;
+  catalog: BindingCatalog;
+  contextPostTypeId: string | null;
+  /** Set when editing a post type's single template. */
+  template: { postTypeLabel: string; previewTitle: string | null } | null;
 }
 
 const HEARTBEAT_MS = 45_000;
@@ -54,8 +61,11 @@ export function ClientEditor(props: ClientEditorProps) {
   // Load the server document once per page/version. A read-only session gets no permissions at all.
   useEffect(() => {
     useEditor.getState().init(props.document, { permissions: readOnly ? [] : props.permissions }, props.version);
+    useEditor.getState().initDynamic(props.dynamic, props.catalog, props.contextPostTypeId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id, readOnly]);
+
+  useLoopPreviews(site.id);
 
   // Hold the edit lock while the editor is open. It expires on its own if the
   // tab closes, and is released explicitly when leaving through the toolbar.
@@ -208,6 +218,12 @@ export function ClientEditor(props: ClientEditorProps) {
         </div>
       </header>
 
+      {props.template && (
+        <p className="bg-violet-50 px-4 py-2 text-center text-sm text-violet-900">
+          You&apos;re designing the template every {props.template.postTypeLabel} entry uses.{" "}
+          {props.template.previewTitle ? `Previewing “${props.template.previewTitle}”.` : "Add an entry to preview real content."}
+        </p>
+      )}
       {lockLost && (
         <p className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
           {lockLost} is editing this page right now. You can look around, but editing is paused until they finish.
@@ -255,6 +271,34 @@ export function ClientEditor(props: ClientEditorProps) {
       )}
     </div>
   );
+}
+
+/** Refetch a loop grid's entries whenever its query changes, so the canvas previews real content. */
+function useLoopPreviews(siteId: string) {
+  const doc = useEditor((s) => s.doc);
+  const queries = Object.values(doc.nodes)
+    .filter((n) => n.type === "loop")
+    .map((n) => [n.id, JSON.stringify(n.props.query ?? null)] as const);
+  const key = JSON.stringify(queries);
+  const fetched = useRef<Record<string, string>>({});
+  useEffect(() => {
+    for (const [id, q] of JSON.parse(key) as [string, string][]) {
+      const first = fetched.current[id] === undefined;
+      if (fetched.current[id] === q) continue;
+      fetched.current[id] = q;
+      if (first && useEditor.getState().dynamic?.loops[id] && initialMatches(id, q)) continue;
+      void previewLoop({ siteId, query: JSON.parse(q) as LoopQuery }).then((res) => {
+        // Ignore a slow response for a query that has since changed.
+        if (res.ok && fetched.current[id] === q) useEditor.getState().setLoopItems(id, res.items);
+      });
+    }
+  }, [key, siteId]);
+}
+
+/** The server already loaded loops for the saved document; skip refetching those on first render. */
+function initialMatches(id: string, q: string) {
+  const saved = useEditor.getState().savedDoc.nodes[id];
+  return !!saved && JSON.stringify(saved.props.query ?? null) === q;
 }
 
 function saveLabel(state: string, dirty: boolean) {

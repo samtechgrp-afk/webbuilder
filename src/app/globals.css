@@ -37,3 +37,16 @@ body {
 
 .editor-inline-text { outline: none; caret-color: rgb(99 102 241); }
 .editor-inline-text:focus { background: rgb(99 102 241 / .08); border-radius: 2px; }
+
+/* Dynamic content: bound widgets get a violet tag; loop copies are a read-only preview. */
+.editor-canvas [data-bound="true"]:hover::after,
+.editor-canvas [data-bound="true"][data-selected="true"]::after {
+  content: "⚡ dynamic";
+  position: absolute; top: -10px; right: 4px; z-index: 31;
+  padding: 0 6px; border-radius: 999px;
+  font: 600 10px/1.6 var(--font-sans), system-ui, sans-serif; letter-spacing: 0; text-transform: none;
+  color: #4c1d95; background: #ede9fe; box-shadow: 0 1px 2px rgb(0 0 0 / .15);
+  pointer-events: none;
+}
+.editor-canvas [data-loop-clone] { opacity: .72; }
+.editor-canvas [data-loop-clone] [data-editor-node]:hover { outline: none; }

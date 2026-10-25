@@ -2,8 +2,10 @@
 
 import { create } from "zustand";
 import { nodeCapabilities, parentMap, type EditContext } from "@/lib/builder/policy";
-import { createWidget, duplicateNode, findParent, insertNode, moveNode, removeNode } from "@/lib/builder/tree";
-import type { Breakpoint, BuilderDocument, LockSettings, SemanticTag, StyleKey, WidgetType } from "@/lib/builder/types";
+import type { DynamicData, DynamicPost } from "@/lib/cms/binding";
+import type { FieldType } from "@/lib/cms/fields";
+import { createWidgetTree, duplicateNode, enclosingLoop, findParent, insertNode, moveNode, removeNode } from "@/lib/builder/tree";
+import type { Binding, Breakpoint, BuilderDocument, LockSettings, SemanticTag, StyleKey, WidgetType } from "@/lib/builder/types";
 
 /**
  * Live canvas state: the working document, selection, viewport and an
@@ -21,6 +23,13 @@ export type SaveState = "idle" | "saving" | "saved" | "error";
 /** What is being dragged: a new widget from the palette, or an existing node. */
 export type DragItem = { kind: "new"; type: WidgetType } | { kind: "move"; id: string };
 
+/** What the designer can bind to: post types, their custom fields, and terms for loop filters. */
+export interface BindingCatalog {
+  postTypes: { id: string; label: string }[];
+  fields: Record<string, { key: string; label: string; type: FieldType }[]>;
+  terms: { id: string; label: string; postTypeIds: string[] }[];
+}
+
 interface EditorState {
   doc: BuilderDocument;
   savedDoc: BuilderDocument;
@@ -34,8 +43,19 @@ interface EditorState {
   saveState: SaveState;
   message: { tone: "info" | "error" | "success"; text: string; details?: string[] } | null;
   drag: DragItem | null;
+  /** Data the canvas renders bindings and loop grids with. */
+  dynamic: DynamicData | null;
+  catalog: BindingCatalog;
+  /** The post type the document renders entries of (a page's own type, or a single template's target). */
+  contextPostTypeId: string | null;
 
   init(doc: BuilderDocument, ctx: EditContext, version: number): void;
+  initDynamic(dynamic: DynamicData | null, catalog: BindingCatalog, contextPostTypeId: string | null): void;
+  setLoopItems(loopId: string, items: DynamicPost[]): void;
+  /** Designer-only: bind a widget target to dynamic data, or unbind with null. */
+  setBinding(nodeId: string, target: string, binding: Binding | null): boolean;
+  /** Designer-only: a non-content prop such as a loop grid's query. */
+  setDesignProp(nodeId: string, key: string, value: unknown): boolean;
   select(id: string | null): void;
   setEditingText(id: string | null): void;
   setViewport(bp: Breakpoint): void;
@@ -84,9 +104,44 @@ export const useEditor = create<EditorState>((set, get) => ({
   saveState: "idle",
   message: null,
   drag: null,
+  dynamic: null,
+  catalog: { postTypes: [], fields: {}, terms: [] },
+  contextPostTypeId: null,
 
   init: (doc, ctx, version) =>
     set({ doc, savedDoc: doc, ctx, version, past: [], future: [], selectedId: null, editingTextId: null, saveState: "idle" }),
+
+  initDynamic: (dynamic, catalog, contextPostTypeId) => set({ dynamic, catalog, contextPostTypeId }),
+
+  setLoopItems: (loopId, items) =>
+    set((s) => (s.dynamic ? { dynamic: { ...s.dynamic, loops: { ...s.dynamic.loops, [loopId]: items } } } : {})),
+
+  setBinding: (nodeId, target, binding) => {
+    const s = get();
+    if (!s.doc.nodes[nodeId] || !nodeCapabilities(s.doc, nodeId, s.ctx).isDesigner) return false;
+    set(
+      commit(
+        s,
+        withNode(s.doc, nodeId, (n) => {
+          const bindings = { ...n.bindings };
+          if (binding) bindings[target] = binding;
+          else delete bindings[target];
+          if (Object.keys(bindings).length) return { ...n, bindings };
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { bindings: _unused, ...rest } = n;
+          return rest;
+        }),
+      ),
+    );
+    return true;
+  },
+
+  setDesignProp: (nodeId, key, value) => {
+    const s = get();
+    if (!s.doc.nodes[nodeId] || !nodeCapabilities(s.doc, nodeId, s.ctx).isDesigner) return false;
+    set(commit(s, withNode(s.doc, nodeId, (n) => ({ ...n, props: { ...n.props, [key]: value } }))));
+    return true;
+  },
 
   select: (id) => set({ selectedId: id, editingTextId: get().editingTextId === id ? id : null }),
   setEditingText: (id) => set({ editingTextId: id }),
@@ -151,8 +206,15 @@ export const useEditor = create<EditorState>((set, get) => ({
   insertWidget: (type, parentId, index) => {
     const s = get();
     if (!nodeCapabilities(s.doc, parentId, s.ctx).isDesigner) return false;
-    const node = createWidget(s.doc, type);
-    const next = insertNode(s.doc, node, parentId, index);
+    if (type === "loop" && (s.doc.nodes[parentId]?.type === "loop" || enclosingLoop(s.doc, parentId))) {
+      s.notify({ tone: "error", text: "Loop grids can't go inside another loop grid." });
+      return false;
+    }
+    const { node, extra } = createWidgetTree(s.doc, type);
+    if (type === "loop" && s.catalog.postTypes[0]) {
+      node.props = { ...node.props, query: { ...(node.props.query as object), postTypeId: s.catalog.postTypes[0].id } };
+    }
+    const next = insertNode(s.doc, node, parentId, index, extra);
     if (!next) return false;
     set({ ...commit(s, next), selectedId: node.id });
     return true;

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session-token";
+import { SITE_ROOT_HEADER } from "@/lib/site-url";
 
 /**
  * Edge of the platform (Next.js 16 "proxy", formerly middleware).
@@ -35,9 +36,17 @@ export async function proxy(request: NextRequest) {
     const tenantKey = host.endsWith(`.${root}`) ? host.slice(0, -(root.length + 1)) : host;
     const url = request.nextUrl.clone();
     url.pathname = `/sites/${encodeURIComponent(tenantKey)}${pathname === "/" ? "" : pathname}`;
-    return NextResponse.rewrite(url);
+    // Tells the site renderer its links live at the domain root, not under /sites/<key>.
+    const headers = new Headers(request.headers);
+    headers.set(SITE_ROOT_HEADER, "1");
+    return NextResponse.rewrite(url, { request: { headers } });
   }
 
+  if (request.headers.has(SITE_ROOT_HEADER)) {
+    const headers = new Headers(request.headers);
+    headers.delete(SITE_ROOT_HEADER);
+    return NextResponse.next({ request: { headers } });
+  }
   return NextResponse.next();
 }
 

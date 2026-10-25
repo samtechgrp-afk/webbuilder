@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
-import { nodeCapabilities, parentMap } from "@/lib/builder/policy";
+import { CLONE_SEP } from "@/lib/cms/binding";
+import { isBoundField, nodeCapabilities, parentMap } from "@/lib/builder/policy";
 import { SiteDocument, type RenderHooks } from "@/lib/builder/render";
 import type { DesignTokens } from "@/lib/builder/styles";
 import { BREAKPOINTS } from "@/lib/builder/types";
@@ -23,6 +24,7 @@ export function Canvas({ tokens }: { tokens: DesignTokens }) {
   const select = useEditor((s) => s.select);
   const setEditingText = useEditor((s) => s.setEditingText);
   const drag = useEditor((s) => s.drag);
+  const dynamic = useEditor((s) => s.dynamic);
   const frameRef = useRef<HTMLDivElement>(null);
   const [drop, setDrop] = useState<DropTarget | null>(null);
 
@@ -30,8 +32,11 @@ export function Canvas({ tokens }: { tokens: DesignTokens }) {
     const parents = parentMap(doc);
     return {
       nodeProps: (node) => {
+        // Loop grid copies preview real entries but aren't editable; the first item is the template.
+        if (node.id.includes(CLONE_SEP)) return { "data-loop-clone": "", inert: true };
         const caps = nodeCapabilities(doc, node.id, ctx, parents);
-        const isText = node.type === "heading" || node.type === "text";
+        const bound = !!node.bindings && Object.keys(node.bindings).length > 0;
+        const isText = (node.type === "heading" || node.type === "text") && !isBoundField(doc, node.id, "text");
         const draggable = caps.isDesigner && node.id !== doc.rootId && editingTextId !== node.id;
         return {
           draggable: draggable || undefined,
@@ -47,7 +52,8 @@ export function Canvas({ tokens }: { tokens: DesignTokens }) {
           "data-node-id": node.id,
           "data-label": node.name ?? WIDGETS[node.type].label,
           "data-selected": selectedId === node.id ? "true" : undefined,
-          "data-editable": caps.canEditContent ? "true" : undefined,
+          "data-editable": caps.canEditContent && !(bound && WIDGETS[node.type].contentFields.every((f) => isBoundField(doc, node.id, f.key))) ? "true" : undefined,
+          "data-bound": bound ? "true" : undefined,
           "data-lock": caps.locks.layout && WIDGETS[node.type].isContainer && node.locks?.layout ? "layout" : undefined,
           "data-content-lock": caps.locks.content && WIDGETS[node.type].contentFields.length ? "true" : undefined,
           onClick: (e: MouseEvent) => {
@@ -68,7 +74,12 @@ export function Canvas({ tokens }: { tokens: DesignTokens }) {
           },
         };
       },
-      text: (node, field, value) => <InlineText key={`${node.id}:${editingTextId === node.id}`} nodeId={node.id} field={field} value={value} multiline={node.type === "text"} />,
+      text: (node, field, value) =>
+        node.id.includes(CLONE_SEP) || isBoundField(doc, node.id, field) ? (
+          value
+        ) : (
+          <InlineText key={`${node.id}:${editingTextId === node.id}`} nodeId={node.id} field={field} value={value} multiline={node.type === "text"} />
+        ),
     };
   }, [doc, ctx, selectedId, editingTextId, select, setEditingText]);
 
@@ -122,7 +133,7 @@ export function Canvas({ tokens }: { tokens: DesignTokens }) {
         }}
         onDrop={onDrop}
       >
-        <SiteDocument doc={doc} tokens={tokens} hooks={hooks} />
+        <SiteDocument doc={doc} tokens={tokens} hooks={hooks} data={dynamic ?? undefined} editor />
         {drop && (
           <div
             aria-hidden
