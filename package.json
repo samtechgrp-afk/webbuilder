@@ -14,7 +14,8 @@
     "e2e": "node scripts/e2e-client-workflow.mjs",
     "e2e:designer": "node scripts/e2e-designer-workflow.mjs",
     "e2e:cms": "node scripts/e2e-cms-workflow.mjs",
-    "e2e:404": "node scripts/e2e-404.mjs"
+    "e2e:404": "node scripts/e2e-404.mjs",
+    "e2e:tokens": "node scripts/e2e-tokens.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

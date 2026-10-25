@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ClientEditor } from "@/components/editor/ClientEditor";
 import type { DesignTokens } from "@/lib/builder/styles";
 import { isBuilderDocument } from "@/lib/builder/types";
+import { prisma } from "@/lib/db";
 import { getTenant } from "@/lib/tenant";
 import { postTypesForRules } from "@/lib/cms/location";
 import type { BindingCatalog } from "@/components/editor/store";
@@ -27,6 +28,7 @@ export default async function EditPage({ params }: PageProps<"/admin/sites/[site
     ? await t.db.post.findFirst({ where: { postTypeId: templateFor.id, status: { not: "TRASHED" } }, orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }], select: { id: true, title: true } })
     : { id: post.id, title: post.title };
 
+  const tokenState = await prisma.site.findUniqueOrThrow({ where: { id: t.site.id }, select: { designTokens: true, designTokensVersion: true } });
   const [lock, assets, revisions, latest, postTypes, groups, taxonomies] = await Promise.all([
     acquireEditLock(t, post.id),
     t.db.mediaAsset.findMany({
@@ -72,7 +74,8 @@ export default async function EditPage({ params }: PageProps<"/admin/sites/[site
         version={latest._max.version ?? 0}
         permissions={[...t.permissions]}
         roleName={t.role.name}
-        tokens={(t.site.designTokens ?? {}) as DesignTokens}
+        tokens={(tokenState.designTokens ?? {}) as DesignTokens}
+        tokensVersion={tokenState.designTokensVersion}
         assets={assets}
         revisions={revisions.map((r) => ({
           id: r.id,
