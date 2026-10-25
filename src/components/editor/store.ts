@@ -5,6 +5,8 @@ import { nodeCapabilities, parentMap, type EditContext } from "@/lib/builder/pol
 import type { DynamicData, DynamicPost } from "@/lib/cms/binding";
 import type { FieldType } from "@/lib/cms/fields";
 import { createWidgetTree, duplicateNode, enclosingLoop, findParent, insertNode, moveNode, removeNode } from "@/lib/builder/tree";
+import { hasPermission } from "@/lib/rbac";
+import type { DesignTokens } from "@/lib/design/tokens";
 import type { Binding, Breakpoint, BuilderDocument, LockSettings, SemanticTag, StyleKey, WidgetType } from "@/lib/builder/types";
 
 /**
@@ -48,10 +50,22 @@ interface EditorState {
   catalog: BindingCatalog;
   /** The post type the document renders entries of (a page's own type, or a single template's target). */
   contextPostTypeId: string | null;
+  /**
+   * Working copy of the site's global tokens. The canvas renders from it, so
+   * the design-system drawer restyles every widget as you edit; it is saved
+   * on its own (site-wide), separately from the page.
+   */
+  tokens: DesignTokens | null;
+  savedTokens: DesignTokens | null;
+  tokensVersion: number;
 
   init(doc: BuilderDocument, ctx: EditContext, version: number): void;
   initDynamic(dynamic: DynamicData | null, catalog: BindingCatalog, contextPostTypeId: string | null): void;
   setLoopItems(loopId: string, items: DynamicPost[]): void;
+  initTokens(tokens: DesignTokens, version: number): void;
+  /** Designer-only (`design.tokens`): live-edit the global tokens. */
+  setTokens(tokens: DesignTokens): boolean;
+  markTokensSaved(tokens: DesignTokens, version: number): void;
   /** Designer-only: bind a widget target to dynamic data, or unbind with null. */
   setBinding(nodeId: string, target: string, binding: Binding | null): boolean;
   /** Designer-only: a non-content prop such as a loop grid's query. */
@@ -107,11 +121,22 @@ export const useEditor = create<EditorState>((set, get) => ({
   dynamic: null,
   catalog: { postTypes: [], fields: {}, terms: [] },
   contextPostTypeId: null,
+  tokens: null,
+  savedTokens: null,
+  tokensVersion: 0,
 
   init: (doc, ctx, version) =>
     set({ doc, savedDoc: doc, ctx, version, past: [], future: [], selectedId: null, editingTextId: null, saveState: "idle" }),
 
   initDynamic: (dynamic, catalog, contextPostTypeId) => set({ dynamic, catalog, contextPostTypeId }),
+
+  initTokens: (tokens, tokensVersion) => set({ tokens, savedTokens: tokens, tokensVersion }),
+  setTokens: (tokens) => {
+    if (!hasPermission(get().ctx.permissions, "design.tokens")) return false;
+    set({ tokens });
+    return true;
+  },
+  markTokensSaved: (tokens, tokensVersion) => set({ tokens, savedTokens: tokens, tokensVersion }),
 
   setLoopItems: (loopId, items) =>
     set((s) => (s.dynamic ? { dynamic: { ...s.dynamic, loops: { ...s.dynamic.loops, [loopId]: items } } } : {})),
@@ -302,3 +327,5 @@ export function parentOf(doc: BuilderDocument, id: string) {
   if (parentsCache.doc !== doc) parentsCache = { doc, map: parentMap(doc) };
   return parentsCache.map.get(id);
 }
+
+export const selectTokensDirty = (s: EditorState) => s.tokens !== s.savedTokens && JSON.stringify(s.tokens) !== JSON.stringify(s.savedTokens);

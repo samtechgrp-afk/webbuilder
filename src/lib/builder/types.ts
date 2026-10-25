@@ -48,6 +48,7 @@ export interface StyleProps {
   border?: string;
   borderRadius?: string;
   boxShadow?: string;
+  backdropFilter?: string;
   opacity?: string;
 }
 

@@ -1,5 +1,7 @@
 import type { BuilderDocument, StyleProps } from "./types";
 import { BREAKPOINTS, BREAKPOINT_ORDER } from "./types";
+import { safeCssValue, safeIdent } from "../design/css-values";
+import { tokensToCss, type DesignTokens } from "../design/tokens";
 
 /**
  * Real-time style injection. Each node gets a class (`n-<id>`) and its
@@ -8,33 +10,8 @@ import { BREAKPOINTS, BREAKPOINT_ORDER } from "./types";
  * and mobile exactly like a real device, without an iframe.
  */
 
-export interface DesignTokens {
-  colors?: Record<string, string>;
-  fonts?: Record<string, string>;
-  fontSizes?: Record<string, string>;
-  radii?: Record<string, string>;
-  shadows?: Record<string, string>;
-  spacing?: Record<string, string>;
-}
-
-const TOKEN_PREFIX: Record<keyof DesignTokens, string> = {
-  colors: "color",
-  fonts: "font",
-  fontSizes: "text",
-  radii: "radius",
-  shadows: "shadow",
-  spacing: "space",
-};
-
-/** Rejects anything that could break out of a declaration or the <style> element. */
-export function safeCssValue(value: unknown): string | null {
-  if (typeof value !== "string" && typeof value !== "number") return null;
-  const v = String(value).trim();
-  if (!v || v.length > 300 || /[;{}<>\\]|\/\*|@import|expression\(|url\(/i.test(v)) return null;
-  return v;
-}
-
-const safeIdent = (s: string) => s.replace(/[^a-zA-Z0-9_-]/g, "");
+export { safeCssValue } from "../design/css-values";
+export { resolveColor, tokensToCss, type DesignTokens } from "../design/tokens";
 
 export const nodeClass = (id: string) => `n-${safeIdent(id)}`;
 
@@ -50,22 +27,17 @@ function declarations(style: StyleProps): string {
     .join(";");
 }
 
-export function tokensToCss(tokens: DesignTokens, scope = ".site-root"): string {
-  const vars: string[] = [];
-  for (const [group, prefix] of Object.entries(TOKEN_PREFIX) as [keyof DesignTokens, string][]) {
-    for (const [name, value] of Object.entries(tokens[group] ?? {})) {
-      const v = safeCssValue(value);
-      if (v) vars.push(`--${prefix}-${safeIdent(name)}:${v}`);
-    }
-  }
-  return `${scope}{${vars.join(";")}}`;
-}
-
 const BASE_CSS = `
 .site-root{container:site/inline-size;min-height:100dvh;font-family:var(--font-body,system-ui,sans-serif);color:var(--color-text,#111);background:var(--color-background,#fff);-webkit-font-smoothing:antialiased}
 .site-root *,.site-root *::before,.site-root *::after{box-sizing:border-box}
 .site-root h1,.site-root h2,.site-root h3,.site-root h4,.site-root p{margin:0}
 .site-root [data-w="text"]{white-space:pre-line}
+:where(.site-root)>*{font-size:var(--text-body);line-height:var(--leading-body)}
+:where(.site-root) :is(h1,h2,h3,h4){font-family:var(--font-heading);color:var(--color-heading);line-height:var(--leading-tight);letter-spacing:var(--tracking-tight)}
+:where(.site-root) h1{font-size:var(--text-h1,2em)}
+:where(.site-root) h2{font-size:var(--text-h2,1.5em)}
+:where(.site-root) h3{font-size:var(--text-h3,1.17em)}
+:where(.site-root) h4{font-size:var(--text-h4,1em)}
 .site-root [data-w="image"]{overflow:hidden}
 .site-root [data-w="image"]:not(:has(img)){min-height:120px;background:repeating-linear-gradient(135deg,rgba(0,0,0,.04) 0 12px,rgba(0,0,0,.08) 12px 24px)}
 .site-root [data-w="image"] img{display:block;width:100%;height:100%;object-fit:inherit}
@@ -124,11 +96,4 @@ export function contrastRatio(fg: string, bg: string): number | null {
   if (!a || !b) return null;
   const [l1, l2] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (l1 + 0.05) / (l2 + 0.05);
-}
-
-/** Resolves `var(--color-x)` against the token palette so contrast can be checked. */
-export function resolveColor(value: string | undefined, tokens: DesignTokens): string | undefined {
-  if (!value) return undefined;
-  const m = value.match(/^var\(--color-([\w-]+)\)$/);
-  return m ? tokens.colors?.[m[1]] : value;
 }

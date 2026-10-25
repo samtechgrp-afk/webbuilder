@@ -32,6 +32,7 @@ export const TENANT_MODELS = new Set<Prisma.ModelName>([
   "MediaFolder",
   "MediaAsset",
   "AuditLog",
+  "DesignTokenRevision",
 ]);
 
 const WHERE_OPS = new Set([

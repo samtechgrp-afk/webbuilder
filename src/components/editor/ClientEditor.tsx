@@ -12,7 +12,8 @@ import { Canvas } from "./Canvas";
 import { Inspector } from "./Inspector";
 import type { PickerAsset } from "./MediaPicker";
 import { DesignSidebar } from "./DesignSidebar";
-import { parentOf, selectIsDirty, useEditor, type BindingCatalog } from "./store";
+import { DesignSystemDrawer } from "./DesignSystemDrawer";
+import { parentOf, selectIsDirty, selectTokensDirty, useEditor, type BindingCatalog } from "./store";
 
 export interface RevisionSummary {
   id: string;
@@ -32,6 +33,7 @@ export interface ClientEditorProps {
   permissions: string[];
   roleName: string;
   tokens: DesignTokens;
+  tokensVersion: number;
   assets: PickerAsset[];
   revisions: RevisionSummary[];
   lock: { ok: true } | { ok: false; holder: string };
@@ -49,6 +51,7 @@ export function ClientEditor(props: ClientEditorProps) {
   const router = useRouter();
   const [assets, setAssets] = useState(props.assets);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [tokensOpen, setTokensOpen] = useState(false);
   const [lockLost, setLockLost] = useState<string | null>(props.lock.ok ? null : props.lock.holder);
   const [pending, startTransition] = useTransition();
 
@@ -57,11 +60,15 @@ export function ClientEditor(props: ClientEditorProps) {
   const can = (p: string) => props.permissions.includes(p);
   const readOnly = !!lockLost;
   const designMode = can("design.layout") && !readOnly;
+  // Global tokens are a Designer tool; Client Mode never sees the drawer.
+  const canTokens = designMode && can("design.tokens");
+  const tokens = useEditor((st) => st.tokens) ?? props.tokens;
 
   // Load the server document once per page/version. A read-only session gets no permissions at all.
   useEffect(() => {
     useEditor.getState().init(props.document, { permissions: readOnly ? [] : props.permissions }, props.version);
     useEditor.getState().initDynamic(props.dynamic, props.catalog, props.contextPostTypeId);
+    useEditor.getState().initTokens(props.tokens, props.tokensVersion);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id, readOnly]);
 
@@ -108,7 +115,7 @@ export function ClientEditor(props: ClientEditorProps) {
       }
     };
     const onUnload = (e: BeforeUnloadEvent) => {
-      if (selectIsDirty(useEditor.getState())) e.preventDefault();
+      if (selectIsDirty(useEditor.getState()) || selectTokensDirty(useEditor.getState())) e.preventDefault();
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("beforeunload", onUnload);
@@ -182,6 +189,16 @@ export function ClientEditor(props: ClientEditorProps) {
         <div className="flex items-center gap-1.5">
           <IconButton label="Undo" onClick={s.undo} disabled={!s.past.length}>↶</IconButton>
           <IconButton label="Redo" onClick={s.redo} disabled={!s.future.length}>↷</IconButton>
+          {canTokens && (
+            <button
+              type="button"
+              aria-pressed={tokensOpen}
+              onClick={() => setTokensOpen(!tokensOpen)}
+              className={`rounded-md px-2.5 py-1.5 text-xs ${tokensOpen ? "bg-zinc-700 text-white" : "text-zinc-300 hover:bg-zinc-800"}`}
+            >
+              Design system
+            </button>
+          )}
           <button type="button" onClick={() => setHistoryOpen(true)} className="rounded-md px-2.5 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800">
             History
           </button>
@@ -254,17 +271,19 @@ export function ClientEditor(props: ClientEditorProps) {
 
       <div className="flex min-h-0 flex-1">
         {designMode && <DesignSidebar />}
-        <Canvas tokens={props.tokens} />
+        <Canvas tokens={tokens} />
         <aside className="w-80 shrink-0 overflow-y-auto border-l border-zinc-200 bg-white" aria-label="Inspector">
           <Inspector
             siteId={site.id}
-            tokens={props.tokens}
+            tokens={tokens}
             assets={assets}
             canUpload={can("media.upload")}
             onAssetUploaded={(a) => setAssets((list) => [a, ...list])}
           />
         </aside>
       </div>
+
+      {canTokens && tokensOpen && <DesignSystemDrawer siteId={site.id} onClose={() => setTokensOpen(false)} />}
 
       {historyOpen && (
         <HistoryPanel revisions={props.revisions} canRestore={can("revisions.restore") && !readOnly} onRestore={restore} onClose={() => setHistoryOpen(false)} pending={pending} />

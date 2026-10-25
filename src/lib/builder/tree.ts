@@ -12,7 +12,7 @@ const STYLE_KEYS = new Set<StyleKey>([
   "display", "flexDirection", "flexWrap", "justifyContent", "alignItems", "gap", "gridTemplateColumns",
   "gridColumn", "padding", "margin", "width", "maxWidth", "minHeight", "aspectRatio", "objectFit",
   "background", "color", "fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing",
-  "textAlign", "textTransform", "border", "borderRadius", "boxShadow", "opacity",
+  "textAlign", "textTransform", "border", "borderRadius", "boxShadow", "backdropFilter", "opacity",
 ]);
 
 export function isContainer(doc: BuilderDocument, id: string) {
