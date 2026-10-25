@@ -1,6 +1,6 @@
-import type { Breakpoint, BuilderDocument, BuilderNode, StyleKey, WidgetType } from "./types";
+import type { Binding, Breakpoint, BuilderDocument, BuilderNode, LoopQuery, StyleKey, WidgetType } from "./types";
 import { BREAKPOINT_ORDER } from "./types";
-import { WIDGETS } from "./widgets";
+import { BINDABLE, WIDGETS } from "./widgets";
 
 /**
  * Pure, immutable tree operations for the designer canvas. Each returns a new
@@ -53,6 +53,41 @@ export function createWidget(doc: BuilderDocument, type: WidgetType): BuilderNod
   };
   if (def.isContainer) node.children = [];
   return node;
+}
+
+/**
+ * A widget plus any children it starts with. A loop grid arrives with a
+ * ready-made card (image, title, excerpt, link) already bound to the loop
+ * item, so a designer sees real entries the moment it lands.
+ */
+export function createWidgetTree(doc: BuilderDocument, type: WidgetType): { node: BuilderNode; extra: Record<string, BuilderNode> } {
+  const node = createWidget(doc, type);
+  if (type !== "loop") return { node, extra: {} };
+  const scratch: BuilderDocument = { ...doc, nodes: { ...doc.nodes, [node.id]: node } };
+  const extra: Record<string, BuilderNode> = {};
+  const add = (n: BuilderNode) => {
+    scratch.nodes[n.id] = n;
+    extra[n.id] = n;
+    return n;
+  };
+  const bind = (n: BuilderNode, target: string, binding: Binding) => ({ ...n, bindings: { ...n.bindings, [target]: binding } });
+
+  const image = add(bind(createWidget(scratch, "image"), "image", { source: "post", key: "featured_image" }));
+  const title = add(bind({ ...createWidget(scratch, "heading"), tag: "h3" }, "text", { source: "post", key: "title" }));
+  title.style = { desktop: { fontFamily: "var(--font-display)", fontSize: "1.5rem", lineHeight: "1.2" } };
+  const excerpt = add(bind(createWidget(scratch, "text"), "text", { source: "post", key: "excerpt" }));
+  const button = createWidget(scratch, "button");
+  button.props = { link: { label: "Read more", href: "#" } };
+  add(bind(button, "link.href", { source: "post", key: "url" }));
+  const card = add({
+    ...createWidget(scratch, "container"),
+    name: "Loop item",
+    tag: "article",
+    children: [image.id, title.id, excerpt.id, button.id],
+    style: { desktop: { display: "flex", flexDirection: "column", gap: "var(--space-sm)", alignItems: "flex-start" } },
+  });
+  node.children = [card.id];
+  return { node, extra };
 }
 
 function placeChild(children: string[], childId: string, index: number) {
@@ -155,11 +190,59 @@ export function structuralProblem(doc: BuilderDocument): string | null {
       if (!BREAKPOINT_ORDER.includes(bp as Breakpoint)) return `Unknown breakpoint "${bp}"`;
       for (const key of Object.keys(style ?? {})) if (!STYLE_KEYS.has(key as StyleKey)) return `Unknown style "${key}"`;
     }
+    const bindingIssue = bindingProblem(node);
+    if (bindingIssue) return bindingIssue;
+    if (node.type === "loop" && !isLoopQuery(node.props.query)) return "Loop grid query is invalid";
   }
   const reachable = subtreeIds(doc, doc.rootId);
   if (new Set(reachable).size !== reachable.length) return "The page contains a loop";
   if (reachable.length !== Object.keys(doc.nodes).length) return "The page has detached elements";
+  for (const node of Object.values(doc.nodes)) {
+    if (node.type !== "loop") continue;
+    if (subtreeIds(doc, node.id).slice(1).some((id) => doc.nodes[id].type === "loop")) return "Loop grids can't be nested";
+  }
   return null;
+}
+
+const BINDING_KEY_RE = /^[a-z][a-z0-9_]{0,39}$/;
+
+function bindingProblem(node: BuilderNode): string | null {
+  if (node.bindings === undefined) return null;
+  if (!node.bindings || typeof node.bindings !== "object" || Array.isArray(node.bindings)) return "Bindings are malformed";
+  const targets = new Set(BINDABLE[node.type].map((t) => t.key));
+  for (const [target, b] of Object.entries(node.bindings)) {
+    if (!targets.has(target)) return `${WIDGETS[node.type].label} can't bind "${target}"`;
+    if (!b || !["post", "field", "site"].includes(b.source) || typeof b.key !== "string" || !BINDING_KEY_RE.test(b.key)) {
+      return "A dynamic binding is malformed";
+    }
+    if (b.fallback !== undefined && (typeof b.fallback !== "string" || b.fallback.length > 200)) return "A binding fallback is too long";
+  }
+  return null;
+}
+
+export const MAX_LOOP_ITEMS = 24;
+
+export function isLoopQuery(q: unknown): q is LoopQuery {
+  if (!q || typeof q !== "object") return false;
+  const v = q as Partial<LoopQuery>;
+  return (
+    (v.postTypeId === null || (typeof v.postTypeId === "string" && v.postTypeId.length <= 40)) &&
+    Number.isInteger(v.limit) && v.limit! >= 1 && v.limit! <= MAX_LOOP_ITEMS &&
+    ["date", "title", "menu"].includes(v.orderBy as string) &&
+    ["asc", "desc"].includes(v.order as string) &&
+    (v.termId === undefined || v.termId === null || (typeof v.termId === "string" && v.termId.length <= 40)) &&
+    (v.offset === undefined || (Number.isInteger(v.offset) && v.offset >= 0 && v.offset <= 100))
+  );
+}
+
+/** The nearest loop grid above a node (exclusive), if any. */
+export function enclosingLoop(doc: BuilderDocument, id: string): string | undefined {
+  let current = findParent(doc, id);
+  while (current) {
+    if (doc.nodes[current]?.type === "loop") return current;
+    current = findParent(doc, current);
+  }
+  return undefined;
 }
 
 /** The value a style key resolves to at `bp`, walking up the desktop-first cascade. */

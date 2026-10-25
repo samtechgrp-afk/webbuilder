@@ -2,10 +2,13 @@
 
 import { useState, type ReactNode } from "react";
 import { isSafeHref } from "@/lib/builder/content";
-import { isDesigner, nodeCapabilities } from "@/lib/builder/policy";
+import { POST_SOURCES, SITE_SOURCES } from "@/lib/cms/binding";
+import { FIELD_TYPE_INFO, type BindKind } from "@/lib/cms/fields";
+import { isBoundField, isDesigner, nodeCapabilities } from "@/lib/builder/policy";
+import { enclosingLoop, MAX_LOOP_ITEMS } from "@/lib/builder/tree";
 import { contrastRatio, resolveColor, type DesignTokens } from "@/lib/builder/styles";
-import type { BuilderDocument, ImageValue, LinkValue, PriceValue, StyleKey } from "@/lib/builder/types";
-import { WIDGETS, type ContentField } from "@/lib/builder/widgets";
+import type { Binding, BuilderDocument, ImageValue, LinkValue, LoopQuery, PriceValue, StyleKey } from "@/lib/builder/types";
+import { BINDABLE, WIDGETS, type BindTarget, type ContentField } from "@/lib/builder/widgets";
 import { DesignPanel } from "./DesignPanel";
 import { MediaPicker, type PickerAsset } from "./MediaPicker";
 import { parentOf, useEditor } from "./store";
@@ -42,10 +45,17 @@ export function Inspector(props: InspectorProps) {
 
       <LockNotice locks={caps.locks} isDesigner={caps.isDesigner} hasContent={def.contentFields.length > 0} />
 
-      {caps.canEditContent &&
-        def.contentFields.map((field) => (
+      {def.contentFields
+        .filter((field) => caps.canEditContent || isBoundField(doc, node.id, field.key))
+        .map((field) => (
           <Group key={field.key} title={field.label}>
-            <ContentEditor nodeId={node.id} field={field} value={node.props[field.key]} {...props} />
+            {isBoundField(doc, node.id, field.key) ? (
+              <p className="rounded-md bg-violet-50 px-3 py-2 text-xs leading-relaxed text-violet-900" data-bound-note="">
+                <span className="font-semibold">Dynamic content.</span> This shows {describeBindings(node.bindings ?? {}, field.key)}. Change it in the entry it comes from.
+              </p>
+            ) : (
+              <ContentEditor nodeId={node.id} field={field} value={node.props[field.key]} {...props} />
+            )}
           </Group>
         ))}
 
@@ -73,8 +83,10 @@ export function Inspector(props: InspectorProps) {
 function DesignerInspector({ nodeId, ...props }: { nodeId: string } & InspectorProps) {
   const node = useEditor((s) => s.doc.nodes[nodeId]);
   const def = WIDGETS[node.type];
-  const [tab, setTab] = useState<"style" | "content" | "guardrails">(def.contentFields.length ? "content" : "style");
-  const tabs = [...(def.contentFields.length ? (["content"] as const) : []), "style" as const, "guardrails" as const];
+  const dynamicTab = node.type === "loop" || BINDABLE[node.type].length > 0;
+  const [tab, setTab] = useState<"style" | "content" | "dynamic" | "guardrails">(node.type === "loop" ? "dynamic" : def.contentFields.length ? "content" : "style");
+  const tabs = [...(def.contentFields.length ? (["content"] as const) : []), ...(dynamicTab ? (["dynamic"] as const) : []), "style" as const, "guardrails" as const];
+  const doc = useEditor((s) => s.doc);
   return (
     <div>
       <div className="sticky top-0 z-10 space-y-2 border-b border-zinc-200 bg-white px-4 pb-2 pt-3">
@@ -102,9 +114,13 @@ function DesignerInspector({ nodeId, ...props }: { nodeId: string } & InspectorP
           def.contentFields.map((field) => (
             <div key={field.key} className="space-y-2 py-2">
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{field.label}</h3>
+              {isBoundField(doc, node.id, field.key) && (
+                <p className="text-xs text-violet-800">Bound to {describeBindings(node.bindings ?? {}, field.key)}. The value below is the fallback used in previews only.</p>
+              )}
               <ContentEditor nodeId={node.id} field={field} value={node.props[field.key]} {...props} />
             </div>
           ))}
+        {tab === "dynamic" && (node.type === "loop" ? <LoopQueryEditor nodeId={node.id} /> : <BindingEditor nodeId={node.id} />)}
         {tab === "style" && <DesignPanel node={node} tokens={props.tokens} />}
         {tab === "guardrails" && (
           <div className="py-2">
@@ -264,6 +280,47 @@ function ContentEditor({
       );
     }
 
+    case "gallery": {
+      const images = Array.isArray(value) ? (value as ImageValue[]) : [];
+      return (
+        <div className="space-y-2">
+          <ul className="space-y-2">
+            {images.map((img, i) => (
+              <li key={`${img.assetId}-${i}`} className="flex gap-2 rounded-md border border-zinc-200 p-1.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.src} alt="" className="h-12 w-16 shrink-0 rounded object-cover" />
+                <div className="min-w-0 flex-1 space-y-1">
+                  <CommitInput aria-label={`Alt text for image ${i + 1}`} placeholder="Alt text" value={img.alt} maxLength={300} onCommit={(alt) => set(images.map((x, j) => (j === i ? { ...x, alt } : x)))} />
+                  <div className="flex gap-1 text-[11px]">
+                    <button type="button" disabled={i === 0} onClick={() => set(swap(images, i, i - 1))} className="rounded border border-zinc-300 px-1.5 disabled:opacity-40" aria-label={`Move image ${i + 1} earlier`}>↑</button>
+                    <button type="button" disabled={i === images.length - 1} onClick={() => set(swap(images, i, i + 1))} className="rounded border border-zinc-300 px-1.5 disabled:opacity-40" aria-label={`Move image ${i + 1} later`}>↓</button>
+                    <button type="button" onClick={() => set(images.filter((_, j) => j !== i))} className="rounded border border-red-200 px-1.5 text-red-700" aria-label={`Remove image ${i + 1}`}>Remove</button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <button type="button" disabled={images.length >= 24} onClick={() => setPicking(true)} className="w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50">
+            Add image
+          </button>
+          {picking && (
+            <MediaPicker
+              siteId={siteId}
+              assets={assets}
+              canUpload={canUpload}
+              currentId={null}
+              onClose={() => setPicking(false)}
+              onUploaded={onAssetUploaded}
+              onPick={(a) => {
+                set([...images, { assetId: a.id, src: a.url, alt: a.altText ?? "", width: a.width ?? undefined, height: a.height ?? undefined }]);
+                setPicking(false);
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+
     case "link": {
       const link = (value as LinkValue) ?? { label: "", href: "" };
       return <LinkEditor link={link} onChange={set} />;
@@ -292,6 +349,190 @@ function ContentEditor({
       );
     }
   }
+}
+
+function swap<T>(list: T[], a: number, b: number) {
+  const next = [...list];
+  [next[a], next[b]] = [next[b], next[a]];
+  return next;
+}
+
+function sourceLabel(b: Binding, fieldLabel?: string) {
+  if (b.source === "post") return POST_SOURCES[b.key]?.label ?? b.key;
+  if (b.source === "site") return SITE_SOURCES[b.key]?.label ?? b.key;
+  return `the “${fieldLabel ?? b.key}” field`;
+}
+
+function describeBindings(bindings: Record<string, Binding>, field: string) {
+  return Object.entries(bindings)
+    .filter(([target]) => target.split(".")[0] === field)
+    .map(([, b]) => sourceLabel(b).replace(/^([A-Z])/, (c) => c.toLowerCase()))
+    .join(" and ");
+}
+
+/** Binding options for one target, grouped by where the data comes from. */
+function useBindingOptions(nodeId: string, accepts: BindKind) {
+  const doc = useEditor((s) => s.doc);
+  const catalog = useEditor((s) => s.catalog);
+  const contextPostTypeId = useEditor((s) => s.contextPostTypeId);
+  const loopId = enclosingLoop(doc, nodeId);
+  const postTypeId = loopId ? ((doc.nodes[loopId].props.query as LoopQuery | undefined)?.postTypeId ?? null) : contextPostTypeId;
+  const postType = catalog.postTypes.find((p) => p.id === postTypeId);
+  const groups: { label: string; options: { value: string; label: string }[] }[] = [];
+  if (postTypeId) {
+    groups.push({
+      label: loopId ? `Each ${postType?.label ?? "entry"} in the loop` : `This ${postType?.label ?? "entry"}`,
+      options: Object.entries(POST_SOURCES)
+        .filter(([, src]) => src.kinds.includes(accepts))
+        .map(([key, src]) => ({ value: `post:${key}`, label: src.label })),
+    });
+    const fields = (catalog.fields[postTypeId] ?? []).filter((f) => FIELD_TYPE_INFO[f.type].bind.includes(accepts));
+    if (fields.length) groups.push({ label: "Custom fields", options: fields.map((f) => ({ value: `field:${f.key}`, label: f.label })) });
+  }
+  groups.push({
+    label: "Site",
+    options: Object.entries(SITE_SOURCES)
+      .filter(([, src]) => src.kinds.includes(accepts))
+      .map(([key, src]) => ({ value: `site:${key}`, label: src.label })),
+  });
+  return { groups: groups.filter((g) => g.options.length), loopId, postTypeId };
+}
+
+function BindingEditor({ nodeId }: { nodeId: string }) {
+  const node = useEditor((s) => s.doc.nodes[nodeId]);
+  const targets = BINDABLE[node.type];
+  const loopId = enclosingLoop(useEditor.getState().doc, nodeId);
+  const contextPostTypeId = useEditor((s) => s.contextPostTypeId);
+  return (
+    <div className="space-y-4 py-2">
+      <p className="text-[11px] leading-relaxed text-zinc-500">
+        {loopId
+          ? "This widget is inside a loop grid, so it can show data from each entry the loop lists."
+          : contextPostTypeId
+            ? "Show data from this page (or, in a single template, the entry it renders), or from the site."
+            : "Show site-wide data here. Put the widget in a loop grid to show entries."}{" "}
+        Bound values are read only for clients.
+      </p>
+      {targets.map((t) => (
+        <BindingRow key={t.key} nodeId={nodeId} target={t} binding={node.bindings?.[t.key]} />
+      ))}
+    </div>
+  );
+}
+
+function BindingRow({ nodeId, target, binding }: { nodeId: string; target: BindTarget; binding?: Binding }) {
+  const setBinding = useEditor((s) => s.setBinding);
+  const { groups } = useBindingOptions(nodeId, target.accepts);
+  const value = binding ? `${binding.source}:${binding.key}` : "";
+  const known = groups.some((g) => g.options.some((o) => o.value === value));
+  const id = `bind-${nodeId}-${target.key}`;
+  return (
+    <div className="space-y-1.5" data-binding-row={target.key}>
+      <label htmlFor={id} className="block text-xs font-medium text-zinc-700">
+        {target.label}
+      </label>
+      <select
+        id={id}
+        className={inputCls}
+        value={value}
+        onChange={(e) => {
+          if (!e.target.value) return setBinding(nodeId, target.key, null);
+          const [source, ...rest] = e.target.value.split(":");
+          setBinding(nodeId, target.key, { source: source as Binding["source"], key: rest.join(":"), fallback: binding?.fallback });
+        }}
+      >
+        <option value="">Static (not bound)</option>
+        {binding && !known && <option value={value}>{sourceLabel(binding)} (not available here)</option>}
+        {groups.map((g) => (
+          <optgroup key={g.label} label={g.label}>
+            {g.options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      {binding && target.accepts !== "gallery" && target.accepts !== "price" && (
+        <label className="block text-[11px] text-zinc-500">
+          Fallback when empty
+          <CommitInput aria-label={`${target.label} fallback`} value={binding.fallback ?? ""} maxLength={200} onCommit={(fallback) => setBinding(nodeId, target.key, { ...binding, fallback: fallback || undefined })} />
+        </label>
+      )}
+      {binding && !known && <p className="text-[11px] text-amber-700">This source isn&apos;t available in this spot, so the fallback shows.</p>}
+    </div>
+  );
+}
+
+function LoopQueryEditor({ nodeId }: { nodeId: string }) {
+  const query = useEditor((s) => s.doc.nodes[nodeId].props.query as LoopQuery);
+  const catalog = useEditor((s) => s.catalog);
+  const setDesignProp = useEditor((s) => s.setDesignProp);
+  const items = useEditor((s) => s.dynamic?.loops[nodeId]);
+  const set = (patch: Partial<LoopQuery>) => setDesignProp(nodeId, "query", { ...query, ...patch });
+  const terms = catalog.terms.filter((t) => query.postTypeId && t.postTypeIds.includes(query.postTypeId));
+  return (
+    <div className="space-y-3 py-2 text-xs text-zinc-700">
+      <p className="text-[11px] leading-relaxed text-zinc-500">
+        The first card is the template; the canvas repeats it with real published entries. Bind the widgets inside the first card to post data or custom fields.
+      </p>
+      {!catalog.postTypes.length && <p className="rounded bg-amber-50 px-2 py-1.5 text-amber-800">Create a post type first, then choose it here.</p>}
+      <label className="block space-y-1">
+        <span className="font-medium">Post type</span>
+        <select aria-label="Loop post type" className={inputCls} value={query.postTypeId ?? ""} onChange={(e) => set({ postTypeId: e.target.value || null, termId: null })} data-loop-type="">
+          <option value="">Choose…</option>
+          {catalog.postTypes.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {terms.length > 0 && (
+        <label className="block space-y-1">
+          <span className="font-medium">Only in category</span>
+          <select aria-label="Loop term filter" className={inputCls} value={query.termId ?? ""} onChange={(e) => set({ termId: e.target.value || null })}>
+            <option value="">Any</option>
+            {terms.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block space-y-1">
+          <span className="font-medium">Show</span>
+          <CommitInput aria-label="Loop limit" type="number" min={1} max={MAX_LOOP_ITEMS} value={String(query.limit)} onCommit={(v) => Number.isInteger(+v) && +v >= 1 && +v <= MAX_LOOP_ITEMS && set({ limit: +v })} />
+        </label>
+        <label className="block space-y-1">
+          <span className="font-medium">Skip</span>
+          <CommitInput aria-label="Loop offset" type="number" min={0} max={100} value={String(query.offset ?? 0)} onCommit={(v) => Number.isInteger(+v) && +v >= 0 && +v <= 100 && set({ offset: +v })} />
+        </label>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block space-y-1">
+          <span className="font-medium">Order by</span>
+          <select aria-label="Loop order by" className={inputCls} value={query.orderBy} onChange={(e) => set({ orderBy: e.target.value as LoopQuery["orderBy"] })}>
+            <option value="date">Publish date</option>
+            <option value="title">Title</option>
+            <option value="menu">Menu order</option>
+          </select>
+        </label>
+        <label className="block space-y-1">
+          <span className="font-medium">Direction</span>
+          <select aria-label="Loop order" className={inputCls} value={query.order} onChange={(e) => set({ order: e.target.value as LoopQuery["order"] })}>
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+          </select>
+        </label>
+      </div>
+      <p className="text-[11px] text-zinc-500" aria-live="polite">
+        {items === undefined ? "Loading preview…" : `${items.length} published ${items.length === 1 ? "entry" : "entries"} in the preview.`}
+      </p>
+    </div>
+  );
 }
 
 function LinkEditor({ link, onChange }: { link: LinkValue; onChange: (l: LinkValue) => void }) {

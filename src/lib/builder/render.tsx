@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { applyDynamic, baseNodeId, type DynamicData } from "@/lib/cms/binding";
 import { formatPrice } from "./content";
 import { buildCss, nodeClass, type DesignTokens } from "./styles";
 import type { BuilderDocument, BuilderNode, ImageValue, LinkValue, PriceValue } from "./types";
@@ -22,24 +23,64 @@ interface RenderOptions {
   doc: BuilderDocument;
   tokens?: DesignTokens;
   hooks?: RenderHooks;
+  /** Dynamic data for bindings and loop grids. Without it, bound widgets show their stored values. */
+  data?: DynamicData;
+  /** Canvas mode: empty bindings show their source name, empty loops keep their card. */
+  editor?: boolean;
+  /**
+   * Prefix for site-relative links. "/sites/aurelia" when the site is served
+   * under the platform path, "" on its own domain.
+   */
+  linkBase?: string;
 }
 
-export function SiteDocument({ doc, tokens = {}, hooks }: RenderOptions) {
+export function SiteDocument({ doc, tokens = {}, hooks, data, editor, linkBase = "" }: RenderOptions) {
+  // Styles come from the template document; loop copies reuse the original's class.
+  const view = data ? applyDynamic(doc, data, { editor }) : doc;
+  const ctx: Ctx = { doc: view, hooks, linkBase };
   return (
     <div className="site-root">
       <style dangerouslySetInnerHTML={{ __html: buildCss(doc, tokens) }} />
-      <NodeView id={doc.rootId} doc={doc} hooks={hooks} />
+      <NodeView id={view.rootId} ctx={ctx} />
     </div>
   );
 }
 
-function NodeView({ id, doc, hooks }: { id: string; doc: BuilderDocument; hooks?: RenderHooks }) {
+interface Ctx {
+  doc: BuilderDocument;
+  hooks?: RenderHooks;
+  linkBase: string;
+}
+
+const withBase = (href: string, base: string) => (base && /^\/(?!\/)/.test(href) ? `${base}${href === "/" ? "" : href}` || "/" : href);
+
+function Img({ img, priority, sizes }: { img: ImageValue; priority?: boolean; sizes?: string }) {
+  // Plain <img>: tenant media is already WebP with explicit dimensions and
+  // responsive variants, so there is no layout shift and nothing to optimise.
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={img.src}
+      srcSet={img.srcSet || undefined}
+      sizes={img.srcSet ? sizes ?? "100vw" : undefined}
+      alt={img.alt}
+      width={img.width}
+      height={img.height}
+      loading={priority ? "eager" : "lazy"}
+      fetchPriority={priority ? "high" : undefined}
+      decoding="async"
+    />
+  );
+}
+
+function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
+  const { doc, hooks, linkBase } = ctx;
   const node = doc.nodes[id];
   if (!node) return null;
   const def = WIDGETS[node.type];
   const Tag = (node.tag ?? def.defaultTag) as keyof React.JSX.IntrinsicElements;
   const common = {
-    className: nodeClass(node.id),
+    className: nodeClass(baseNodeId(node.id)),
     "data-w": node.type,
     ...hooks?.nodeProps?.(node),
   };
@@ -47,47 +88,58 @@ function NodeView({ id, doc, hooks }: { id: string; doc: BuilderDocument; hooks?
     const value = String(node.props[field] ?? "");
     return hooks?.text ? hooks.text(node, field, value) : value;
   };
+  const kids = () => (node.children ?? []).map((child) => <NodeView key={child} id={child} ctx={ctx} />);
 
   switch (node.type) {
     case "section":
-    case "container":
+    case "container": {
+      const bg = typeof node.props.__bg === "string" ? node.props.__bg : null;
+      const style: CSSProperties | undefined = bg
+        ? { backgroundImage: `url("${bg}")`, backgroundSize: "cover", backgroundPosition: "center" }
+        : undefined;
+      return (
+        <Tag {...common} style={style}>
+          {kids()}
+        </Tag>
+      );
+    }
+    case "loop":
       return (
         <Tag {...common}>
-          {(node.children ?? []).map((child) => (
-            <NodeView key={child} id={child} doc={doc} hooks={hooks} />
+          {kids()}
+          {node.props.__empty && !node.children?.length ? <p data-loop-empty="">{String(node.props.emptyText ?? "Nothing here yet.")}</p> : null}
+        </Tag>
+      );
+    case "richtext": {
+      const html = typeof node.props.html === "string" ? node.props.html : "";
+      // Server-sanitised on write (src/server/sanitize.ts) and only ever set by applyDynamic.
+      return html ? <Tag {...common} dangerouslySetInnerHTML={{ __html: html }} /> : <Tag {...common} data-empty="" />;
+    }
+    case "gallery": {
+      const images = (node.props.images as ImageValue[] | undefined) ?? [];
+      return (
+        <Tag {...common}>
+          {images.filter((img) => img?.src).map((img, i) => (
+            <figure key={`${img.assetId}-${i}`}>
+              <Img img={img} sizes="(max-width: 767px) 50vw, 33vw" />
+            </figure>
           ))}
         </Tag>
       );
+    }
     case "heading":
     case "text":
       return <Tag {...common}>{text("text")}</Tag>;
     case "image": {
       const img = node.props.image as ImageValue | undefined;
-      return (
-        <div {...common}>
-          {img?.src ? (
-            // Plain <img>: tenant media is already WebP with explicit
-            // dimensions, so there is no layout shift and nothing to optimise.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={img.src}
-              alt={img.alt}
-              width={img.width}
-              height={img.height}
-              loading={node.props.priority ? "eager" : "lazy"}
-              fetchPriority={node.props.priority ? "high" : undefined}
-              decoding="async"
-            />
-          ) : null}
-        </div>
-      );
+      return <div {...common}>{img?.src ? <Img img={img} priority={!!node.props.priority} /> : null}</div>;
     }
     case "button": {
       const link = node.props.link as LinkValue | undefined;
       return (
         <a
           {...common}
-          href={link?.href ?? "#"}
+          href={withBase(link?.href ?? "#", linkBase)}
           {...(link?.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
         >
           {link?.label}

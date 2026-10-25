@@ -65,6 +65,32 @@ async function publishPage(siteId: string, postTypeId: string, authorId: string,
   return post;
 }
 
+/** A published, non-builder entry: field values plus a revision whose meta snapshot the live site reads. */
+async function publishEntry(
+  siteId: string,
+  postTypeId: string,
+  authorId: string,
+  e: { title: string; slug: string; excerpt?: string; featuredImageId?: string | null; termIds?: string[]; fields?: Record<string, unknown>; html?: string; publishedAt?: Date },
+) {
+  const draft = { type: "html", html: e.html ?? "" };
+  const author = await prisma.user.findUniqueOrThrow({ where: { id: authorId } });
+  const post = await prisma.post.create({
+    data: { siteId, postTypeId, authorId, title: e.title, slug: e.slug, excerpt: e.excerpt, featuredImageId: e.featuredImageId, draft, status: "PUBLISHED", publishedAt: e.publishedAt ?? new Date() },
+  });
+  const fields = await prisma.customField.findMany({ where: { siteId, key: { in: Object.keys(e.fields ?? {}) } } });
+  for (const f of fields) await prisma.fieldValue.create({ data: { siteId, postId: post.id, fieldId: f.id, value: e.fields![f.key] as Prisma.InputJsonValue } });
+  for (const termId of e.termIds ?? []) await prisma.postTerm.create({ data: { postId: post.id, termId } });
+  const meta = {
+    fields: e.fields ?? {}, featuredImageId: e.featuredImageId ?? null, excerpt: e.excerpt ?? null, termIds: e.termIds ?? [],
+    template: null, parentId: null, authorName: author.name, seo: { seoTitle: null, seoDescription: null, noIndex: false },
+  };
+  const rev = await prisma.postRevision.create({
+    data: { siteId, postId: post.id, version: 1, kind: "PUBLISHED", title: e.title, document: draft, meta: meta as Prisma.InputJsonValue, message: "Published", authorId },
+  });
+  await prisma.post.update({ where: { id: post.id }, data: { publishedRevisionId: rev.id } });
+  return post;
+}
+
 async function main() {
   console.log("Resetting demo data…");
   await prisma.site.deleteMany();
@@ -93,6 +119,7 @@ async function main() {
 
   // ── Tenant 1: Aurelia Interiors ────────────────────────────────────────────
   const aurelia = await createSite({ name: "Aurelia Interiors", subdomain: "aurelia", branding: { accent: "#2B2620", logoText: "Aurelia" }, tokens: aureliaTokens });
+
   await prisma.membership.createMany({
     data: [
       { userId: designer.id, siteId: aurelia.site.id, roleId: roles.designer },
@@ -101,36 +128,77 @@ async function main() {
     ],
   });
   const images = await seedImages(aurelia.site.id, designer.id);
+  // Site identity for "Site" bindings: tagline and a monogram logo.
+  const logo = await processImage(aurelia.site.id, Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><rect width="240" height="240" rx="48" fill="#2B2620"/><text x="120" y="158" font-family="Georgia, serif" font-size="128" fill="#F4EFE7" text-anchor="middle">A</text></svg>`), "aurelia-monogram.png");
+  const logoAsset = await prisma.mediaAsset.create({ data: { ...logo, siteId: aurelia.site.id, uploadedById: designer.id, altText: "Aurelia Interiors", title: "Aurelia monogram", tags: ["brand"] } });
+  await prisma.site.update({
+    where: { id: aurelia.site.id },
+    data: { settings: { tagline: "Interior architecture in New England" }, branding: { accent: "#2B2620", logoText: "Aurelia", logoAssetId: logoAsset.id } },
+  });
   const home = await publishPage(aurelia.site.id, aurelia.page.id, designer.id, "Home", "home", buildAureliaHome(images), {
     seoTitle: "Aurelia Interiors · Interior architecture in New England",
     seoDescription: "Calm, considered homes designed from the first sketch to the last cushion.",
     ogImageId: images.hero.assetId,
   });
 
-  // A CPT with ACF-style fields, and a taxonomy, to show the content model.
+  // A designed "page not found" layout. Choosing it in Site settings makes it the site's 404 page.
+  await publishPage(aurelia.site.id, aurelia.page.id, designer.id, "Page not found", "page-not-found", {
+    version: 1,
+    rootId: "root",
+    nodes: {
+      root: { id: "root", type: "section", tag: "main", props: {}, style: { desktop: { padding: "8rem 2rem", display: "flex", flexDirection: "column", gap: "1.25rem", alignItems: "center", textAlign: "center" } }, children: ["nf-kicker", "nf-title", "nf-copy", "nf-home"] },
+      "nf-kicker": { id: "nf-kicker", type: "text", props: { text: "404" }, style: { desktop: { letterSpacing: ".2em", color: "var(--color-accent)" } } },
+      "nf-title": { id: "nf-title", type: "heading", tag: "h1", props: { text: "This room doesn't exist (yet)." }, style: { desktop: { fontFamily: "var(--font-display)", fontSize: "var(--text-display)" } } },
+      "nf-copy": { id: "nf-copy", type: "text", props: { text: "The page you were looking for has moved or never existed." }, style: {} },
+      "nf-home": { id: "nf-home", type: "button", props: { link: { label: "Back to the home page", href: "/" } }, style: { desktop: { background: "var(--color-deep)", color: "var(--color-inverse)", padding: ".95rem 1.6rem", borderRadius: "var(--radius-pill)", fontSize: ".9375rem", fontWeight: "500" } } },
+    },
+  });
+
+  // A CPT with ACF-style fields, a taxonomy, and published entries, to show the content model.
   const product = await prisma.postType.create({
-    data: { siteId: aurelia.site.id, key: "product", labelSingular: "Product", labelPlural: "Shop", routePrefix: "shop", hasArchive: true },
+    data: { siteId: aurelia.site.id, key: "product", labelSingular: "Product", labelPlural: "Shop", routePrefix: "shop", hasArchive: true, icon: "🛋️", description: "Pieces from the Aurelia studio collection." },
   });
-  const group = await prisma.fieldGroup.create({ data: { siteId: aurelia.site.id, postTypeId: product.id, key: "product_details", label: "Product details" } });
-  const priceField = await prisma.customField.create({
-    data: { siteId: aurelia.site.id, groupId: group.id, key: "price", label: "Price", type: "PRICE", required: true, config: { currency: "USD" } },
+  const group = await prisma.fieldGroup.create({
+    data: { siteId: aurelia.site.id, key: "product_details", label: "Product details", location: [[{ param: "post_type", op: "==", value: product.id }]] },
   });
-  await prisma.customField.create({
-    data: { siteId: aurelia.site.id, groupId: group.id, key: "sku", label: "SKU", type: "TEXT", clientEditable: false },
+  await prisma.customField.createMany({
+    data: [
+      { siteId: aurelia.site.id, groupId: group.id, key: "price", label: "Price", type: "PRICE", required: true, config: { currency: "USD" }, order: 0 },
+      { siteId: aurelia.site.id, groupId: group.id, key: "material", label: "Material", type: "TEXT", order: 1 },
+      { siteId: aurelia.site.id, groupId: group.id, key: "sku", label: "SKU", type: "TEXT", clientEditable: false, instructions: "Set by the studio; matches the supplier catalogue.", order: 2 },
+      {
+        siteId: aurelia.site.id, groupId: group.id, key: "dimensions", label: "Dimensions", type: "REPEATER", order: 3,
+        config: { maxRows: 6, subFields: [{ key: "label", label: "Measurement", type: "TEXT", required: true, clientEditable: true, config: {} }, { key: "value", label: "Value", type: "TEXT", required: true, clientEditable: true, config: {} }] },
+      },
+    ],
   });
   const category = await prisma.taxonomy.create({
     data: { siteId: aurelia.site.id, key: "product_cat", label: "Product category", hierarchical: true, postTypes: { connect: { id: product.id } } },
   });
-  const lighting = await prisma.term.create({ data: { siteId: aurelia.site.id, taxonomyId: category.id, name: "Lighting", slug: "lighting" } });
-  const lamp = await prisma.post.create({
-    data: { siteId: aurelia.site.id, postTypeId: product.id, authorId: olivia.id, title: "Alabaster Table Lamp", slug: "alabaster-table-lamp", status: "PUBLISHED", publishedAt: new Date() },
+  const [lighting, seating] = await Promise.all([
+    prisma.term.create({ data: { siteId: aurelia.site.id, taxonomyId: category.id, name: "Lighting", slug: "lighting" } }),
+    prisma.term.create({ data: { siteId: aurelia.site.id, taxonomyId: category.id, name: "Seating", slug: "seating" } }),
+  ]);
+  const products = [
+    { title: "Alabaster Table Lamp", slug: "alabaster-table-lamp", image: images.living, term: lighting.id, price: 680, material: "Spanish alabaster, brass", sku: "AUR-L-014", excerpt: "Hand-turned alabaster that glows like a lantern at dusk." },
+    { title: "Velvet Garden Chair", slug: "velvet-garden-chair", image: images.portrait, term: seating.id, price: 1450, material: "Moss cotton velvet, oak", sku: "AUR-S-031", excerpt: "A deep, low chair upholstered in moss-green velvet." },
+    { title: "Linen Lounge Sofa", slug: "linen-lounge-sofa", image: images.bedroom, term: seating.id, price: 3900, material: "Belgian linen, kiln-dried ash", sku: "AUR-S-007", excerpt: "Loose linen covers over a feather-wrapped frame." },
+  ];
+  for (const [i, item] of products.entries()) {
+    await publishEntry(aurelia.site.id, product.id, olivia.id, {
+      title: item.title, slug: item.slug, excerpt: item.excerpt, featuredImageId: item.image.assetId, termIds: [item.term],
+      publishedAt: new Date(Date.now() - (i + 1) * 86_400_000),
+      fields: { price: { amount: item.price, currency: "USD" }, material: item.material, sku: item.sku, dimensions: [{ label: "Height", value: `${40 + i * 15} cm` }] },
+    });
+  }
+  await publishEntry(aurelia.site.id, aurelia.post.id, olivia.id, {
+    title: "How we choose a white paint", slug: "choosing-a-white-paint", excerpt: "Undertones matter more than the name on the tin.", featuredImageId: images.kitchen.assetId,
+    html: "<p>Undertones matter more than the name on the tin. We paint large swatches on every wall and look at them morning and evening.</p>",
   });
-  await prisma.fieldValue.create({ data: { siteId: aurelia.site.id, postId: lamp.id, fieldId: priceField.id, value: { amount: 680, currency: "USD" } } });
-  await prisma.postTerm.create({ data: { postId: lamp.id, termId: lighting.id } });
   await prisma.post.create({
     data: {
       siteId: aurelia.site.id, postTypeId: aurelia.post.id, authorId: sam.id, title: "Five ways to warm up a north-facing room", slug: "warm-up-a-north-facing-room", status: "PENDING_REVIEW",
-      draft: { type: "doc", blocks: [{ type: "paragraph", text: "North light is soft, even and cool…" }] },
+      draft: { type: "html", html: "<p>North light is soft, even and cool…</p>" },
     },
   });
 

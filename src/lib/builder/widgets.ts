@@ -1,10 +1,11 @@
-import type { ResponsiveStyle, SemanticTag, StyleKey, WidgetType } from "./types";
+import type { BindKind } from "@/lib/cms/fields";
+import type { LoopQuery, ResponsiveStyle, SemanticTag, StyleKey, WidgetType } from "./types";
 
 /**
  * What a client is allowed to edit inside each widget. The editor UI and the
  * server-side guard both read this registry, so they can never disagree.
  */
-export type ContentFieldKind = "text" | "multiline" | "image" | "link" | "price";
+export type ContentFieldKind = "text" | "multiline" | "image" | "link" | "price" | "gallery";
 
 export interface ContentField {
   key: string;
@@ -80,6 +81,36 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     hint: "Link styled as a button",
     defaults: { props: { link: { label: "Learn more", href: "/contact" } }, style: { desktop: { padding: ".9rem 1.5rem", borderRadius: "var(--radius-pill)", background: "var(--color-deep)", color: "var(--color-inverse)", fontWeight: "500" } } },
   },
+  gallery: {
+    label: "Gallery",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div"],
+    contentFields: [{ key: "images", label: "Images", kind: "gallery" }],
+    hint: "Grid of pictures, or a gallery field",
+    defaults: { props: { images: [] }, style: { desktop: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "var(--space-sm)" }, mobile: { gridTemplateColumns: "repeat(2, minmax(0, 1fr))" } } },
+  },
+  richtext: {
+    label: "Rich content",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "article"],
+    contentFields: [],
+    hint: "An entry's body or a rich text field",
+    defaults: { props: {}, style: { desktop: { lineHeight: "1.7", maxWidth: "68ch" } } },
+  },
+  loop: {
+    label: "Loop grid",
+    isContainer: true,
+    defaultTag: "div",
+    allowedTags: ["div", "section"],
+    contentFields: [],
+    hint: "Repeats a card for each entry of a post type",
+    defaults: {
+      props: { query: { postTypeId: null, limit: 6, orderBy: "date", order: "desc", termId: null, offset: 0 } satisfies LoopQuery },
+      style: { desktop: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "var(--space-md)" }, tablet: { gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }, mobile: { gridTemplateColumns: "minmax(0, 1fr)" } },
+    },
+  },
   price: {
     label: "Price",
     isContainer: false,
@@ -90,6 +121,34 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     defaults: { props: { price: { amount: 100, currency: "USD", compareAt: null } }, style: { desktop: { fontFamily: "var(--font-display)", fontSize: "2rem" } } },
   },
 };
+
+/** A widget property that can show dynamic data instead of a typed-in value. */
+export interface BindTarget {
+  key: string;
+  label: string;
+  accepts: BindKind;
+}
+
+export const BACKGROUND_TARGET = "style.backgroundImage";
+
+export const BINDABLE: Record<WidgetType, BindTarget[]> = {
+  section: [{ key: BACKGROUND_TARGET, label: "Background image", accepts: "image" }],
+  container: [{ key: BACKGROUND_TARGET, label: "Background image", accepts: "image" }],
+  loop: [],
+  heading: [{ key: "text", label: "Text", accepts: "text" }],
+  text: [{ key: "text", label: "Text", accepts: "text" }],
+  image: [{ key: "image", label: "Image", accepts: "image" }],
+  button: [
+    { key: "link.label", label: "Label", accepts: "text" },
+    { key: "link.href", label: "Link", accepts: "url" },
+  ],
+  price: [{ key: "price", label: "Price", accepts: "price" }],
+  gallery: [{ key: "images", label: "Images", accepts: "gallery" }],
+  richtext: [{ key: "html", label: "Content", accepts: "html" }],
+};
+
+/** The content field a binding target belongs to ("link.href" → "link"). */
+export const targetField = (target: string) => target.split(".")[0];
 
 export function contentField(type: WidgetType, key: string): ContentField | undefined {
   return WIDGETS[type].contentFields.find((f) => f.key === key);

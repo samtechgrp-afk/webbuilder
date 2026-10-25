@@ -10,6 +10,7 @@ const STATUS_STYLE: Record<string, string> = {
   PENDING_REVIEW: "bg-amber-50 text-amber-700",
   SCHEDULED: "bg-sky-50 text-sky-700",
   ARCHIVED: "bg-zinc-100 text-zinc-400",
+  TRASHED: "bg-red-50 text-red-600",
 };
 
 export default async function SiteDashboard({ params }: PageProps<"/admin/sites/[siteId]">) {
@@ -18,6 +19,7 @@ export default async function SiteDashboard({ params }: PageProps<"/admin/sites/
 
   const [posts, mediaCount, activity] = await Promise.all([
     t.db.post.findMany({
+      where: { status: { not: "TRASHED" } },
       orderBy: [{ postType: { key: "asc" } }, { menuOrder: "asc" }, { title: "asc" }],
       include: { postType: true, editLock: { include: { user: { select: { name: true } } } } },
     }),

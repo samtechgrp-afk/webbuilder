@@ -14,7 +14,7 @@ export class Forbidden extends Error {
 
 export interface TenantContext {
   user: SessionUser;
-  site: { id: string; name: string; subdomain: string; customDomain: string | null; branding: unknown; designTokens: unknown };
+  site: { id: string; name: string; subdomain: string; customDomain: string | null; branding: unknown; settings: unknown; designTokens: unknown };
   role: { key: string; name: string };
   permissions: readonly Permission[];
   db: TenantDb;
@@ -33,7 +33,7 @@ export const getTenant = cache(async (siteId: string): Promise<TenantContext> =>
 
   const site = await prisma.site.findUnique({
     where: { id: siteId },
-    select: { id: true, name: true, subdomain: true, customDomain: true, branding: true, designTokens: true, status: true },
+    select: { id: true, name: true, subdomain: true, customDomain: true, branding: true, settings: true, designTokens: true, status: true },
   });
   if (!site || site.status === "SUSPENDED") notFound();
 

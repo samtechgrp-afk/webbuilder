@@ -7,6 +7,8 @@ import { isBuilderDocument, type BuilderDocument, type ImageValue } from "@/lib/
 import { structuralProblem } from "@/lib/builder/tree";
 import { WIDGETS, contentField } from "@/lib/builder/widgets";
 import type { TenantContext } from "@/lib/tenant";
+import { toImage } from "./cms/dynamic";
+import { snapshotMeta } from "./cms/snapshot";
 import { siteCacheTag } from "./public-site";
 
 /**
@@ -75,10 +77,18 @@ function assertWellFormed(doc: unknown): asserts doc is BuilderDocument {
  * from this site's MediaAsset row, which also proves the asset is this
  * tenant's.
  */
+async function resolveImage(t: TenantContext, img: ImageValue): Promise<ImageValue | null> {
+  if (!img.assetId) return null;
+  const asset = await t.db.mediaAsset.findUnique({ where: { id: img.assetId } });
+  if (!asset || !asset.mimeType.startsWith("image/")) return null;
+  return { ...toImage(asset), alt: img.alt || asset.altText || "" };
+}
+
 async function normaliseContent(t: TenantContext, next: BuilderDocument, changed: { nodeId: string; field: string }[]) {
   const violations: Violation[] = [];
   for (const { nodeId, field } of changed) {
     const node = next.nodes[nodeId];
+    if (!node) continue;
     const def = contentField(node.type, field);
     if (!def) continue;
     const parsed = contentSchema(def).safeParse(node.props[field]);
@@ -94,22 +104,51 @@ async function normaliseContent(t: TenantContext, next: BuilderDocument, changed
         node.props = { ...node.props, [field]: { assetId: null, src: "", alt: img.alt } satisfies ImageValue };
         continue;
       }
-      const asset = await t.db.mediaAsset.findUnique({ where: { id: img.assetId } });
-      if (!asset) {
+      const resolved = await resolveImage(t, img);
+      if (!resolved) {
         violations.push({ nodeId, message: "That image isn't in this site's media library" });
         continue;
       }
-      value = {
-        assetId: asset.id,
-        src: asset.url,
-        alt: img.alt || asset.altText || "",
-        width: asset.width ?? undefined,
-        height: asset.height ?? undefined,
-      } satisfies ImageValue;
+      value = resolved;
+    }
+    if (def.kind === "gallery") {
+      const out: ImageValue[] = [];
+      for (const img of parsed.data as ImageValue[]) {
+        const resolved = await resolveImage(t, img);
+        if (!resolved) {
+          violations.push({ nodeId, message: "A gallery image isn't in this site's media library" });
+          break;
+        }
+        out.push(resolved);
+      }
+      value = out;
     }
     node.props = { ...node.props, [field]: value };
   }
   if (violations.length) throw new EditError("Some changes need fixing", "invalid", violations);
+}
+
+/**
+ * Rich content never stores HTML of its own (it only shows bound, sanitised
+ * data), and every loop grid must query one of this site's post types.
+ */
+async function checkDynamicNodes(t: TenantContext, doc: BuilderDocument) {
+  for (const node of Object.values(doc.nodes)) {
+    if (node.type === "richtext" && "html" in node.props) {
+      const { html: _drop, ...rest } = node.props;
+      void _drop;
+      node.props = rest;
+    }
+    if (node.type !== "loop") continue;
+    const q = node.props.query as { postTypeId: string | null; termId?: string | null };
+    if (q.postTypeId) {
+      const pt = await t.db.postType.findUnique({ where: { id: q.postTypeId }, select: { key: true } });
+      if (!pt || pt.key === "template") throw new EditError("A loop grid points at a post type that doesn't exist", "invalid");
+    }
+    if (q.termId && !(await t.db.term.findUnique({ where: { id: q.termId }, select: { id: true } }))) {
+      throw new EditError("A loop grid filters by a term that doesn't exist", "invalid");
+    }
+  }
 }
 
 export async function saveDocument(
@@ -136,6 +175,7 @@ export async function saveDocument(
   const changes = diffDocuments(prev, next);
   const violations = authorizeChanges(prev, changes, { permissions: t.permissions });
   if (violations.length) throw new EditError("Some changes touch locked design areas", "guardrail", violations);
+  await checkDynamicNodes(t, next);
 
   await normaliseContent(
     t,
@@ -165,6 +205,8 @@ export async function saveDocument(
         kind: INTENT_KIND[input.intent],
         title: post.title,
         document,
+        // Fields, featured image and SEO ride along, so publishing the canvas publishes the whole entry.
+        meta: (await snapshotMeta(tx, post.id)) as Prisma.InputJsonValue,
         message: input.message?.slice(0, 500),
         authorId: t.user.id,
       },
@@ -174,7 +216,7 @@ export async function saveDocument(
       data: {
         draft: document,
         ...(input.intent === "publish"
-          ? { status: "PUBLISHED", publishedRevisionId: revision.id, publishedAt: now }
+          ? { status: "PUBLISHED", publishedRevisionId: revision.id, publishedAt: post.publishedAt ?? now, scheduledAt: null, scheduledRevisionId: null }
           : input.intent === "submit"
             ? { status: "PENDING_REVIEW" }
             : {}),
@@ -214,6 +256,7 @@ export async function restoreRevision(t: TenantContext, input: { postId: string;
         kind: "RESTORED",
         title: source.title,
         document: source.document as Prisma.InputJsonValue,
+        meta: (await snapshotMeta(tx, post.id)) as Prisma.InputJsonValue,
         message: `Restored version ${source.version}`,
         authorId: t.user.id,
       },

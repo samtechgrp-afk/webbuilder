@@ -1,7 +1,7 @@
 import { hasPermission } from "@/lib/rbac";
 import type { Breakpoint, BuilderDocument, LockSettings, StyleKey } from "./types";
 import { BREAKPOINT_ORDER } from "./types";
-import { CLIENT_LAYOUT_KEYS, CLIENT_STYLE_KEYS, LAYOUT_STYLE_KEYS, WIDGETS, contentField } from "./widgets";
+import { CLIENT_LAYOUT_KEYS, CLIENT_STYLE_KEYS, LAYOUT_STYLE_KEYS, WIDGETS, contentField, targetField } from "./widgets";
 
 /**
  * The guardrail engine. It answers one question, "may this user make this
@@ -130,6 +130,7 @@ export function diffDocuments(prev: BuilderDocument, next: BuilderDocument): Cha
     if ((after.tag ?? null) !== (before.tag ?? null)) changes.push({ kind: "design", nodeId: id, detail: "semantic tag" });
     if ((after.name ?? null) !== (before.name ?? null)) changes.push({ kind: "design", nodeId: id, detail: "name" });
     if (!sameJson(after.locks ?? {}, before.locks ?? {})) changes.push({ kind: "design", nodeId: id, detail: "locks" });
+    if (!sameJson(after.bindings ?? {}, before.bindings ?? {})) changes.push({ kind: "design", nodeId: id, detail: "dynamic bindings" });
 
     const kidsBefore = before.children ?? [];
     const kidsAfter = after.children ?? [];
@@ -158,6 +159,12 @@ export function diffDocuments(prev: BuilderDocument, next: BuilderDocument): Cha
   return changes;
 }
 
+/** True when a content field is fed by a dynamic binding (wholly or in part, e.g. a button's link). */
+export function isBoundField(doc: BuilderDocument, nodeId: string, field: string) {
+  const bindings = doc.nodes[nodeId]?.bindings;
+  return !!bindings && Object.keys(bindings).some((target) => targetField(target) === field);
+}
+
 /** Checks changes against the locks and permissions of the document *before* the edit. */
 export function authorizeChanges(prev: BuilderDocument, changes: Change[], ctx: EditContext): Violation[] {
   const parents = parentMap(prev);
@@ -176,6 +183,9 @@ export function authorizeChanges(prev: BuilderDocument, changes: Change[], ctx: 
     switch (change.kind) {
       case "content":
         if (!caps.canEditContent) violations.push({ nodeId: change.nodeId, message: `"${label}" content is locked` });
+        else if (isBoundField(prev, change.nodeId, change.field)) {
+          violations.push({ nodeId: change.nodeId, message: `"${label}" shows dynamic data. Edit the entry it comes from instead.` });
+        }
         break;
       case "style":
         if (!caps.editableStyleKeys.includes(change.key)) {

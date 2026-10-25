@@ -39,6 +39,9 @@ const ICONS: Record<WidgetType, string> = {
   image: "◩",
   button: "⬭",
   price: "$",
+  gallery: "▤",
+  richtext: "≡",
+  loop: "↻",
 };
 
 /** Where a clicked palette item lands: inside the selected container, after a selected leaf, else at the end of the page. */

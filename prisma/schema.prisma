@@ -147,36 +147,59 @@ model Site {
 
 /// Custom Post Type definition: page, post, portfolio, product, testimonial…
 model PostType {
-  id            String   @id @default(cuid())
-  siteId        String
-  key           String // "page", "post", "product"
-  labelSingular String
-  labelPlural   String
-  icon          String?
-  hierarchical  Boolean  @default(false)
+  id               String   @id @default(cuid())
+  siteId           String
+  key              String // "page", "post", "product"
+  labelSingular    String
+  labelPlural      String
+  icon             String?
+  hierarchical     Boolean  @default(false)
   /// Whether entries use the visual builder canvas or a plain rich-text body.
-  usesBuilder   Boolean  @default(false)
-  hasArchive    Boolean  @default(false)
+  usesBuilder      Boolean  @default(false)
+  hasArchive       Boolean  @default(false)
   /// URL prefix for public routes, e.g. "blog" → /blog/my-post
-  routePrefix   String?
-  isSystem      Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  routePrefix      String?
+  description      String?
+  /// How new entries get their slug.
+  slugRule         SlugRule @default(TITLE)
+  /// Published entries are readable at /api/v1/sites/<site>/<key>.
+  apiEnabled       Boolean  @default(false)
+  /// Builder document (a Post of the system "template" type) that renders
+  /// every entry of this type on the live site. Null → default layout.
+  singleTemplateId String?  @unique
+  /// Page templates entries may pick ({ templates: [{ key, label }] }).
+  metadata         Json     @default("{}")
+  isSystem         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  site        Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  posts       Post[]
-  fieldGroups FieldGroup[]
-  taxonomies  Taxonomy[]   @relation("TaxonomyPostTypes")
+  site           Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  posts          Post[]
+  taxonomies     Taxonomy[] @relation("TaxonomyPostTypes")
+  singleTemplate Post?      @relation("SingleTemplate", fields: [singleTemplateId], references: [id], onDelete: SetNull)
 
   @@unique([siteId, key])
 }
 
+enum SlugRule {
+  /// "Oak dining table" → oak-dining-table
+  TITLE
+  /// 2026-10-25-oak-dining-table
+  DATE_TITLE
+  /// Short random id, for entries whose titles repeat (team members, FAQs).
+  ID
+}
+
+/// Live visibility is `publishedRevisionId != null` and status != TRASHED.
+/// SCHEDULED entries may still show an older published revision until
+/// `scheduledAt`, when `scheduledRevisionId` is promoted.
 enum PostStatus {
   DRAFT
   PENDING_REVIEW
   SCHEDULED
   PUBLISHED
   ARCHIVED
+  TRASHED
 }
 
 /// Any content entry: page, blog post, product, etc.
@@ -197,7 +220,14 @@ model Post {
   publishedRevisionId String?    @unique
   publishedAt         DateTime?
   scheduledAt         DateTime?
+  /// The revision that goes live at `scheduledAt`.
+  scheduledRevisionId String?    @unique
+  trashedAt           DateTime?
   menuOrder           Int        @default(0)
+  featuredImageId     String?
+  /// Page template key (from PostType.metadata.templates). Field group
+  /// location rules can target it.
+  template            String?
 
   // SEO (client-editable)
   seoTitle       String?
@@ -216,13 +246,18 @@ model Post {
   children          Post[]         @relation("PostTree")
   revisions         PostRevision[] @relation("PostRevisions")
   publishedRevision PostRevision?  @relation("PublishedRevision", fields: [publishedRevisionId], references: [id])
-  ogImage           MediaAsset?    @relation(fields: [ogImageId], references: [id], onDelete: SetNull)
+  scheduledRevision PostRevision?  @relation("ScheduledRevision", fields: [scheduledRevisionId], references: [id], onDelete: SetNull)
+  ogImage           MediaAsset?    @relation("OgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
+  featuredImage     MediaAsset?    @relation("FeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
   fieldValues       FieldValue[]
   terms             PostTerm[]
   editLock          EditLock?
+  templateFor       PostType?      @relation("SingleTemplate")
 
   @@unique([siteId, postTypeId, slug])
   @@index([siteId, status])
+  @@index([siteId, postTypeId, status])
+  @@index([status, scheduledAt])
 }
 
 enum RevisionKind {
@@ -231,6 +266,7 @@ enum RevisionKind {
   SUBMITTED
   PUBLISHED
   RESTORED
+  SCHEDULED
 }
 
 /// Immutable snapshot of a post. Every save, publish and rollback appends one,
@@ -243,7 +279,9 @@ model PostRevision {
   kind      RevisionKind
   title     String
   document  Json
-  /// Custom field values and SEO at the time of the snapshot.
+  /// Everything outside the document at the time of the snapshot: custom
+  /// field values by key, terms, featured image, excerpt, SEO. The live site
+  /// reads published entries from here, never from the working copy.
   meta      Json         @default("{}")
   message   String?
   authorId  String?
@@ -253,6 +291,7 @@ model PostRevision {
   post          Post  @relation("PostRevisions", fields: [postId], references: [id], onDelete: Cascade)
   author        User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
   publishedPost Post? @relation("PublishedRevision")
+  scheduledPost Post? @relation("ScheduledRevision")
 
   @@unique([postId, version])
   @@index([siteId, postId, createdAt])
@@ -279,20 +318,24 @@ model EditLock {
 // Custom fields (ACF-style)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// A set of fields shown on entries that match its location rules.
 model FieldGroup {
-  id         String   @id @default(cuid())
-  siteId     String
-  postTypeId String?
-  key        String
-  label      String
-  /// Extra placement rules (e.g. only on pages using template X).
-  location   Json     @default("{}")
-  order      Int      @default(0)
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  siteId      String
+  key         String
+  label       String
+  description String?
+  /// OR-of-AND rules (src/lib/cms/location.ts), e.g.
+  /// [[{ param: "post_type", op: "==", value: "<postTypeId>" },
+  ///   { param: "post_term", op: "==", value: "<termId>" }]]
+  location    Json     @default("[]")
+  active      Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 
-  site     Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  postType PostType?     @relation(fields: [postTypeId], references: [id], onDelete: Cascade)
-  fields   CustomField[]
+  site   Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  fields CustomField[]
 
   @@unique([siteId, key])
 }
@@ -303,15 +346,24 @@ enum FieldType {
   RICH_TEXT
   NUMBER
   PRICE
+  /// Toggle switch
   BOOLEAN
   DATE
   URL
   EMAIL
+  VIDEO_URL
   IMAGE
   GALLERY
+  FILE
   SELECT
+  RADIO
+  CHECKBOX
+  /// Post object
   RELATION
+  USER
+  TAXONOMY
   REPEATER
+  FLEXIBLE
   COLOR
 }
 
@@ -324,10 +376,12 @@ model CustomField {
   key            String
   label          String
   type           FieldType
+  instructions   String?
   required       Boolean   @default(false)
   clientEditable Boolean   @default(true)
-  /// Type-specific config: select choices, min/max, currency, repeater
-  /// sub-fields, relation target post type.
+  /// Type-specific config: choices, min/max, currency, multiple, target
+  /// post types or taxonomy, repeater sub-fields, flexible content layouts.
+  /// Shape per type: src/lib/cms/fields.ts.
   config         Json      @default("{}")
   defaultValue   Json?
   order          Int       @default(0)
@@ -358,6 +412,7 @@ model FieldValue {
 // Taxonomies
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Categories (hierarchical) or tags (flat). Attached to one or more post types.
 model Taxonomy {
   id           String  @id @default(cuid())
   siteId       String
@@ -442,19 +497,23 @@ model MediaAsset {
   variants      Json          @default("{}")
   /// Tiny base64 placeholder for blur-up lazy loading.
   blurDataUrl   String?
+  title         String?
   altText       String?
   altTextSource AltTextSource @default(FILENAME)
   caption       String?
+  description   String?
   tags          String[]
   createdAt     DateTime      @default(now())
 
   site       Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
   folder     MediaFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
   uploadedBy User?        @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
-  ogFor      Post[]
+  ogFor      Post[]       @relation("OgImage")
+  featuredIn Post[]       @relation("FeaturedImage")
 
   @@unique([siteId, storageKey])
   @@index([siteId, createdAt])
+  @@index([siteId, mimeType])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
