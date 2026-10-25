@@ -6,9 +6,21 @@ import { MediaField, type LibraryAsset } from "@/components/cms/MediaField";
 import { Button, Card, Field, Notice, inputClass } from "@/components/cms/ui";
 import { saveSiteIdentityAction } from "@/server/cms-actions";
 
-type Identity = { name: string; tagline: string; logoAssetId: string | null };
+type Identity = { name: string; tagline: string; logoAssetId: string | null; notFoundPageId: string | null };
 
-export function SiteIdentityForm({ siteId, initial, assets: initialAssets, canUpload }: { siteId: string; initial: Identity; assets: LibraryAsset[]; canUpload: boolean }) {
+export function SiteIdentityForm({
+  siteId,
+  initial,
+  pages,
+  assets: initialAssets,
+  canUpload,
+}: {
+  siteId: string;
+  initial: Identity;
+  pages: { id: string; label: string }[];
+  assets: LibraryAsset[];
+  canUpload: boolean;
+}) {
   const router = useRouter();
   const [v, setV] = useState(initial);
   const [assets, setAssets] = useState(initialAssets);
@@ -48,6 +60,18 @@ export function SiteIdentityForm({ siteId, initial, assets: initialAssets, canUp
             onUploaded={(a) => setAssets((list) => [a, ...list])}
           />
         </div>
+        <Field label="404 page" hint="Shown, with a real 404 status, for any address on the site that doesn't exist. Design it like any page and publish it. Without one, visitors see a simple page in your site's style.">
+          {(a) => (
+            <select {...a} name="notFoundPageId" className={inputClass} value={v.notFoundPageId ?? ""} onChange={(e) => setV({ ...v, notFoundPageId: e.target.value || null })}>
+              <option value="">Default 404 page</option>
+              {pages.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
         <Button tone="primary" type="submit" disabled={pending} data-save-identity="">
           {pending ? "Saving…" : "Save settings"}
         </Button>

@@ -5,6 +5,7 @@ import { DefaultArchive, DefaultEntry } from "@/components/site/DefaultLayouts";
 import { SiteDocument } from "@/lib/builder/render";
 import type { DesignTokens } from "@/lib/builder/styles";
 import { SITE_ROOT_HEADER, siteLinkBase } from "@/lib/site-url";
+import { getPreview } from "@/server/preview";
 import { getPublishedArchive, getPublishedEntry, getPublishedPage, resolveSite } from "@/server/public-site";
 
 /**
@@ -36,8 +37,9 @@ async function resolve(key: string, slug: string[] | undefined) {
   return null;
 }
 
-export async function generateMetadata({ params }: PageProps<"/sites/[site]/[[...slug]]">): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps<"/sites/[site]/[[...slug]]">): Promise<Metadata> {
   const { site: key, slug } = await params;
+  if ((await searchParams).preview !== undefined) return { title: { absolute: "Preview" }, robots: { index: false } };
   const r = await resolve(key, slug);
   if (!r) return {};
   if (r.kind === "archive") return { title: { absolute: `${r.archive.postType.labelPlural} · ${r.site.name}` } };
@@ -58,8 +60,9 @@ export async function generateMetadata({ params }: PageProps<"/sites/[site]/[[..
   };
 }
 
-export default async function PublicPage({ params }: PageProps<"/sites/[site]/[[...slug]]">) {
+export default async function PublicPage({ params, searchParams }: PageProps<"/sites/[site]/[[...slug]]">) {
   const { site: key, slug } = await params;
+  if ((await searchParams).preview !== undefined) return <Preview siteKey={key} slug={slug} />;
   const r = await resolve(key, slug);
   if (!r) notFound();
   switch (r.kind) {
@@ -74,4 +77,28 @@ export default async function PublicPage({ params }: PageProps<"/sites/[site]/[[
     case "archive":
       return <DefaultArchive title={r.archive.postType.labelPlural} entries={r.archive.entries} tokens={r.tokens} linkBase={r.linkBase} />;
   }
+}
+
+/** Drafts at their public address for signed-in editors; everyone else gets a 404. */
+async function Preview({ siteKey, slug }: { siteKey: string; slug: string[] | undefined }) {
+  const row = await resolveSite(siteKey);
+  if (!row) notFound();
+  const linkBase = siteLinkBase(siteKey, (await headers()).get(SITE_ROOT_HEADER) === "1");
+  const tokens = (row.designTokens ?? {}) as DesignTokens;
+  const p = await getPreview({ id: row.id, name: row.name, settings: row.settings, branding: row.branding }, slug, linkBase);
+  if (!p) notFound();
+  return (
+    <>
+      <p role="status" data-preview-banner="" style={{ position: "sticky", top: 0, zIndex: 50, margin: 0, padding: ".5rem 1rem", textAlign: "center", font: "500 13px/1.5 system-ui, sans-serif", background: "#312e81", color: "#fff" }}>
+        Preview of unpublished changes ({p.status.toLowerCase().replace("_", " ")}). Visitors don&apos;t see this version.
+      </p>
+      {p.kind === "page" ? (
+        <SiteDocument doc={p.document} data={p.data} tokens={tokens} linkBase={linkBase} />
+      ) : p.template && p.data ? (
+        <SiteDocument doc={p.template} data={p.data} tokens={tokens} linkBase={linkBase} />
+      ) : (
+        <DefaultEntry entry={p.entry} label={p.postType.labelSingular} tokens={tokens} />
+      )}
+    </>
+  );
 }

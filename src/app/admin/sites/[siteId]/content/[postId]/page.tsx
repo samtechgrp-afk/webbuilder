@@ -113,6 +113,7 @@ export default async function EntryPage({ params }: PageProps<"/admin/sites/[sit
         upload: t.can("media.upload"),
         visual: t.can("content.edit") || t.can("design.layout"),
         restore: t.can("revisions.restore"),
+        canPreview: t.can("content.edit") || t.can("post.editAny") || t.can("design.layout"),
       }}
       lockedBy={lock}
     />

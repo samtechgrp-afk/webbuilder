@@ -62,7 +62,7 @@ export function tokensToCss(tokens: DesignTokens, scope = ".site-root"): string 
 }
 
 const BASE_CSS = `
-.site-root{container:site/inline-size;font-family:var(--font-body,system-ui,sans-serif);color:var(--color-text,#111);background:var(--color-background,#fff);-webkit-font-smoothing:antialiased}
+.site-root{container:site/inline-size;min-height:100dvh;font-family:var(--font-body,system-ui,sans-serif);color:var(--color-text,#111);background:var(--color-background,#fff);-webkit-font-smoothing:antialiased}
 .site-root *,.site-root *::before,.site-root *::after{box-sizing:border-box}
 .site-root h1,.site-root h2,.site-root h3,.site-root h4,.site-root p{margin:0}
 .site-root [data-w="text"]{white-space:pre-line}

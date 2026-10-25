@@ -13,7 +13,7 @@ const LAYOUT_CSS = `
 .dl{max-width:72rem;margin:0 auto;padding:clamp(3rem,6cqi,6rem) 1.25rem}
 .dl-narrow{max-width:46rem}
 .dl-kicker{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--color-muted,#666)}
-.dl h1{font-family:var(--font-display,inherit);font-size:var(--text-h1,clamp(2.25rem,1.5rem+3cqi,3.75rem));line-height:1.05;margin:.5rem 0 1.5rem}
+.dl h1{font-family:var(--font-display,inherit);font-size:var(--text-h1,clamp(2.25rem,1.5rem + 3cqi,3.75rem));line-height:1.05;margin:.5rem 0 1.5rem}
 .dl-hero{margin:0 0 2rem;border-radius:var(--radius-md,12px);overflow:hidden}
 .dl-hero img{display:block;width:100%;height:auto}
 .dl-body{line-height:1.7}.dl-body>*+*{margin-top:1em}
@@ -95,6 +95,24 @@ export function DefaultArchive({ title, entries, tokens, linkBase }: { title: st
         ) : (
           <p>Nothing published yet.</p>
         )}
+      </main>
+    </Shell>
+  );
+}
+
+/** The fallback "page not found" for sites without a designed 404 page. */
+export function DefaultNotFound({ siteName, tokens, linkBase }: { siteName: string; tokens: DesignTokens; linkBase: string }) {
+  return (
+    <Shell tokens={tokens}>
+      <main className="dl dl-narrow" style={{ minHeight: "70vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <p className="dl-kicker">404 · {siteName}</p>
+        <h1>We couldn&apos;t find that page.</h1>
+        <p className="dl-body">It may have moved, or the address may be mistyped.</p>
+        <p style={{ marginTop: "2rem" }}>
+          <a href={withBase("/", linkBase)} style={{ display: "inline-block", padding: ".8rem 1.4rem", borderRadius: "999px", background: "var(--color-text,#111)", color: "var(--color-background,#fff)", textDecoration: "none" }}>
+            Back to the home page
+          </a>
+        </p>
       </main>
     </Shell>
   );

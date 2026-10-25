@@ -11,6 +11,11 @@ export default async function SiteSettingsPage({ params }: PageProps<"/admin/sit
   const t = await getTenant(siteId);
   if (!t.can("site.settings")) notFound();
   const site = await prisma.site.findUniqueOrThrow({ where: { id: t.site.id }, select: { name: true, settings: true, branding: true } });
+  const pages = await t.db.post.findMany({
+    where: { postType: { key: "page" }, slug: { not: "home" }, status: { not: "TRASHED" } },
+    orderBy: { title: "asc" },
+    select: { id: true, title: true, slug: true, publishedRevisionId: true },
+  });
   const assets = await t.db.mediaAsset.findMany({
     where: { mimeType: { startsWith: "image/" } },
     orderBy: { createdAt: "desc" },
@@ -27,7 +32,9 @@ export default async function SiteSettingsPage({ params }: PageProps<"/admin/sit
           name: site.name,
           tagline: ((site.settings ?? {}) as { tagline?: string }).tagline ?? "",
           logoAssetId: ((site.branding ?? {}) as { logoAssetId?: string | null }).logoAssetId ?? null,
+          notFoundPageId: ((site.settings ?? {}) as { notFoundPageId?: string | null }).notFoundPageId ?? null,
         }}
+        pages={pages.map((p) => ({ id: p.id, label: `${p.title} (/${p.slug})${p.publishedRevisionId ? "" : " · not published yet"}` }))}
         assets={assets}
         canUpload={t.can("media.upload")}
       />

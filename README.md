@@ -8,9 +8,10 @@ A visual website builder and multi-tenant CMS with a client portal. Designers bu
 - **Post types** (`/cpts`): labels, slug rules, URL prefix, archive, hierarchy, REST API toggle, icons, page templates, a taxonomy manager, and a single template designed on the canvas.
 - **Field engine** (`/fields`): drag-and-drop field group builder with 19 field types (text, rich text, media, choice, relational, repeater, flexible content) and ACF-style location rules by post type, template, term or parent page. Designer-only fields are enforced on the server.
 - **Media library** (`/media`): grid and list views, drag-and-drop upload, type filter, search, batch tag and delete with usage checks, a metadata drawer; WebP plus responsive variants for images, and sanitised SVG.
-- **Dynamic binding**: bind widget props to post data, custom fields or site data, and a Loop grid widget that previews real entries on the canvas. Clients see bound content as read-only. Site name, tagline and logo are set under **Settings** (`/settings`).
+- **Dynamic binding**: bind widget props to post data, custom fields or site data, and a Loop grid widget that previews real entries on the canvas. Clients see bound content as read-only. Site name, tagline, logo and the site's 404 page are set under **Settings** (`/settings`).
+- **Real 404s**: missing pages, entries, drafts and trashed content answer HTTP 404 with the site's designed 404 page (or a default in its style). Signed-in editors preview drafts at their public address with `?preview=1`.
 
-GraphQL, the token editor, SEO screens, sitemap and the export engine come next.
+GraphQL (deferred), the token editor, SEO screens, sitemap and the export engine come next.
 
 ## Quick start
 
@@ -42,10 +43,11 @@ npm test                         # guardrails, tenant isolation, fields, locatio
 npm run build && npm start       # then, in another shell:
 npm run e2e                      # Playwright: client edits hero → publish → live site → isolation
 npm run e2e:designer             # Playwright: designer drags, reorders, styles per breakpoint → publish
+npm run e2e:404                  # Playwright: true 404 status, custom 404 page, drafts/trash hidden, editor preview
 CRON_SECRET=… npm run e2e:cms    # Playwright: CPT + fields → client entry → loop grid binding → live site, media, trash, restore, schedule
 ```
 
-Reseed with the server stopped (or restart it after seeding): resolved sites are cached by subdomain. For scheduled publishing in production, set `CRON_SECRET`; `vercel.json` calls the cron route every minute.
+Reseed with the server stopped (or restart it after seeding): resolved sites are cached by subdomain. For scheduled publishing in production, set `CRON_SECRET`; `vercel.json` calls the cron route every minute. The proxy fetches the rendered 404 page from `INTERNAL_URL` (defaults to `https://$VERCEL_URL`, else `http://127.0.0.1:$PORT`); with Vercel Deployment Protection on, point `INTERNAL_URL` at a reachable origin.
 
 ## Where things live
 
@@ -71,4 +73,5 @@ Reseed with the server stopped (or restart it after seeding): resolved sites are
 | `src/lib/cms/binding.ts` | `applyDynamic`: writes bound values into a document and expands loop grids (pure) |
 | `src/server/cms/*` | Entry save/bulk/restore/schedule, schema service (post types, taxonomies, field groups), media metadata, dynamic data loading, revision snapshots |
 | `src/server/sanitize.ts` | DOMPurify allowlists for rich text and uploaded SVG |
+| `src/server/route-check.ts`, `src/app/site-404` | Proxy-side route check and the per-site 404 page served with status 404 |
 | `src/app/api/v1/sites/[site]/[type]` | Public REST API for post types with the API enabled |

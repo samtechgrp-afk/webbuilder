@@ -141,6 +141,19 @@ async function main() {
     ogImageId: images.hero.assetId,
   });
 
+  // A designed "page not found" layout. Choosing it in Site settings makes it the site's 404 page.
+  await publishPage(aurelia.site.id, aurelia.page.id, designer.id, "Page not found", "page-not-found", {
+    version: 1,
+    rootId: "root",
+    nodes: {
+      root: { id: "root", type: "section", tag: "main", props: {}, style: { desktop: { padding: "8rem 2rem", display: "flex", flexDirection: "column", gap: "1.25rem", alignItems: "center", textAlign: "center" } }, children: ["nf-kicker", "nf-title", "nf-copy", "nf-home"] },
+      "nf-kicker": { id: "nf-kicker", type: "text", props: { text: "404" }, style: { desktop: { letterSpacing: ".2em", color: "var(--color-accent)" } } },
+      "nf-title": { id: "nf-title", type: "heading", tag: "h1", props: { text: "This room doesn't exist (yet)." }, style: { desktop: { fontFamily: "var(--font-display)", fontSize: "var(--text-display)" } } },
+      "nf-copy": { id: "nf-copy", type: "text", props: { text: "The page you were looking for has moved or never existed." }, style: {} },
+      "nf-home": { id: "nf-home", type: "button", props: { link: { label: "Back to the home page", href: "/" } }, style: { desktop: { background: "var(--color-deep)", color: "var(--color-inverse)", padding: ".95rem 1.6rem", borderRadius: "var(--radius-pill)", fontSize: ".9375rem", fontWeight: "500" } } },
+    },
+  });
+
   // A CPT with ACF-style fields, a taxonomy, and published entries, to show the content model.
   const product = await prisma.postType.create({
     data: { siteId: aurelia.site.id, key: "product", labelSingular: "Product", labelPlural: "Shop", routePrefix: "shop", hasArchive: true, icon: "🛋️", description: "Pieces from the Aurelia studio collection." },

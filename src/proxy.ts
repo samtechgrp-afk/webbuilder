@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session-token";
 import { SITE_ROOT_HEADER } from "@/lib/site-url";
+import { checkPublicRoute } from "@/server/route-check";
 
 /**
  * Edge of the platform (Next.js 16 "proxy", formerly middleware).
@@ -13,6 +14,10 @@ import { SITE_ROOT_HEADER } from "@/lib/site-url";
  * 2. Optimistic auth: /admin without a valid session cookie goes to /login.
  *    This is only a fast path; every page and action re-checks the session
  *    and the site Membership on the server.
+ * 3. Real 404s: a public URL that doesn't resolve to live content is
+ *    rewritten to the site's 404 page with HTTP status 404. Signed-in
+ *    previews (`?preview=1`) skip the check; the page itself verifies the
+ *    viewer may see drafts.
  */
 const PORTAL_PATHS = /^\/(admin|login|logout|api|_next|uploads|favicon\.ico)(\/|$)/;
 
@@ -39,15 +44,68 @@ export async function proxy(request: NextRequest) {
     // Tells the site renderer its links live at the domain root, not under /sites/<key>.
     const headers = new Headers(request.headers);
     headers.set(SITE_ROOT_HEADER, "1");
-    return NextResponse.rewrite(url, { request: { headers } });
+    return (await notFoundRewrite(request, tenantKey, pathname, headers)) ?? NextResponse.rewrite(url, { request: { headers } });
   }
 
-  if (request.headers.has(SITE_ROOT_HEADER)) {
-    const headers = new Headers(request.headers);
-    headers.delete(SITE_ROOT_HEADER);
-    return NextResponse.next({ request: { headers } });
+  const headers = new Headers(request.headers);
+  headers.delete(SITE_ROOT_HEADER);
+  const site = /^\/sites\/([^/]+)(\/.*)?$/.exec(pathname);
+  if (site) {
+    const miss = await notFoundRewrite(request, site[1], site[2] ?? "/", headers);
+    if (miss) return miss;
   }
-  return NextResponse.next();
+  if (pathname.startsWith("/site-404/")) {
+    // The proxy's own fetch keeps its x-site-root, so links on the 404 page point at the right base.
+    if (request.headers.get(INTERNAL_HEADER) === "1") return NextResponse.next();
+    return serveNotFound(request, pathname.slice("/site-404/".length), headers);
+  }
+  return NextResponse.next({ request: { headers } });
+}
+
+const INTERNAL_HEADER = "x-site-404-internal";
+
+/**
+ * Where the proxy fetches the rendered 404 page from. A fixed origin, never
+ * the request's Host header, so a forged Host can't point the fetch
+ * elsewhere.
+ */
+const internalOrigin = () =>
+  process.env.INTERNAL_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://127.0.0.1:${process.env.PORT ?? 3000}`);
+
+/**
+ * Responds with the site's 404 page and HTTP status 404. With Partial
+ * Prerendering a rewritten page keeps its prerendered 200, so documents are
+ * fetched from the 404 route and streamed back under a 404 status. Client
+ * navigations (RSC requests) are rewritten as usual: the browser shows the
+ * 404 layout and the status doesn't matter there.
+ */
+async function serveNotFound(request: NextRequest, key: string, headers: Headers) {
+  const url = request.nextUrl.clone();
+  url.pathname = `/site-404/${key}`;
+  url.search = "";
+  if (request.headers.has("rsc")) return NextResponse.rewrite(url, { status: 404, request: { headers } });
+  const forward = new Headers({ [INTERNAL_HEADER]: "1", accept: "text/html" });
+  const ua = request.headers.get("user-agent");
+  if (ua) forward.set("user-agent", ua);
+  if (headers.get(SITE_ROOT_HEADER) === "1") forward.set(SITE_ROOT_HEADER, "1");
+  const res = await fetch(new URL(url.pathname, internalOrigin()), { headers: forward, cache: "no-store" });
+  return new NextResponse(res.body, {
+    status: 404,
+    headers: { "content-type": res.headers.get("content-type") ?? "text/html; charset=utf-8", "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate" },
+  });
+}
+
+async function notFoundRewrite(request: NextRequest, key: string, path: string, headers: Headers) {
+  if (request.nextUrl.searchParams.has("preview") && (await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value))) return null;
+  let check: Awaited<ReturnType<typeof checkPublicRoute>>;
+  try {
+    check = await checkPublicRoute(key, path.split("/").filter(Boolean).map((p) => decodeURIComponent(p)));
+  } catch (err) {
+    if (!(err instanceof URIError)) throw err;
+    check = { site: true, exists: false };
+  }
+  if (check.site && check.exists) return null;
+  return serveNotFound(request, key, headers);
 }
 
 export const config = {

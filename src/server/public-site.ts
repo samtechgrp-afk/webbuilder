@@ -44,6 +44,22 @@ export async function getPublishedPage(site: SiteLike, slugParts: string[] | und
   return { post, seo: ((post.publishedRevision.meta ?? {}) as RevisionMeta).seo, document, data };
 }
 
+/** The site's designated 404 page, rendered by /site-404 with HTTP status 404. */
+export async function getNotFoundPage(site: SiteLike, linkBase: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(siteCacheTag(site.id));
+  const id = ((site.settings ?? {}) as { notFoundPageId?: string | null }).notFoundPageId;
+  if (!id) return null;
+  const post = await prisma.post.findFirst({
+    where: { id, siteId: site.id, postType: { key: "page" }, ...LIVE },
+    include: { ...ENTRY_INCLUDE, publishedRevision: true },
+  });
+  if (!post?.publishedRevision || !isBuilderDocument(post.publishedRevision.document)) return null;
+  const document = post.publishedRevision.document;
+  return { document, data: await loadDynamicData(site.id, document, site, publishedSource(post), linkBase) };
+}
+
 /**
  * A single CPT entry at /<routePrefix>/<slug>. Rendered with the post type's
  * published single template when there is one, otherwise with the default

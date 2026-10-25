@@ -50,7 +50,7 @@ interface Props {
   groups: { id: string; label: string; description: string | null; location: unknown; fields: FieldDef[] }[];
   ctxData: Omit<FieldContext, "siteId" | "onUploaded" | "canUpload">;
   parents: { id: string; title: string }[];
-  perms: { publish: boolean; submit: boolean; designer: boolean; upload: boolean; visual: boolean; restore: boolean };
+  perms: { publish: boolean; submit: boolean; designer: boolean; upload: boolean; visual: boolean; restore: boolean; canPreview: boolean };
   lockedBy: string | null;
 }
 
@@ -179,6 +179,11 @@ export function EntryForm({ siteId, version, post, postType, groups, ctxData, pa
         </div>
         <div className="flex items-center gap-2">
           <Button tone="ghost" onClick={() => setHistory(true)} data-open-history="">History</Button>
+          {perms.canPreview && (
+            <a href={`${post.liveUrl}?preview=1`} target="_blank" rel="noreferrer" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100" data-preview-link="">
+              Preview<span className="sr-only"> saved draft (opens in a new tab)</span> ↗
+            </a>
+          )}
           {post.isLive && (
             <a href={post.liveUrl} target="_blank" rel="noreferrer" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100">
               View live<span className="sr-only"> (opens in a new tab)</span> ↗
