@@ -1,0 +1,312 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import type { DesignTokens } from "@/lib/builder/styles";
+import { BREAKPOINT_ORDER, BREAKPOINTS, type BuilderDocument } from "@/lib/builder/types";
+import { heartbeatEditLock, leaveEditor, restorePageRevision, savePage } from "@/server/editor-actions";
+import { Canvas } from "./Canvas";
+import { Inspector } from "./Inspector";
+import type { PickerAsset } from "./MediaPicker";
+import { selectIsDirty, useEditor } from "./store";
+
+export interface RevisionSummary {
+  id: string;
+  version: number;
+  kind: string;
+  message: string | null;
+  authorName: string | null;
+  createdAt: string;
+  isLive: boolean;
+}
+
+export interface ClientEditorProps {
+  site: { id: string; name: string; liveUrl: string };
+  post: { id: string; title: string; status: string };
+  document: BuilderDocument;
+  version: number;
+  permissions: string[];
+  roleName: string;
+  tokens: DesignTokens;
+  assets: PickerAsset[];
+  revisions: RevisionSummary[];
+  lock: { ok: true } | { ok: false; holder: string };
+}
+
+const HEARTBEAT_MS = 45_000;
+
+export function ClientEditor(props: ClientEditorProps) {
+  const { site, post } = props;
+  const router = useRouter();
+  const [assets, setAssets] = useState(props.assets);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [lockLost, setLockLost] = useState<string | null>(props.lock.ok ? null : props.lock.holder);
+  const [pending, startTransition] = useTransition();
+
+  const s = useEditor();
+  const dirty = useEditor(selectIsDirty);
+  const can = (p: string) => props.permissions.includes(p);
+  const readOnly = !!lockLost;
+
+  // Load the server document once per page/version. A read-only session gets no permissions at all.
+  useEffect(() => {
+    useEditor.getState().init(props.document, { permissions: readOnly ? [] : props.permissions }, props.version);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.id, readOnly]);
+
+  // Hold the edit lock while the editor is open. It expires on its own if the
+  // tab closes, and is released explicitly when leaving through the toolbar.
+  useEffect(() => {
+    if (readOnly) return;
+    const beat = async () => {
+      const res = await heartbeatEditLock({ siteId: site.id, postId: post.id });
+      if (res.ok && !res.lock.ok) setLockLost(res.lock.holder);
+    };
+    void beat();
+    const timer = setInterval(beat, HEARTBEAT_MS);
+    return () => clearInterval(timer);
+  }, [site.id, post.id, readOnly]);
+
+  // Keyboard shortcuts and the unsaved-changes guard.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      const target = e.target as HTMLElement;
+      if (target.isContentEditable || ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
+      if (e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) useEditor.getState().redo();
+        else useEditor.getState().undo();
+      }
+    };
+    const onUnload = (e: BeforeUnloadEvent) => {
+      if (selectIsDirty(useEditor.getState())) e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("beforeunload", onUnload);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("beforeunload", onUnload);
+    };
+  }, []);
+
+  function save(intent: "draft" | "submit" | "publish") {
+    startTransition(async () => {
+      const state = useEditor.getState();
+      state.setSaveState("saving");
+      const res = await savePage({ siteId: site.id, postId: post.id, document: state.doc, baseVersion: state.version, intent });
+      if (!res.ok) {
+        state.setSaveState("error");
+        state.notify({ tone: "error", text: res.error, details: res.violations?.map((v) => v.message) });
+        return;
+      }
+      state.markSaved(res.version);
+      state.notify({
+        tone: "success",
+        text: intent === "publish" ? "Published. Your changes are live." : intent === "submit" ? "Sent to your team for review." : "Draft saved.",
+      });
+      router.refresh();
+    });
+  }
+
+  function restore(revisionId: string) {
+    startTransition(async () => {
+      const state = useEditor.getState();
+      const res = await restorePageRevision({ siteId: site.id, postId: post.id, revisionId });
+      if (!res.ok) return state.notify({ tone: "error", text: res.error });
+      state.markSaved(res.version, res.document);
+      state.notify({ tone: "success", text: "Earlier version restored as a draft. Publish to make it live." });
+      setHistoryOpen(false);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="flex h-dvh flex-col bg-zinc-100 text-zinc-900">
+      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-zinc-800 bg-zinc-950 px-4 text-zinc-100">
+        <Link
+          href={`/admin/sites/${site.id}`}
+          onClick={() => !readOnly && void leaveEditor({ siteId: site.id, postId: post.id })}
+          className="rounded-md px-2 py-1 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-white">
+          ← {site.name}
+        </Link>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{post.title}</p>
+          <p className="text-[11px] text-zinc-400">
+            {props.roleName} · {saveLabel(s.saveState, dirty)}
+          </p>
+        </div>
+
+        <div className="mx-auto flex rounded-lg bg-zinc-900 p-0.5" role="group" aria-label="Preview size">
+          {BREAKPOINT_ORDER.map((bp) => (
+            <button
+              key={bp}
+              type="button"
+              onClick={() => s.setViewport(bp)}
+              aria-pressed={s.viewport === bp}
+              className={`rounded-md px-3 py-1 text-xs ${s.viewport === bp ? "bg-zinc-700 text-white" : "text-zinc-400 hover:text-white"}`}
+            >
+              {BREAKPOINTS[bp].label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <IconButton label="Undo" onClick={s.undo} disabled={!s.past.length}>↶</IconButton>
+          <IconButton label="Redo" onClick={s.redo} disabled={!s.future.length}>↷</IconButton>
+          <button type="button" onClick={() => setHistoryOpen(true)} className="rounded-md px-2.5 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800">
+            History
+          </button>
+          <a href={site.liveUrl} target="_blank" rel="noreferrer" className="rounded-md px-2.5 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800">
+            View live ↗
+          </a>
+          <button
+            type="button"
+            disabled={readOnly || pending || !dirty}
+            onClick={() => save("draft")}
+            className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-medium hover:bg-zinc-800 disabled:opacity-40"
+          >
+            Save draft
+          </button>
+          {can("post.publish") ? (
+            <button
+              type="button"
+              disabled={readOnly || pending}
+              onClick={() => save("publish")}
+              className="rounded-md bg-indigo-500 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 disabled:opacity-40"
+            >
+              Publish
+            </button>
+          ) : can("post.submit") ? (
+            <button
+              type="button"
+              disabled={readOnly || pending}
+              onClick={() => save("submit")}
+              className="rounded-md bg-indigo-500 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 disabled:opacity-40"
+            >
+              Submit for review
+            </button>
+          ) : null}
+        </div>
+      </header>
+
+      {lockLost && (
+        <p className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
+          {lockLost} is editing this page right now. You can look around, but editing is paused until they finish.
+        </p>
+      )}
+      {s.message && (
+        <div
+          role="status"
+          className={`flex items-start justify-between gap-4 px-4 py-2 text-sm ${
+            s.message.tone === "error" ? "bg-red-50 text-red-800" : s.message.tone === "success" ? "bg-emerald-50 text-emerald-800" : "bg-zinc-50"
+          }`}
+        >
+          <div>
+            <p>{s.message.text}</p>
+            {s.message.details?.length ? (
+              <ul className="mt-1 list-disc pl-5 text-xs">
+                {s.message.details.map((d) => (
+                  <li key={d}>{d}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+          <button type="button" onClick={() => s.notify(null)} className="text-xs opacity-70 hover:opacity-100">
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      <div className="flex min-h-0 flex-1">
+        <Canvas tokens={props.tokens} />
+        <aside className="w-80 shrink-0 overflow-y-auto border-l border-zinc-200 bg-white" aria-label="Inspector">
+          <Inspector
+            siteId={site.id}
+            tokens={props.tokens}
+            assets={assets}
+            canUpload={can("media.upload")}
+            onAssetUploaded={(a) => setAssets((list) => [a, ...list])}
+          />
+        </aside>
+      </div>
+
+      {historyOpen && (
+        <HistoryPanel revisions={props.revisions} canRestore={can("revisions.restore") && !readOnly} onRestore={restore} onClose={() => setHistoryOpen(false)} pending={pending} />
+      )}
+    </div>
+  );
+}
+
+function saveLabel(state: string, dirty: boolean) {
+  if (state === "saving") return "Saving…";
+  if (state === "error") return "Not saved";
+  if (dirty) return "Unsaved changes";
+  return state === "saved" ? "All changes saved" : "Up to date";
+}
+
+function IconButton({ label, children, ...rest }: { label: string; children: React.ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button type="button" aria-label={label} title={label} {...rest} className="h-8 w-8 rounded-md text-base text-zinc-300 hover:bg-zinc-800 disabled:opacity-30">
+      {children}
+    </button>
+  );
+}
+
+const KIND_LABEL: Record<string, string> = {
+  DRAFT: "Draft saved",
+  SUBMITTED: "Submitted for review",
+  PUBLISHED: "Published",
+  RESTORED: "Restored",
+  AUTOSAVE: "Autosave",
+};
+
+function HistoryPanel({
+  revisions,
+  canRestore,
+  onRestore,
+  onClose,
+  pending,
+}: {
+  revisions: RevisionSummary[];
+  canRestore: boolean;
+  onRestore: (id: string) => void;
+  onClose: () => void;
+  pending: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-40 flex justify-end bg-zinc-950/30" onClick={onClose}>
+      <aside role="dialog" aria-label="Page history" className="h-full w-96 overflow-y-auto bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <header className="flex items-center justify-between border-b border-zinc-200 px-5 py-3">
+          <h2 className="text-sm font-semibold">History</h2>
+          <button type="button" onClick={onClose} className="text-xs text-zinc-500 hover:text-zinc-900">
+            Close
+          </button>
+        </header>
+        <ol className="divide-y divide-zinc-100">
+          {revisions.map((r, i) => (
+            <li key={r.id} className="flex items-start justify-between gap-3 px-5 py-3">
+              <div>
+                <p className="text-sm font-medium">
+                  v{r.version} · {KIND_LABEL[r.kind] ?? r.kind}
+                  {r.isLive && <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">LIVE</span>}
+                </p>
+                <p className="text-xs text-zinc-500">
+                  {r.authorName ?? "Unknown"} · {new Date(r.createdAt).toLocaleString()}
+                </p>
+                {r.message && <p className="mt-0.5 text-xs text-zinc-600">{r.message}</p>}
+              </div>
+              {canRestore && i > 0 && (
+                <button type="button" disabled={pending} onClick={() => onRestore(r.id)} className="shrink-0 rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50 disabled:opacity-40">
+                  Restore
+                </button>
+              )}
+            </li>
+          ))}
+        </ol>
+      </aside>
+    </div>
+  );
+}

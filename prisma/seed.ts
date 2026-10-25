@@ -1,0 +1,180 @@
+import { PrismaClient, type Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import { rm } from "node:fs/promises";
+import path from "node:path";
+import { SYSTEM_ROLES, type SystemRoleKey } from "../src/lib/rbac";
+import { processImage } from "../src/server/media-processing";
+import { aureliaTokens, buildAureliaHome, type SampleImages } from "./sample-site";
+
+const prisma = new PrismaClient();
+export const DEMO_PASSWORD = "demo-password-2026";
+
+/** Abstract "interior" artwork so the demo has real images without shipping photos. */
+function artwork(w: number, h: number, palette: string[], seed: number) {
+  const [bg, a, b, c] = palette;
+  const r = (n: number) => ((Math.sin(seed * 97 + n * 13) + 1) / 2);
+  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${bg}"/><stop offset="1" stop-color="${a}"/></linearGradient>
+    <radialGradient id="l" cx="${30 + r(1) * 40}%" cy="20%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+    <rect width="100%" height="100%" fill="url(#g)"/>
+    <path d="M${w * 0.18} ${h} V${h * 0.42} a${w * 0.22} ${w * 0.22} 0 0 1 ${w * 0.44} 0 V${h}" fill="${b}" opacity=".85"/>
+    <rect x="0" y="${h * 0.78}" width="${w}" height="${h * 0.22}" fill="${c}" opacity=".9"/>
+    <ellipse cx="${w * (0.68 + r(2) * 0.12)}" cy="${h * 0.74}" rx="${w * 0.2}" ry="${h * 0.07}" fill="${b}" opacity=".7"/>
+    <circle cx="${w * 0.78}" cy="${h * (0.28 + r(3) * 0.1)}" r="${w * 0.07}" fill="${c}" opacity=".55"/>
+    <rect width="100%" height="100%" fill="url(#l)"/></svg>`);
+}
+
+async function seedImages(siteId: string, uploaderId: string) {
+  const specs: [keyof SampleImages, string, number, number, string[]][] = [
+    ["hero", "warm-living-room-with-arched-doorway.png", 1200, 1500, ["#E9DFD0", "#C9B79C", "#8A6A3B", "#5B4A36"]],
+    ["living", "linen-sofa-in-a-sunlit-sitting-room.png", 1200, 900, ["#EFE8DC", "#D8CBB6", "#A88E6A", "#6F5E49"]],
+    ["kitchen", "marble-kitchen-with-oak-cabinetry.png", 1200, 900, ["#F2F0EB", "#D9D4CA", "#9C9284", "#4E4943"]],
+    ["bedroom", "calm-bedroom-in-soft-neutrals.png", 1200, 900, ["#F1E9E1", "#DCCABA", "#B58F74", "#7A5B48"]],
+    ["portrait", "garden-room-with-green-velvet-chair.png", 1200, 1500, ["#E4E7DD", "#BCC3AE", "#5E6E4E", "#3C4632"]],
+  ];
+  const images = {} as SampleImages;
+  let i = 0;
+  for (const [key, name, w, h, palette] of specs) {
+    const processed = await processImage(siteId, artwork(w, h, palette, ++i), name);
+    const asset = await prisma.mediaAsset.create({ data: { ...processed, siteId, uploadedById: uploaderId, tags: ["demo", key] } });
+    images[key] = { assetId: asset.id, src: asset.url, alt: asset.altText ?? "", width: asset.width ?? undefined, height: asset.height ?? undefined };
+  }
+  return images;
+}
+
+async function createSite(data: { name: string; subdomain: string; branding: object; tokens: object }) {
+  const site = await prisma.site.create({
+    data: { name: data.name, subdomain: data.subdomain, status: "LIVE", branding: data.branding, designTokens: data.tokens },
+  });
+  const page = await prisma.postType.create({
+    data: { siteId: site.id, key: "page", labelSingular: "Page", labelPlural: "Pages", hierarchical: true, usesBuilder: true, isSystem: true },
+  });
+  const post = await prisma.postType.create({
+    data: { siteId: site.id, key: "post", labelSingular: "Blog post", labelPlural: "Blog posts", hasArchive: true, routePrefix: "journal", isSystem: true },
+  });
+  return { site, page, post };
+}
+
+async function publishPage(siteId: string, postTypeId: string, authorId: string, title: string, slug: string, document: unknown, seo: Partial<Prisma.PostUncheckedCreateInput> = {}) {
+  const doc = document as Prisma.InputJsonValue;
+  const post = await prisma.post.create({ data: { siteId, postTypeId, authorId, title, slug, draft: doc, status: "PUBLISHED", publishedAt: new Date(), ...seo } });
+  const rev = await prisma.postRevision.create({
+    data: { siteId, postId: post.id, version: 1, kind: "PUBLISHED", title, document: doc, message: "Site launch", authorId },
+  });
+  await prisma.post.update({ where: { id: post.id }, data: { publishedRevisionId: rev.id } });
+  return post;
+}
+
+async function main() {
+  console.log("Resetting demo data…");
+  await prisma.site.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.role.deleteMany();
+  await rm(path.join(process.cwd(), "public", "uploads"), { recursive: true, force: true });
+
+  // System roles (siteId = null) shared by every site.
+  const roles = {} as Record<SystemRoleKey, string>;
+  for (const [key, def] of Object.entries(SYSTEM_ROLES) as [SystemRoleKey, (typeof SYSTEM_ROLES)[SystemRoleKey]][]) {
+    const role = await prisma.role.create({ data: { key, name: def.name, description: def.description, permissions: def.permissions, isSystem: true } });
+    roles[key] = role.id;
+  }
+
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const user = (email: string, name: string, isPlatformAdmin = false) =>
+    prisma.user.create({ data: { email, name, passwordHash, isPlatformAdmin } });
+
+  const [admin, designer, olivia, sam, nora] = await Promise.all([
+    user("admin@platform.test", "Platform Admin", true),
+    user("designer@studio.test", "Maya Chen"),
+    user("client@aurelia.test", "Olivia Hart"),
+    user("author@aurelia.test", "Sam Rivera"),
+    user("client@northwind.test", "Nora Patel"),
+  ]);
+
+  // ── Tenant 1: Aurelia Interiors ────────────────────────────────────────────
+  const aurelia = await createSite({ name: "Aurelia Interiors", subdomain: "aurelia", branding: { accent: "#2B2620", logoText: "Aurelia" }, tokens: aureliaTokens });
+  await prisma.membership.createMany({
+    data: [
+      { userId: designer.id, siteId: aurelia.site.id, roleId: roles.designer },
+      { userId: olivia.id, siteId: aurelia.site.id, roleId: roles.client_admin, invitedBy: designer.id },
+      { userId: sam.id, siteId: aurelia.site.id, roleId: roles.author, invitedBy: olivia.id },
+    ],
+  });
+  const images = await seedImages(aurelia.site.id, designer.id);
+  const home = await publishPage(aurelia.site.id, aurelia.page.id, designer.id, "Home", "home", buildAureliaHome(images), {
+    seoTitle: "Aurelia Interiors · Interior architecture in New England",
+    seoDescription: "Calm, considered homes designed from the first sketch to the last cushion.",
+    ogImageId: images.hero.assetId,
+  });
+
+  // A CPT with ACF-style fields, and a taxonomy, to show the content model.
+  const product = await prisma.postType.create({
+    data: { siteId: aurelia.site.id, key: "product", labelSingular: "Product", labelPlural: "Shop", routePrefix: "shop", hasArchive: true },
+  });
+  const group = await prisma.fieldGroup.create({ data: { siteId: aurelia.site.id, postTypeId: product.id, key: "product_details", label: "Product details" } });
+  const priceField = await prisma.customField.create({
+    data: { siteId: aurelia.site.id, groupId: group.id, key: "price", label: "Price", type: "PRICE", required: true, config: { currency: "USD" } },
+  });
+  await prisma.customField.create({
+    data: { siteId: aurelia.site.id, groupId: group.id, key: "sku", label: "SKU", type: "TEXT", clientEditable: false },
+  });
+  const category = await prisma.taxonomy.create({
+    data: { siteId: aurelia.site.id, key: "product_cat", label: "Product category", hierarchical: true, postTypes: { connect: { id: product.id } } },
+  });
+  const lighting = await prisma.term.create({ data: { siteId: aurelia.site.id, taxonomyId: category.id, name: "Lighting", slug: "lighting" } });
+  const lamp = await prisma.post.create({
+    data: { siteId: aurelia.site.id, postTypeId: product.id, authorId: olivia.id, title: "Alabaster Table Lamp", slug: "alabaster-table-lamp", status: "PUBLISHED", publishedAt: new Date() },
+  });
+  await prisma.fieldValue.create({ data: { siteId: aurelia.site.id, postId: lamp.id, fieldId: priceField.id, value: { amount: 680, currency: "USD" } } });
+  await prisma.postTerm.create({ data: { postId: lamp.id, termId: lighting.id } });
+  await prisma.post.create({
+    data: {
+      siteId: aurelia.site.id, postTypeId: aurelia.post.id, authorId: sam.id, title: "Five ways to warm up a north-facing room", slug: "warm-up-a-north-facing-room", status: "PENDING_REVIEW",
+      draft: { type: "doc", blocks: [{ type: "paragraph", text: "North light is soft, even and cool…" }] },
+    },
+  });
+
+  // ── Tenant 2: Northwind Dental (proves isolation) ──────────────────────────
+  const northwind = await createSite({
+    name: "Northwind Dental",
+    subdomain: "northwind",
+    branding: { accent: "#0E7490", logoText: "Northwind" },
+    tokens: { colors: { background: "#FFFFFF", text: "#0F172A", accent: "#0E7490" }, fontSizes: { display: "clamp(2.25rem, 1.5rem + 3cqi, 4rem)" } },
+  });
+  await prisma.membership.createMany({
+    data: [
+      { userId: designer.id, siteId: northwind.site.id, roleId: roles.designer },
+      { userId: nora.id, siteId: northwind.site.id, roleId: roles.client_admin },
+    ],
+  });
+  await publishPage(northwind.site.id, northwind.page.id, designer.id, "Home", "home", {
+    version: 1,
+    rootId: "root",
+    nodes: {
+      root: { id: "root", type: "section", tag: "main", props: {}, style: { desktop: { padding: "6rem 2rem", display: "flex", flexDirection: "column", gap: "1rem", alignItems: "center", textAlign: "center" } }, locks: { layout: true, style: true }, children: ["t", "c"] },
+      t: { id: "t", type: "heading", tag: "h1", props: { text: "Gentle dentistry for the whole family." }, style: { desktop: { fontSize: "var(--text-display)", color: "var(--color-accent)" } } },
+      c: { id: "c", type: "text", props: { text: "Same-week appointments in Portland, Maine." }, style: {} },
+    },
+  });
+
+  console.log(`
+Seeded.
+  Aurelia live site:    /sites/aurelia   (home page id ${home.id})
+  Northwind live site:  /sites/northwind
+
+  Logins (password: ${DEMO_PASSWORD})
+    client@aurelia.test     Client Admin, Aurelia
+    author@aurelia.test     Author, Aurelia
+    designer@studio.test    Designer, both sites
+    client@northwind.test   Client Admin, Northwind
+    admin@platform.test     Super Admin
+`);
+  void admin;
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());

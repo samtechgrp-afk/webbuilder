@@ -1,0 +1,477 @@
+// Multi-tenant CMS + visual builder schema.
+//
+// Tenancy rule: every row that belongs to a client website carries `siteId`.
+// Application code never queries these models through the raw client; it goes
+// through `tenantDb(siteId)` (src/lib/tenant-db.ts), which injects the siteId
+// filter into every read and write. Composite uniques are always scoped by
+// siteId so two tenants can use the same slugs, keys and folder names.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Identity & access
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A person. Identity is global (one login across many sites); what they may
+/// do is decided per site by their Membership's Role.
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  passwordHash    String
+  /// Platform staff (Super Admin). Bypasses site RBAC; every action is audited.
+  isPlatformAdmin Boolean   @default(false)
+  avatarUrl       String?
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  memberships Membership[]
+  sessions    Session[]
+  posts       Post[]         @relation("PostAuthor")
+  revisions   PostRevision[]
+  editLocks   EditLock[]
+  uploads     MediaAsset[]
+  auditLogs   AuditLog[]
+}
+
+/// Server-side session. The browser only holds a signed cookie with this id,
+/// so sessions can be revoked instantly (logout everywhere, role removal).
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  userAgent String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// A named bundle of permission keys (see src/lib/rbac.ts).
+/// System roles have siteId = null and are shared by all sites; a designer can
+/// clone one into a site-specific role (siteId set) and tune its permissions.
+model Role {
+  id          String   @id @default(cuid())
+  siteId      String?
+  key         String // "designer" | "client_admin" | "editor" | "author" | custom
+  name        String
+  description String?
+  permissions String[]
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  site        Site?        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  memberships Membership[]
+
+  @@unique([siteId, key])
+}
+
+/// Joins a User to a Site with exactly one Role. This is the tenant boundary
+/// for people: no Membership (and not platform admin) means no access.
+model Membership {
+  id        String   @id @default(cuid())
+  userId    String
+  siteId    String
+  roleId    String
+  invitedBy String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, siteId])
+  @@index([siteId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tenant
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum SiteStatus {
+  DRAFT
+  LIVE
+  SUSPENDED
+}
+
+/// One client website (the tenant).
+model Site {
+  id           String     @id @default(cuid())
+  name         String
+  /// acme → acme.<ROOT_DOMAIN> and /sites/acme
+  subdomain    String     @unique
+  customDomain String?    @unique
+  status       SiteStatus @default(DRAFT)
+  /// Branding for the client portal (logo, accent colour).
+  branding     Json       @default("{}")
+  /// Global design tokens: colours, fluid type scale, radii, shadows,
+  /// breakpoints. Only roles with `design.tokens` may change these.
+  designTokens Json       @default("{}")
+  /// Site-wide SEO defaults, analytics ids, locale.
+  settings     Json       @default("{}")
+  /// Designer-only custom <head> code / CSS. Never editable in Client Mode.
+  customCode   Json       @default("{}")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  roles        Role[]
+  memberships  Membership[]
+  postTypes    PostType[]
+  posts        Post[]
+  revisions    PostRevision[]
+  fieldGroups  FieldGroup[]
+  customFields CustomField[]
+  fieldValues  FieldValue[]
+  taxonomies   Taxonomy[]
+  terms        Term[]
+  mediaFolders MediaFolder[]
+  mediaAssets  MediaAsset[]
+  editLocks    EditLock[]
+  auditLogs    AuditLog[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Content (WordPress-style)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Custom Post Type definition: page, post, portfolio, product, testimonial…
+model PostType {
+  id            String   @id @default(cuid())
+  siteId        String
+  key           String // "page", "post", "product"
+  labelSingular String
+  labelPlural   String
+  icon          String?
+  hierarchical  Boolean  @default(false)
+  /// Whether entries use the visual builder canvas or a plain rich-text body.
+  usesBuilder   Boolean  @default(false)
+  hasArchive    Boolean  @default(false)
+  /// URL prefix for public routes, e.g. "blog" → /blog/my-post
+  routePrefix   String?
+  isSystem      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  site        Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  posts       Post[]
+  fieldGroups FieldGroup[]
+  taxonomies  Taxonomy[]   @relation("TaxonomyPostTypes")
+
+  @@unique([siteId, key])
+}
+
+enum PostStatus {
+  DRAFT
+  PENDING_REVIEW
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Any content entry: page, blog post, product, etc.
+model Post {
+  id                  String     @id @default(cuid())
+  siteId              String
+  postTypeId          String
+  authorId            String?
+  parentId            String?
+  title               String
+  slug                String
+  status              PostStatus @default(DRAFT)
+  excerpt             String?
+  /// Working copy. For builder posts this is a BuilderDocument (node tree);
+  /// for plain posts it is rich-text JSON. Live visitors never read this.
+  draft               Json       @default("{}")
+  /// The revision visitors see. Publishing = pointing this at a revision.
+  publishedRevisionId String?    @unique
+  publishedAt         DateTime?
+  scheduledAt         DateTime?
+  menuOrder           Int        @default(0)
+
+  // SEO (client-editable)
+  seoTitle       String?
+  seoDescription String?
+  ogImageId      String?
+  noIndex        Boolean @default(false)
+  canonicalUrl   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site              Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  postType          PostType       @relation(fields: [postTypeId], references: [id])
+  author            User?          @relation("PostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  parent            Post?          @relation("PostTree", fields: [parentId], references: [id])
+  children          Post[]         @relation("PostTree")
+  revisions         PostRevision[] @relation("PostRevisions")
+  publishedRevision PostRevision?  @relation("PublishedRevision", fields: [publishedRevisionId], references: [id])
+  ogImage           MediaAsset?    @relation(fields: [ogImageId], references: [id], onDelete: SetNull)
+  fieldValues       FieldValue[]
+  terms             PostTerm[]
+  editLock          EditLock?
+
+  @@unique([siteId, postTypeId, slug])
+  @@index([siteId, status])
+}
+
+enum RevisionKind {
+  AUTOSAVE
+  DRAFT
+  SUBMITTED
+  PUBLISHED
+  RESTORED
+}
+
+/// Immutable snapshot of a post. Every save, publish and rollback appends one,
+/// so any change can be undone at any time.
+model PostRevision {
+  id        String       @id @default(cuid())
+  siteId    String
+  postId    String
+  version   Int
+  kind      RevisionKind
+  title     String
+  document  Json
+  /// Custom field values and SEO at the time of the snapshot.
+  meta      Json         @default("{}")
+  message   String?
+  authorId  String?
+  createdAt DateTime     @default(now())
+
+  site          Site  @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  post          Post  @relation("PostRevisions", fields: [postId], references: [id], onDelete: Cascade)
+  author        User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  publishedPost Post? @relation("PublishedRevision")
+
+  @@unique([postId, version])
+  @@index([siteId, postId, createdAt])
+}
+
+/// Pessimistic edit lock so a client and a designer don't overwrite each
+/// other. Held while the editor is open, refreshed by heartbeat, expires.
+model EditLock {
+  id        String   @id @default(cuid())
+  siteId    String
+  postId    String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom fields (ACF-style)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model FieldGroup {
+  id         String   @id @default(cuid())
+  siteId     String
+  postTypeId String?
+  key        String
+  label      String
+  /// Extra placement rules (e.g. only on pages using template X).
+  location   Json     @default("{}")
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  site     Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  postType PostType?     @relation(fields: [postTypeId], references: [id], onDelete: Cascade)
+  fields   CustomField[]
+
+  @@unique([siteId, key])
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  RICH_TEXT
+  NUMBER
+  PRICE
+  BOOLEAN
+  DATE
+  URL
+  EMAIL
+  IMAGE
+  GALLERY
+  SELECT
+  RELATION
+  REPEATER
+  COLOR
+}
+
+/// Field definition. Designers own definitions (`schema.manage`); clients
+/// only edit values, and only where `clientEditable` is true.
+model CustomField {
+  id             String    @id @default(cuid())
+  siteId         String
+  groupId        String
+  key            String
+  label          String
+  type           FieldType
+  required       Boolean   @default(false)
+  clientEditable Boolean   @default(true)
+  /// Type-specific config: select choices, min/max, currency, repeater
+  /// sub-fields, relation target post type.
+  config         Json      @default("{}")
+  defaultValue   Json?
+  order          Int       @default(0)
+
+  site   Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  group  FieldGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  values FieldValue[]
+
+  @@unique([siteId, groupId, key])
+}
+
+model FieldValue {
+  id      String @id @default(cuid())
+  siteId  String
+  postId  String
+  fieldId String
+  value   Json
+
+  site  Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  post  Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  field CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, fieldId])
+  @@index([siteId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Taxonomies
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Taxonomy {
+  id           String  @id @default(cuid())
+  siteId       String
+  key          String // "category", "tag", "product_cat"
+  label        String
+  hierarchical Boolean @default(false)
+
+  site      Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  postTypes PostType[] @relation("TaxonomyPostTypes")
+  terms     Term[]
+
+  @@unique([siteId, key])
+}
+
+model Term {
+  id         String  @id @default(cuid())
+  siteId     String
+  taxonomyId String
+  parentId   String?
+  name       String
+  slug       String
+
+  site     Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  taxonomy Taxonomy   @relation(fields: [taxonomyId], references: [id], onDelete: Cascade)
+  parent   Term?      @relation("TermTree", fields: [parentId], references: [id])
+  children Term[]     @relation("TermTree")
+  posts    PostTerm[]
+
+  @@unique([siteId, taxonomyId, slug])
+}
+
+model PostTerm {
+  postId String
+  termId String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  term Term @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@id([postId, termId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Media
+// ─────────────────────────────────────────────────────────────────────────────
+
+model MediaFolder {
+  id       String  @id @default(cuid())
+  siteId   String
+  parentId String?
+  name     String
+
+  site     Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  parent   MediaFolder?  @relation("FolderTree", fields: [parentId], references: [id])
+  children MediaFolder[] @relation("FolderTree")
+  assets   MediaAsset[]
+
+  @@unique([siteId, parentId, name])
+}
+
+enum AltTextSource {
+  MANUAL
+  GENERATED
+  FILENAME
+}
+
+/// A file in the site's storage prefix (sites/<siteId>/…). Images are
+/// converted to WebP on upload; responsive sizes live in `variants`.
+model MediaAsset {
+  id            String        @id @default(cuid())
+  siteId        String
+  folderId      String?
+  uploadedById  String?
+  /// Storage key, always prefixed with the siteId.
+  storageKey    String
+  url           String
+  originalName  String
+  mimeType      String
+  sizeBytes     Int
+  width         Int?
+  height        Int?
+  /// { "640": "/uploads/…-640.webp", "1280": "…" }
+  variants      Json          @default("{}")
+  /// Tiny base64 placeholder for blur-up lazy loading.
+  blurDataUrl   String?
+  altText       String?
+  altTextSource AltTextSource @default(FILENAME)
+  caption       String?
+  tags          String[]
+  createdAt     DateTime      @default(now())
+
+  site       Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  folder     MediaFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  uploadedBy User?        @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  ogFor      Post[]
+
+  @@unique([siteId, storageKey])
+  @@index([siteId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Audit
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  siteId    String?
+  userId    String?
+  action    String // "post.publish", "post.restore", "media.upload", …
+  targetId  String?
+  data      Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  site Site? @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([siteId, createdAt])
+}
