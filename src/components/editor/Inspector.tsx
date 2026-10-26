@@ -8,7 +8,7 @@ import { isBoundField, isDesigner, nodeCapabilities } from "@/lib/builder/policy
 import { enclosingLoop, MAX_LOOP_ITEMS } from "@/lib/builder/tree";
 import { contrastRatio, resolveColor, type DesignTokens } from "@/lib/builder/styles";
 import type { Binding, BuilderDocument, ImageValue, LinkValue, LoopQuery, PriceValue, StyleKey } from "@/lib/builder/types";
-import { BINDABLE, WIDGETS, type BindTarget, type ContentField } from "@/lib/builder/widgets";
+import { BINDABLE, WIDGETS, type BindTarget, type ContentField, type LanguageSwitcherProps } from "@/lib/builder/widgets";
 import { DesignPanel } from "./DesignPanel";
 import { MediaPicker, type PickerAsset } from "./MediaPicker";
 import { parentOf, useEditor } from "./store";
@@ -83,8 +83,8 @@ export function Inspector(props: InspectorProps) {
 function DesignerInspector({ nodeId, ...props }: { nodeId: string } & InspectorProps) {
   const node = useEditor((s) => s.doc.nodes[nodeId]);
   const def = WIDGETS[node.type];
-  const dynamicTab = node.type === "loop" || BINDABLE[node.type].length > 0;
-  const [tab, setTab] = useState<"style" | "content" | "dynamic" | "guardrails">(node.type === "loop" ? "dynamic" : def.contentFields.length ? "content" : "style");
+  const dynamicTab = node.type === "loop" || node.type === "langswitch" || BINDABLE[node.type].length > 0;
+  const [tab, setTab] = useState<"style" | "content" | "dynamic" | "guardrails">(node.type === "loop" || node.type === "langswitch" ? "dynamic" : def.contentFields.length ? "content" : "style");
   const tabs = [...(def.contentFields.length ? (["content"] as const) : []), ...(dynamicTab ? (["dynamic"] as const) : []), "style" as const, "guardrails" as const];
   const doc = useEditor((s) => s.doc);
   return (
@@ -120,7 +120,7 @@ function DesignerInspector({ nodeId, ...props }: { nodeId: string } & InspectorP
               <ContentEditor nodeId={node.id} field={field} value={node.props[field.key]} {...props} />
             </div>
           ))}
-        {tab === "dynamic" && (node.type === "loop" ? <LoopQueryEditor nodeId={node.id} /> : <BindingEditor nodeId={node.id} />)}
+        {tab === "dynamic" && (node.type === "loop" ? <LoopQueryEditor nodeId={node.id} /> : node.type === "langswitch" ? <LanguageSwitcherEditor nodeId={node.id} /> : <BindingEditor nodeId={node.id} />)}
         {tab === "style" && <DesignPanel node={node} tokens={props.tokens} />}
         {tab === "guardrails" && (
           <div className="py-2">
@@ -460,6 +460,32 @@ function BindingRow({ nodeId, target, binding }: { nodeId: string; target: BindT
         </label>
       )}
       {binding && !known && <p className="text-[11px] text-amber-700">This source isn&apos;t available in this spot, so the fallback shows.</p>}
+    </div>
+  );
+}
+
+function LanguageSwitcherEditor({ nodeId }: { nodeId: string }) {
+  const props = useEditor((s) => s.doc.nodes[nodeId].props) as Partial<LanguageSwitcherProps>;
+  const setDesignProp = useEditor((s) => s.setDesignProp);
+  return (
+    <div className="space-y-3 py-2 text-xs text-zinc-700">
+      <p className="text-[11px] leading-relaxed text-zinc-500">
+        Visitors see a link to this page in each of the site&apos;s languages (or that language&apos;s home page when this page isn&apos;t translated yet). It stays hidden while the site has a single language.
+      </p>
+      <label className="block space-y-1">
+        <span className="font-medium">Show</span>
+        <select aria-label="Language switcher display" className={inputCls} value={props.display ?? "label"} onChange={(e) => setDesignProp(nodeId, "display", e.target.value)}>
+          <option value="label">Language names (Français)</option>
+          <option value="code">Short codes (FR)</option>
+        </select>
+      </label>
+      <label className="block space-y-1">
+        <span className="font-medium">Style</span>
+        <select aria-label="Language switcher style" className={inputCls} value={props.variant ?? "inline"} onChange={(e) => setDesignProp(nodeId, "variant", e.target.value)}>
+          <option value="inline">Row of links</option>
+          <option value="dropdown">Dropdown</option>
+        </select>
+      </label>
     </div>
   );
 }

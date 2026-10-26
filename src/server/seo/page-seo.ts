@@ -25,9 +25,14 @@ export interface SeoTarget {
   authorName?: string | null;
 }
 
-export async function pageSeo(site: SiteRow, target: SeoTarget) {
+/**
+ * `i18n.base` is the public base URL of the page's language (its prefix or
+ * domain included), so canonicals point at the right version; `languages`
+ * are hreflang alternates (x-default included).
+ */
+export async function pageSeo(site: SiteRow, target: SeoTarget, i18n?: { base?: string; languages?: Record<string, string>; lang?: string }) {
   const siteSeo = readSiteSeo(site.settings);
-  const base = await publicBaseUrl(site);
+  const base = i18n?.base || (await publicBaseUrl(site));
   const isHome = target.kind === "page" && target.path === "/";
   const excluded = (siteSeo.excludedPostTypeIds ?? []).includes(target.postTypeId);
   const r = resolveSeo({ title: target.title, path: target.path, isHome, excerpt: target.excerpt, seo: target.seo, excluded }, { name: site.name, seo: siteSeo }, base);
@@ -39,7 +44,7 @@ export async function pageSeo(site: SiteRow, target: SeoTarget) {
     metadataBase: new URL(origin),
     title: { absolute: r.title },
     description: r.description ?? undefined,
-    alternates: { canonical: r.canonical },
+    alternates: { canonical: r.canonical, ...(i18n?.languages ? { languages: i18n.languages } : {}) },
     robots: r.index ? { index: true, follow: true } : { index: false, follow: true },
     openGraph: {
       type: target.kind === "entry" ? "article" : "website",
@@ -47,6 +52,7 @@ export async function pageSeo(site: SiteRow, target: SeoTarget) {
       title: r.title,
       description: r.description ?? undefined,
       siteName: site.name,
+      locale: i18n?.lang?.replace("-", "_"),
       images: image && imageUrl ? [{ url: imageUrl, width: image.width ?? undefined, height: image.height ?? undefined, alt: image.altText ?? undefined }] : undefined,
       ...(target.kind === "entry" && target.publishedAt ? { publishedTime: target.publishedAt.toISOString(), modifiedTime: target.modifiedAt?.toISOString() } : {}),
     },

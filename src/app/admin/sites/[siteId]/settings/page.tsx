@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getTenant } from "@/lib/tenant";
@@ -12,7 +13,7 @@ export default async function SiteSettingsPage({ params }: PageProps<"/admin/sit
   if (!t.can("site.settings")) notFound();
   const site = await prisma.site.findUniqueOrThrow({ where: { id: t.site.id }, select: { name: true, settings: true, branding: true } });
   const pages = await t.db.post.findMany({
-    where: { postType: { key: "page" }, slug: { not: "home" }, status: { not: "TRASHED" } },
+    where: { postType: { key: "page" }, locale: "", slug: { not: "home" }, status: { not: "TRASHED" } },
     orderBy: { title: "asc" },
     select: { id: true, title: true, slug: true, publishedRevisionId: true },
   });
@@ -38,6 +39,15 @@ export default async function SiteSettingsPage({ params }: PageProps<"/admin/sit
         assets={assets}
         canUpload={t.can("media.upload")}
       />
+      <section className="mt-6 flex items-center justify-between gap-4 rounded-xl border border-zinc-200 bg-white px-5 py-4">
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-900">Languages</h2>
+          <p className="text-xs text-zinc-500">Publish the site in more than one language, with prefixed addresses or a domain per language.</p>
+        </div>
+        <Link href={`/admin/sites/${t.site.id}/settings/languages`} className="rounded-lg border border-zinc-300 bg-white px-3.5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50" data-languages-link="">
+          Manage languages
+        </Link>
+      </section>
     </main>
   );
 }

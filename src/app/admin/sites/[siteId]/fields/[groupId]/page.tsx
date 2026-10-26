@@ -19,7 +19,7 @@ export default async function FieldGroupPage({ params, searchParams }: PageProps
     t.db.postType.findMany({ where: { key: { not: "template" } }, orderBy: { labelPlural: "asc" } }),
     t.db.taxonomy.findMany({ orderBy: { label: "asc" }, select: { id: true, label: true } }),
     t.db.term.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, taxonomyId: true } }),
-    t.db.post.findMany({ where: { postType: { hierarchical: true }, status: { not: "TRASHED" } }, orderBy: { title: "asc" }, select: { id: true, title: true, postType: { select: { labelSingular: true } } } }),
+    t.db.post.findMany({ where: { postType: { hierarchical: true }, locale: "", status: { not: "TRASHED" } }, orderBy: { title: "asc" }, select: { id: true, title: true, postType: { select: { labelSingular: true } } } }),
   ]);
   const preset = typeof sp.postType === "string" && postTypes.some((p) => p.id === sp.postType) ? sp.postType : postTypes.find((p) => p.key !== "page")?.id ?? postTypes[0]?.id;
 

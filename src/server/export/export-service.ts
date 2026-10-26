@@ -13,6 +13,8 @@ import type { TenantContext } from "@/lib/tenant";
 import { EditError } from "../content-service";
 import type { RevisionMeta } from "../cms/dynamic";
 import { entryPath, getSitemapUrls } from "../seo/seo-service";
+import { localePath } from "@/lib/i18n/locales";
+import { readSiteLocales } from "../i18n/locale-service";
 
 /**
  * The export engine. A Designer starts an export; it runs in the background
@@ -90,37 +92,67 @@ export async function deleteExport(t: TenantContext, input: { id: string }) {
   return {};
 }
 
-/** Every live URL of a site, as site paths. The designated 404 page becomes 404.html instead. */
+/**
+ * Every live URL of a site, as site paths. The designated 404 page becomes
+ * 404.html instead. On a multilingual site each extra language gets the
+ * full set under its prefix: translated pages at their own slugs, and the
+ * default-language version where a translation doesn't exist yet (the
+ * same fallback the live site serves).
+ */
 export async function exportTargets(siteId: string, notFoundPageId: string | null) {
-  const [posts, archives] = await Promise.all([
+  const [posts, archives, locales] = await Promise.all([
     prisma.post.findMany({
       where: { siteId, ...LIVE, postType: { key: { not: "template" } }, ...(notFoundPageId ? { id: { not: notFoundPageId } } : {}) },
       orderBy: [{ postType: { key: "asc" } }, { slug: "asc" }],
       select: {
         slug: true,
         title: true,
+        locale: true,
         publishedAt: true,
+        translation: { select: { translationId: true } },
         postType: { select: { key: true, routePrefix: true, labelSingular: true } },
         publishedRevision: { select: { title: true, meta: true } },
       },
     }),
     prisma.postType.findMany({ where: { siteId, hasArchive: true, key: { notIn: ["page", "template"] } }, select: { key: true, routePrefix: true, labelPlural: true } }),
+    readSiteLocales(siteId),
   ]);
+  // The 404 page's translations become the 404 page too, never an address of their own.
+  const hidden = notFoundPageId ? await notFoundGroups(notFoundPageId) : [];
+  const originals = posts.filter((p) => !p.locale && !(p.translation && hidden.includes(p.translation.translationId)));
+  const liveGroups = new Set(originals.map((p) => p.translation?.translationId).filter(Boolean));
+  const translations = posts.filter((p) => p.locale && p.translation && liveGroups.has(p.translation.translationId));
+  const archivePaths = archives.map((a) => `/${a.routePrefix ?? a.key}`);
+  const pages = [...originals.map((p) => entryPath(p.postType, p.slug)), ...archivePaths];
+  for (const l of locales.filter((x) => !x.isDefault)) {
+    for (const o of originals) {
+      const t = o.translation && translations.find((x) => x.locale === l.code && x.translation!.translationId === o.translation!.translationId);
+      pages.push(localePath(l, entryPath(o.postType, (t ?? o).slug)));
+    }
+    for (const a of archivePaths) pages.push(localePath(l, a));
+  }
   return {
-    pages: [...posts.map((p) => entryPath(p.postType, p.slug)), ...archives.map((a) => `/${a.routePrefix ?? a.key}`)],
-    content: posts.map((p) => {
+    pages,
+    content: [...originals, ...translations].map((p) => {
       const meta = (p.publishedRevision?.meta ?? {}) as RevisionMeta;
+      const l = locales.find((x) => (p.locale ? x.code === p.locale : x.isDefault));
       return {
         type: p.postType.key,
         typeLabel: p.postType.labelSingular,
         title: p.publishedRevision?.title ?? p.title,
-        path: entryPath(p.postType, p.slug),
+        path: localePath(l ?? null, entryPath(p.postType, p.slug)),
+        ...(l ? { locale: l.code, translationGroup: p.translation?.translationId ?? null } : {}),
         publishedAt: p.publishedAt?.toISOString() ?? null,
         excerpt: meta.excerpt ?? null,
         fields: meta.fields ?? {},
       };
     }),
   };
+}
+
+async function notFoundGroups(postId: string) {
+  const group = await prisma.postTranslation.findUnique({ where: { postId }, select: { translationId: true } });
+  return group ? [group.translationId] : [];
 }
 
 async function fetchText(url: string, expect: number[]) {

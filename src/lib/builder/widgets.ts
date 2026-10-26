@@ -120,7 +120,24 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     hint: "Formatted price clients can update",
     defaults: { props: { price: { amount: 100, currency: "USD", compareAt: null } }, style: { desktop: { fontFamily: "var(--font-display)", fontSize: "2rem" } } },
   },
+  langswitch: {
+    label: "Language switcher",
+    isContainer: false,
+    defaultTag: "nav",
+    allowedTags: ["nav", "div"],
+    contentFields: [],
+    hint: "Links to this page in the site's other languages",
+    defaults: { props: { display: "label", variant: "inline" } satisfies LanguageSwitcherProps, style: { desktop: { display: "flex", gap: "var(--space-sm)", fontSize: "0.9rem" } } },
+  },
 };
+
+/** How the language switcher shows its links. */
+export interface LanguageSwitcherProps {
+  /** Language names ("Français") or short codes ("FR"). */
+  display: "label" | "code";
+  /** A row of links, or a compact dropdown that works without JavaScript. */
+  variant: "inline" | "dropdown";
+}
 
 /** A widget property that can show dynamic data instead of a typed-in value. */
 export interface BindTarget {
@@ -145,6 +162,7 @@ export const BINDABLE: Record<WidgetType, BindTarget[]> = {
   price: [{ key: "price", label: "Price", accepts: "price" }],
   gallery: [{ key: "images", label: "Images", accepts: "gallery" }],
   richtext: [{ key: "html", label: "Content", accepts: "html" }],
+  langswitch: [],
 };
 
 /** The content field a binding target belongs to ("link.href" → "link"). */

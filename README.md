@@ -76,10 +76,24 @@ npm run e2e:seo                  # Playwright: sitemap/robots per site, live met
 npm run e2e:graphql              # Playwright: playground, keys, typed queries, no N+1, draft protection, isolation, depth/cost limits, lockout
 npm run e2e:export               # Playwright: background export → zip contents → served by a plain static server → client lockout, delete
 npm run e2e:404                  # Playwright: true 404 status, custom 404 page, drafts/trash hidden, editor preview
+npm run e2e:i18n                 # Playwright: languages, prefixed routing, Accept-Language, locale domain, translation drawer, structural lockout, hreflang, sitemap, GraphQL
 CRON_SECRET=… npm run e2e:cms    # Playwright: CPT + fields → client entry → loop grid binding → live site, media, trash, restore, schedule
 ```
 
 Reseed with the server stopped (or restart it after seeding): resolved sites are cached by subdomain. For scheduled publishing in production, set `CRON_SECRET`; `vercel.json` calls the cron route every minute. The proxy fetches the rendered 404 page from `INTERNAL_URL` (defaults to `https://$VERCEL_URL`, else `http://127.0.0.1:$PORT`); with Vercel Deployment Protection on, point `INTERNAL_URL` at a reachable origin.
+
+## Languages
+
+A site starts with one language. Designers and admins add more under **Settings → Languages** (code, label, URL prefix, currency, optional domain); clients can't.
+
+- **Routing.** The default language keeps clean paths (`/about`); the others are prefixed (`/fr/about`) or served on their own domain. A translated entry keeps its own slug, and `/fr/<original-slug>` redirects (308) to it. With detection on, a first visit to the home page is redirected (307) by `Accept-Language` and the choice is remembered in the `wb_locale` cookie; bots and returning visitors are left alone. A page with no translation falls back to the default language with a canonical pointing at it. Unknown paths get the 404 page in that language when one exists.
+- **Translations.** A translation is its own post, linked to its original through `PostTranslation`. Builder pages store only overrides (text, images, links, SEO) keyed by node, laid over the original's published layout, so structure and styles can't drift between languages. Edit them side by side under **Translations**; the visual builder redirects there. Anything structural, bound or designer-locked is rejected on the server.
+- **Admin.** The language picker in the admin bar filters Content; the canvas header lists each language's status.
+- **Widget.** The *Language switcher* (inline or dropdown, label or code) links to the current page in each language and hides itself on single-language sites.
+- **SEO.** Pages carry `hreflang` alternates (with `x-default`) in the head and a `Link` header; `sitemap.xml` lists every language with `xhtml:link` alternates.
+- **GraphQL.** `page`, `post` and `posts` take `locale`; nodes expose `locale`, `translations` and `hreflangs`; `locales` lists the site's languages.
+
+Limits in this version: single templates aren't translated (entries in other languages use the original template with their own field values); translations carry no terms, so term-filtered lists in another language come back empty; a GraphQL list in another language returns translated entries only.
 
 ## Where things live
 
@@ -117,3 +131,6 @@ Reseed with the server stopped (or restart it after seeding): resolved sites are
 | `src/server/graphql/*`, `src/app/api/v1/sites/[site]/graphql` | GraphQL handler, resolvers, DataLoaders, API keys, Developer settings |
 | `src/app/admin/sites/[siteId]/developer` | Developer screen and GraphiQL playground |
 | `src/app/api/v1/sites/[site]/[type]` | Public REST API for post types with the API enabled |
+| `src/lib/i18n/*` | Locale paths, Accept-Language matching, hreflang, translation overlay (`composeDocument`) |
+| `src/server/i18n/*`, `src/server/i18n-actions.ts` | Language settings, translation create/save with structure guardrails, admin language picker |
+| `src/app/admin/sites/[siteId]/translations`, `settings/languages` | Side-by-side translation drawer and language settings |

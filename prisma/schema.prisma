@@ -133,6 +133,8 @@ model Site {
   graphqlEnabled Boolean  @default(false)
   /// When on, requests without a key can read published content.
   graphqlPublic  Boolean  @default(true)
+  /// Send first-time visitors to their browser language's version of a page.
+  localeDetection Boolean @default(false)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
@@ -151,6 +153,8 @@ model Site {
   designTokenRevisions DesignTokenRevision[]
   exports      SiteExport[]
   apiKeys      ApiKey[]
+  locales      SiteLocale[]
+  translations PostTranslation[]
   editLocks    EditLock[]
   auditLogs    AuditLog[]
 }
@@ -242,6 +246,10 @@ model Post {
   /// Page template key (from PostType.metadata.templates). Field group
   /// location rules can target it.
   template            String?
+  /// Language of this entry: "" is the site's default locale, otherwise a
+  /// SiteLocale code. Slugs are unique per post type *and* locale, so /about
+  /// and /fr/about can share a slug.
+  locale              String     @default("")
 
   // SEO (client-editable)
   seoTitle       String?
@@ -267,8 +275,9 @@ model Post {
   terms             PostTerm[]
   editLock          EditLock?
   templateFor       PostType?      @relation("SingleTemplate")
+  translation       PostTranslation?
 
-  @@unique([siteId, postTypeId, slug])
+  @@unique([siteId, postTypeId, locale, slug])
   @@index([siteId, status])
   @@index([siteId, postTypeId, status])
   @@index([status, scheduledAt])
@@ -633,4 +642,51 @@ model ApiKey {
   createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([siteId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Localization
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A language the site is published in. The default locale serves clean
+/// paths (/about); the others are prefixed (/fr/about) or served on their
+/// own domain (aurelia.fr).
+model SiteLocale {
+  id        String   @id @default(cuid())
+  siteId    String
+  /// BCP 47 tag, e.g. en-US, fr-FR, es-ES.
+  code      String
+  label     String
+  /// URL segment for this locale, e.g. "fr". Unused for the default locale.
+  prefix    String
+  isDefault Boolean  @default(false)
+  /// ISO 4217 currency shown to visitors of this locale.
+  currency  String   @default("USD")
+  /// Optional domain that serves this locale at its root (example.de → de-DE).
+  domain    String?  @unique
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, code])
+  @@unique([siteId, prefix])
+}
+
+/// Links the language versions of one piece of content. Every member of a
+/// group shares `translationId` (the id of the original entry); a group has
+/// at most one entry per locale.
+model PostTranslation {
+  id            String   @id @default(cuid())
+  siteId        String
+  translationId String
+  postId        String   @unique
+  localeCode    String
+  createdAt     DateTime @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([translationId, localeCode])
+  @@index([siteId, translationId])
 }

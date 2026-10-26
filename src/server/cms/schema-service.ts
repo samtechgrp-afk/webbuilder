@@ -56,8 +56,10 @@ export async function savePostType(t: TenantContext, raw: z.input<typeof postTyp
     if (RESERVED_PREFIXES.has(routePrefix)) throw new EditError(`"/${routePrefix}" is reserved`, "invalid");
     const clash = await t.db.postType.findFirst({ where: { routePrefix, id: { not: existing?.id ?? "" } }, select: { labelPlural: true } });
     if (clash) throw new EditError(`${clash.labelPlural} already use /${routePrefix}`, "invalid");
-    const page = await t.db.post.findFirst({ where: { postType: { key: "page" }, slug: routePrefix, status: { not: "TRASHED" } }, select: { title: true } });
+    const page = await t.db.post.findFirst({ where: { postType: { key: "page" }, locale: "", slug: routePrefix, status: { not: "TRASHED" } }, select: { title: true } });
     if (page) throw new EditError(`The page "${page.title}" already lives at /${routePrefix}`, "invalid");
+    const language = await t.db.siteLocale.findFirst({ where: { prefix: routePrefix, isDefault: false }, select: { label: true } });
+    if (language) throw new EditError(`/${routePrefix} is the address of the ${language.label} version of the site`, "invalid");
   }
   if (new Set(input.templates.map((x) => x.key)).size !== input.templates.length) throw new EditError("Two page templates share a key", "invalid");
 

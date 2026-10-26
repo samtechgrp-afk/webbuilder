@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { readSiteSeo } from "@/lib/seo/settings";
 import { getTenant } from "@/lib/tenant";
@@ -38,6 +38,8 @@ export default async function EntryPage({ params }: PageProps<"/admin/sites/[sit
       author: { select: { name: true, email: true } },
     },
   });
+  // Translations have their own side-by-side editor next to the original.
+  if (post?.locale) redirect(`/admin/sites/${t.site.id}/translations?edit=${post.id}`);
   if (!post || post.postType.key === "template") notFound();
   const canEdit = t.can("post.editAny") || t.can("design.layout") || (t.can("post.create") && post.authorId === t.user.id);
   if (!canEdit) notFound();
@@ -51,7 +53,7 @@ export default async function EntryPage({ params }: PageProps<"/admin/sites/[sit
       select: { id: true, url: true, title: true, altText: true, originalName: true, mimeType: true, width: true, height: true, sizeBytes: true },
     }),
     t.db.post.findMany({
-      where: { status: { not: "TRASHED" }, postType: { key: { not: "template" } }, id: { not: postId } },
+      where: { status: { not: "TRASHED" }, locale: "", postType: { key: { not: "template" } }, id: { not: postId } },
       orderBy: { title: "asc" },
       take: 500,
       select: { id: true, title: true, postTypeId: true, postType: { select: { labelSingular: true } } },
@@ -59,7 +61,7 @@ export default async function EntryPage({ params }: PageProps<"/admin/sites/[sit
     t.db.membership.findMany({ select: { userId: true, user: { select: { name: true, email: true } } } }),
     t.db.term.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, taxonomyId: true, parentId: true } }),
     post.postType.hierarchical
-      ? t.db.post.findMany({ where: { postTypeId: post.postTypeId, id: { not: post.id }, status: { not: "TRASHED" } }, orderBy: { title: "asc" }, select: { id: true, title: true } })
+      ? t.db.post.findMany({ where: { postTypeId: post.postTypeId, locale: "", id: { not: post.id }, status: { not: "TRASHED" } }, orderBy: { title: "asc" }, select: { id: true, title: true } })
       : Promise.resolve([]),
   ]);
 

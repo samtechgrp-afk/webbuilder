@@ -19,7 +19,7 @@ export default async function SiteDashboard({ params }: PageProps<"/admin/sites/
 
   const [posts, mediaCount, activity] = await Promise.all([
     t.db.post.findMany({
-      where: { status: { not: "TRASHED" } },
+      where: { status: { not: "TRASHED" }, locale: "" },
       orderBy: [{ postType: { key: "asc" } }, { menuOrder: "asc" }, { title: "asc" }],
       include: { postType: true, editLock: { include: { user: { select: { name: true } } } } },
     }),

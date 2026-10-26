@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ClientEditor } from "@/components/editor/ClientEditor";
 import type { DesignTokens } from "@/lib/builder/styles";
 import { isBuilderDocument } from "@/lib/builder/types";
@@ -10,6 +10,10 @@ import type { BindingCatalog } from "@/components/editor/store";
 import type { FieldType } from "@/lib/cms/fields";
 import { acquireEditLock } from "@/server/content-service";
 import { draftSource, loadDynamicData } from "@/server/cms/dynamic";
+import { localePath } from "@/lib/i18n/locales";
+import { readSiteLocales } from "@/server/i18n/locale-service";
+import { translationMenu } from "@/server/i18n/translation-service";
+import type { EditorLanguage } from "@/components/editor/ClientEditor";
 
 export const metadata: Metadata = { title: "Editor" };
 
@@ -19,13 +23,15 @@ export default async function EditPage({ params }: PageProps<"/admin/sites/[site
   if (!t.can("content.edit") && !t.can("design.layout")) notFound();
 
   const post = await t.db.post.findUnique({ where: { id: postId }, include: { postType: true } });
+  // A translation has no layout of its own: its text and images are edited next to the original.
+  if (post?.locale) redirect(`/admin/sites/${t.site.id}/translations?edit=${post.id}`);
   if (!post || !post.postType.usesBuilder || !isBuilderDocument(post.draft)) notFound();
 
   // A single template renders entries of the post type that points at it; anything else renders itself.
   const templateFor = await t.db.postType.findFirst({ where: { singleTemplateId: post.id }, select: { id: true, labelSingular: true } });
   const contextPostTypeId = templateFor?.id ?? post.postTypeId;
   const previewEntry = templateFor
-    ? await t.db.post.findFirst({ where: { postTypeId: templateFor.id, status: { not: "TRASHED" } }, orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }], select: { id: true, title: true } })
+    ? await t.db.post.findFirst({ where: { postTypeId: templateFor.id, locale: "", status: { not: "TRASHED" } }, orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }], select: { id: true, title: true } })
     : { id: post.id, title: post.title };
 
   const tokenState = await prisma.site.findUniqueOrThrow({ where: { id: t.site.id }, select: { designTokens: true, designTokensVersion: true } });
@@ -62,6 +68,25 @@ export default async function EditPage({ params }: PageProps<"/admin/sites/[site
     terms: taxonomies.flatMap((tx) => tx.terms.map((term) => ({ id: term.id, label: `${tx.label}: ${term.name}`, postTypeIds: tx.postTypes.map((p) => p.id) }))),
   };
   const linkBase = `/sites/${t.site.subdomain}`;
+  const locales = templateFor ? [] : await readSiteLocales(t.site.id);
+  const sitePath = post.slug === "home" ? "/" : `/${post.slug}`;
+  const languages: EditorLanguage[] | undefined =
+    locales.length > 1
+      ? await Promise.all(
+          (await translationMenu(t, post.id, locales)).map(async (l) => {
+            const translated = l.postId && !l.isDefault ? await t.db.post.findUnique({ where: { id: l.postId }, select: { slug: true } }) : null;
+            const path = localePath(locales.find((x) => x.code === l.code) ?? null, translated ? (translated.slug === "home" ? "/" : `/${translated.slug}`) : sitePath);
+            return {
+              code: l.code,
+              label: l.label,
+              isDefault: l.isDefault,
+              href: l.postId ? `/admin/sites/${t.site.id}/translations?edit=${l.postId}` : `/admin/sites/${t.site.id}/translations?source=${post.id}`,
+              previewHref: `${linkBase}${path === "/" ? "" : path}?preview=1`,
+              status: l.isDefault ? "original" : !l.postId ? "missing" : l.live ? "live" : "draft",
+            } satisfies EditorLanguage;
+          }),
+        )
+      : undefined;
   const dynamic = await loadDynamicData(t.site.id, post.draft, t.site, previewEntry ? await draftSource(t.db, previewEntry.id) : null, linkBase);
 
   return (
@@ -91,6 +116,7 @@ export default async function EditPage({ params }: PageProps<"/admin/sites/[site
         catalog={catalog}
         contextPostTypeId={contextPostTypeId}
         template={templateFor ? { postTypeLabel: templateFor.labelSingular, previewTitle: previewEntry?.title ?? null } : null}
+        languages={languages}
       />
     </div>
   );

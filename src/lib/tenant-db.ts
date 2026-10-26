@@ -35,6 +35,8 @@ export const TENANT_MODELS = new Set<Prisma.ModelName>([
   "DesignTokenRevision",
   "SiteExport",
   "ApiKey",
+  "SiteLocale",
+  "PostTranslation",
 ]);
 
 const WHERE_OPS = new Set([

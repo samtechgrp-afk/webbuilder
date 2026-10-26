@@ -24,13 +24,16 @@ type Query {
   postTypes: [PostType!]!
   postType(key: String!): PostType
   """One entry by id, or by post type and slug. preview: true reads the working copy (needs a read-write key or a signed-in editor)."""
-  post(id: ID, type: String, slug: String, preview: Boolean = false): Post
+  post(id: ID, type: String, slug: String, preview: Boolean = false, """A language code such as fr-FR: the entry in that language (with an id, its translation)."""
+  locale: String): Post
   """A page by slug ("home" is the home page) or id."""
-  page(slug: String, id: ID, preview: Boolean = false): Post
-  """Entries of one post type. Without status, only live (published) entries; drafts need private access."""
-  posts(type: String!, first: Int = 20, after: String, where: PostWhere, orderBy: PostOrder = DATE_DESC): PostConnection!
+  page(slug: String, id: ID, preview: Boolean = false, locale: String): Post
+  """Entries of one post type. Without status, only live (published) entries; drafts need private access. Without locale, the default language."""
+  posts(type: String!, first: Int = 20, after: String, where: PostWhere, orderBy: PostOrder = DATE_DESC, locale: String): PostConnection!
   """Top-level pages (parent: null) or the children of one page."""
-  pages(parent: ID, first: Int = 20, after: String, orderBy: PostOrder = MENU_ORDER): PostConnection!
+  pages(parent: ID, first: Int = 20, after: String, orderBy: PostOrder = MENU_ORDER, locale: String): PostConnection!
+  """The site's languages, default first. Empty for a single-language site."""
+  locales: [Locale!]!
   taxonomies: [Taxonomy!]!
   taxonomy(key: String!): Taxonomy
   term(taxonomy: String!, slug: String!): Term
@@ -86,6 +89,28 @@ type Site {
   seo: SiteSeo!
 }
 
+type Locale {
+  """BCP 47 tag, such as fr-FR."""
+  code: String!
+  label: String!
+  """URL prefix (/fr); the default language has clean URLs."""
+  prefix: String!
+  isDefault: Boolean!
+  currency: String!
+  """The language's own domain, if it has one."""
+  domain: String
+  """Home page URL in this language."""
+  url: String!
+}
+
+"""One language version of an entry, for <link rel="alternate" hreflang>."""
+type Hreflang {
+  """BCP 47 tag, or x-default for the default-language version."""
+  hreflang: String!
+  locale: String
+  url: String!
+}
+
 type SiteSeo {
   titleTemplate: String
   homeTitle: String
@@ -138,6 +163,12 @@ type Post {
   author: Author
   featuredImage: MediaAsset
   terms(taxonomy: String): [Term!]!
+  """Language code (null on a single-language site)."""
+  locale: String
+  """The same entry in the site's other languages (live versions, or working copies in a preview)."""
+  translations: [Post!]!
+  """Live language versions of this entry with absolute URLs, x-default included. Empty without translations."""
+  hreflangs: [Hreflang!]!
   customFields: CustomFields!
   seo: PostSeo!
   parent: Post

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { splitLocalePath, type SiteLocaleInfo } from "@/lib/i18n/locales";
 
 /**
  * Does a public URL resolve to live content? The proxy asks this before
@@ -11,40 +12,126 @@ import { prisma } from "@/lib/db";
  * archive at /<prefix>. Only live content counts (a published revision and
  * not in the trash), so drafts, scheduled and trashed entries are 404s.
  * The site's designated 404 page is never served at its own address.
+ *
+ * On a multilingual site the first segment may select a language (/fr/…),
+ * or the host may be a language's own domain. A path that exists only in
+ * the default language either redirects to its translation (when the
+ * translation lives at another slug) or falls back to the default content.
  */
 const LIVE = { publishedRevisionId: { not: null }, status: { not: "TRASHED" as const } };
 
-export type RouteCheck = { site: false } | { site: true; exists: boolean };
+export interface RouteAlternate {
+  localeCode: string;
+  path: string;
+}
+
+export type RouteCheck =
+  | { site: false }
+  | {
+      site: true;
+      exists: boolean;
+      locales: SiteLocaleInfo[];
+      /** The language whose domain this host is. */
+      hostLocale: string | null;
+      /** The language the path asked for. */
+      locale: string | null;
+      prefixed: boolean;
+      /** Site path (no prefix) of the translation to redirect to. */
+      redirect?: string;
+      /** The default-language version is shown because there's no translation. */
+      fallback?: boolean;
+      alternates: RouteAlternate[];
+      subdomain: string;
+      customDomain: string | null;
+      localeDetection: boolean;
+    };
+
+type Hit = { postId: string } | { archive: string };
+
+async function findContent(siteId: string, parts: string[], locale: string, hidden: string[]): Promise<Hit | null> {
+  const slug = parts.length ? parts.join("/") : "home";
+  const page = await prisma.post.findFirst({
+    where: { siteId, locale, slug, postType: { key: "page" }, ...LIVE, ...(hidden.length ? { id: { notIn: hidden } } : {}) },
+    select: { id: true },
+  });
+  if (page) return { postId: page.id };
+
+  if (parts.length === 2) {
+    const entry = await prisma.post.findFirst({
+      where: { siteId, locale, slug: parts[1], postType: { routePrefix: parts[0], key: { notIn: ["page", "template"] } }, ...LIVE },
+      select: { id: true },
+    });
+    if (entry) return { postId: entry.id };
+  }
+  if (parts.length === 1) {
+    const archive = await prisma.postType.findFirst({
+      where: { siteId, routePrefix: parts[0], hasArchive: true, key: { notIn: ["page", "template"] } },
+      select: { routePrefix: true },
+    });
+    if (archive) return { archive: archive.routePrefix ?? parts[0] };
+  }
+  return null;
+}
+
+function entryPath(postType: { key: string; routePrefix: string | null }, slug: string) {
+  if (postType.key === "page") return slug === "home" ? "/" : `/${slug}`;
+  return `/${postType.routePrefix || postType.key}/${slug}`;
+}
+
+/** Live members of the hit's translation group (archives exist in every language). */
+async function alternatesFor(siteId: string, hit: Hit, locales: SiteLocaleInfo[]): Promise<RouteAlternate[]> {
+  if (!locales.length) return [];
+  if ("archive" in hit) return locales.map((l) => ({ localeCode: l.code, path: `/${hit.archive}` }));
+  const group = await prisma.postTranslation.findUnique({ where: { postId: hit.postId }, select: { translationId: true } });
+  if (!group) return [];
+  const members = await prisma.postTranslation.findMany({
+    where: { siteId, translationId: group.translationId, post: LIVE },
+    select: { localeCode: true, post: { select: { slug: true, locale: true, postType: { select: { key: true, routePrefix: true } } } } },
+  });
+  if (!members.some((m) => !m.post.locale)) return [];
+  return members.map((m) => ({ localeCode: m.localeCode, path: entryPath(m.post.postType, m.post.slug) }));
+}
+
+async function notFoundGroup(postId: string) {
+  const group = await prisma.postTranslation.findUnique({ where: { postId }, select: { translationId: true } });
+  if (!group) return [postId];
+  const members = await prisma.postTranslation.findMany({ where: { translationId: group.translationId }, select: { postId: true } });
+  return [postId, ...members.map((m) => m.postId)];
+}
 
 export async function checkPublicRoute(key: string, slugParts: string[]): Promise<RouteCheck> {
   const host = decodeURIComponent(key).toLowerCase();
   const site = await prisma.site.findFirst({
-    where: { OR: [{ subdomain: host }, { customDomain: host }], status: { not: "SUSPENDED" } },
-    select: { id: true, settings: true },
+    where: { OR: [{ subdomain: host }, { customDomain: host }, { locales: { some: { domain: host } } }], status: { not: "SUSPENDED" } },
+    select: {
+      id: true,
+      settings: true,
+      subdomain: true,
+      customDomain: true,
+      localeDetection: true,
+      locales: { orderBy: [{ isDefault: "desc" }, { order: "asc" }, { createdAt: "asc" }], select: { code: true, label: true, prefix: true, isDefault: true, currency: true, domain: true } },
+    },
   });
   if (!site) return { site: false };
-  const notFoundPageId = ((site.settings ?? {}) as { notFoundPageId?: string | null }).notFoundPageId ?? undefined;
+  const notFoundPageId = ((site.settings ?? {}) as { notFoundPageId?: string | null }).notFoundPageId ?? null;
+  // The 404 page (and its translations) is never served at its own address.
+  const hidden = notFoundPageId ? await notFoundGroup(notFoundPageId) : [];
+  const locales = site.locales;
+  const hostLocale = locales.find((l) => l.domain === host && !l.isDefault)?.code ?? null;
+  const { locale, rest, prefixed } = splitLocalePath(slugParts, locales, hostLocale);
+  const stored = locale && !locale.isDefault ? locale.code : "";
+  const base = { site: true as const, locales, hostLocale, locale: locale?.code ?? null, prefixed, subdomain: site.subdomain, customDomain: site.customDomain, localeDetection: site.localeDetection };
 
-  const slug = slugParts.length ? slugParts.join("/") : "home";
-  const page = await prisma.post.findFirst({
-    where: { siteId: site.id, slug, postType: { key: "page" }, ...LIVE, ...(notFoundPageId ? { id: { not: notFoundPageId } } : {}) },
-    select: { id: true },
-  });
-  if (page) return { site: true, exists: true };
-
-  if (slugParts.length === 2) {
-    const entry = await prisma.post.findFirst({
-      where: { siteId: site.id, slug: slugParts[1], postType: { routePrefix: slugParts[0], key: { notIn: ["page", "template"] } }, ...LIVE },
-      select: { id: true },
-    });
-    if (entry) return { site: true, exists: true };
+  const hit = await findContent(site.id, rest, stored, hidden);
+  if (hit) return { ...base, exists: true, alternates: await alternatesFor(site.id, hit, locales) };
+  if (stored) {
+    const original = await findContent(site.id, rest, "", hidden);
+    if (original) {
+      const alternates = await alternatesFor(site.id, original, locales);
+      const translated = alternates.find((a) => a.localeCode === stored);
+      if (translated) return { ...base, exists: true, redirect: translated.path, alternates };
+      return { ...base, exists: true, fallback: true, alternates };
+    }
   }
-  if (slugParts.length === 1) {
-    const archive = await prisma.postType.findFirst({
-      where: { siteId: site.id, routePrefix: slugParts[0], hasArchive: true, key: { notIn: ["page", "template"] } },
-      select: { id: true },
-    });
-    if (archive) return { site: true, exists: true };
-  }
-  return { site: true, exists: false };
+  return { ...base, exists: false, alternates: [] };
 }

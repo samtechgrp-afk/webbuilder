@@ -15,3 +15,15 @@ export async function publicBaseUrl(site: { subdomain: string; customDomain: str
   const proto = h.get("x-forwarded-proto") ?? (/^(localhost|127\.|\[::1\])|\.localhost(:|$)/.test(host) ? "http" : "https");
   return h.get(SITE_ROOT_HEADER) === "1" ? `${proto}://${host}` : `${proto}://${host}/sites/${site.subdomain}`;
 }
+
+/**
+ * The site's main base URL when the request may have arrived on one of its
+ * languages' own domains (where `publicBaseUrl` would return that domain).
+ */
+export async function mainBaseUrl(site: { subdomain: string; customDomain: string | null }, hostLocale: string | null) {
+  if (site.customDomain || !hostLocale) return publicBaseUrl(site);
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (/^(localhost|127\.|\[::1\])|\.localhost(:|$)/.test(host) ? "http" : "https");
+  return `${proto}://${site.subdomain}.${(process.env.ROOT_DOMAIN ?? "localhost:3000").toLowerCase()}`;
+}
