@@ -2,7 +2,7 @@
 
 A visual website builder and multi-tenant CMS with a client portal. Designers build premium sites with full control; clients sign in to their own portal and edit words, images, links and prices directly on the live page, inside guardrails the designer sets.
 
-**Status: phase 6.** Phase 1 laid the multi-tenant foundation, full Prisma schema, RBAC, Client Mode editor with locked containers, revisions and rollback, and media ingest (WebP). Phase 2 added Design mode: drag widgets from a palette, rearrange in Layers, and style every element per breakpoint. Phase 3 added the CMS:
+**Status: phase 7.** Phase 1 laid the multi-tenant foundation, full Prisma schema, RBAC, Client Mode editor with locked containers, revisions and rollback, and media ingest (WebP). Phase 2 added Design mode: drag widgets from a palette, rearrange in Layers, and style every element per breakpoint. Phase 3 added the CMS:
 
 - **Content dashboard** (`/admin/sites/:id/content`): per post type tables with search, sort, pagination and Published / Draft / Scheduled / Trash tabs; bulk publish, draft, trash, restore, delete and duplicate; a revision drawer with rollback; scheduled publishing through `/api/cron/scheduled`.
 - **Post types** (`/cpts`): labels, slug rules, URL prefix, archive, hierarchy, REST API toggle, icons, page templates, a taxonomy manager, and a single template designed on the canvas.
@@ -26,14 +26,20 @@ Phase 5 added SEO:
 - **SEO screen** (`/seo`): an audit of every live page (missing, short or long descriptions, long or duplicate titles, no share image, hidden) for anyone who edits content, and site defaults for site-settings holders.
 - **Entry editor**: search and social previews built from the same rules as the live page, a share image and a canonical URL.
 
-Phase 6 adds the export engine:
+Phase 6 added the export engine:
 
 - **Static compilation** (`src/lib/export/compile.ts`): every live page, entry and archive is rendered by the live renderer and turned into a standalone `index.html`. Runtime scripts are dropped (JSON-LD stays), `/sites/<site>` paths become root-relative, canonical and Open Graph URLs point at the hosting address, and every stylesheet, font, image and icon the page uses is copied in. A page captured mid-stream is refused rather than exported half-rendered.
 - **Bundle**: one zip with the pages, `404.html` (the site's designed 404 page), `sitemap.xml` and `robots.txt` for the hosting address, `data/content.json` with published entries and fields, the CSS, fonts and media, and a README. Drafts, review, scheduled and trashed entries are never included. It works on any static host (Netlify, Vercel, Cloudflare Pages, S3, nginx).
 - **Export screen** (`/admin/sites/:id/export`): pick the hosting address, start an export that runs in the background with live progress, then download or delete it from the history. Each job lists warnings such as links with no page in the export. Bundles live in private storage (`storage/exports` under the app root, not public) and download only through an authenticated route.
 - **Guardrails**: only roles with `site.settings` see the screen; starting, downloading and deleting all check the permission on the server, and one export per site runs at a time.
 
-GraphQL (deferred) comes next.
+Phase 7 adds a headless GraphQL API:
+
+- **Endpoint** `/api/v1/sites/<site id or subdomain>/graphql` (POST, or GET for cacheable public reads). Each site gets its own schema: `customFields` is a typed object built from the site's field groups (a price is a `Price`, an image a `MediaAsset`, a repeater a list of row objects, flexible content a union of layouts), rebuilt when field definitions change.
+- **Queries**: `site`, `postTypes`, `post` / `page` by id or slug (with `parent` and `children` for page trees), `posts(type, first, after, where: { terms, category, tag, status, search, parent }, orderBy)`, `pages`, `taxonomies`, `term`, `mediaAsset`. Mutations `createEntry` and `updateEntry` save drafts only.
+- **Access**: requests without a key (when public access is on) and read-only keys see live content, read from published snapshots. Read-write keys and signed-in editors can pass `preview: true` or a draft `status` to read working copies, and read-write keys can write drafts (never publish, never designer-only fields). Keys are `wbk_ro_…` / `wbk_rw_…`, stored as SHA-256 hashes, scoped to one site, revocable.
+- **Performance and guardrails**: per-request DataLoaders batch every relation (fields, terms, images, authors, parents, children), so a page of 20 entries costs the same handful of queries as 2; each response reports `extensions.dbQueries`. Queries deeper than 5 levels or costlier than the budget (lists priced by `first`, at most 100) are refused before they run. Every read goes through the tenant-scoped client.
+- **Developer screen** (`/admin/sites/:id/developer`, `developer.api` permission, designers only): API on/off, public access, key create/revoke (shown once), and an embedded GraphiQL playground.
 
 ## Quick start
 
@@ -67,6 +73,7 @@ npm run e2e                      # Playwright: client edits hero → publish →
 npm run e2e:designer             # Playwright: designer drags, reorders, styles per breakpoint → publish
 npm run e2e:tokens               # Playwright: presets + live preview, save → live CSS vars, drawer, token/raw toggle, client lockout, restore
 npm run e2e:seo                  # Playwright: sitemap/robots per site, live meta, site defaults, client entry SEO, lockout, discourage
+npm run e2e:graphql              # Playwright: playground, keys, typed queries, no N+1, draft protection, isolation, depth/cost limits, lockout
 npm run e2e:export               # Playwright: background export → zip contents → served by a plain static server → client lockout, delete
 npm run e2e:404                  # Playwright: true 404 status, custom 404 page, drafts/trash hidden, editor preview
 CRON_SECRET=… npm run e2e:cms    # Playwright: CPT + fields → client entry → loop grid binding → live site, media, trash, restore, schedule
@@ -106,4 +113,7 @@ Reseed with the server stopped (or restart it after seeding): resolved sites are
 | `src/server/route-check.ts`, `src/app/site-404` | Proxy-side route check and the per-site 404 page served with status 404 |
 | `src/lib/export/compile.ts`, `src/server/export/*` | Static HTML/CSS compiler; export jobs, bundling, private storage |
 | `src/app/admin/sites/[siteId]/export`, `src/app/api/sites/[siteId]/exports` | Export screen and authenticated bundle download |
+| `src/lib/graphql/*` | Per-site GraphQL SDL (typed custom fields), depth and cost analysis |
+| `src/server/graphql/*`, `src/app/api/v1/sites/[site]/graphql` | GraphQL handler, resolvers, DataLoaders, API keys, Developer settings |
+| `src/app/admin/sites/[siteId]/developer` | Developer screen and GraphiQL playground |
 | `src/app/api/v1/sites/[site]/[type]` | Public REST API for post types with the API enabled |

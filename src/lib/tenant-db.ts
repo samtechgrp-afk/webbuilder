@@ -34,6 +34,7 @@ export const TENANT_MODELS = new Set<Prisma.ModelName>([
   "AuditLog",
   "DesignTokenRevision",
   "SiteExport",
+  "ApiKey",
 ]);
 
 const WHERE_OPS = new Set([

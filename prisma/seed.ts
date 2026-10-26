@@ -133,7 +133,7 @@ async function main() {
   const logoAsset = await prisma.mediaAsset.create({ data: { ...logo, siteId: aurelia.site.id, uploadedById: designer.id, altText: "Aurelia Interiors", title: "Aurelia monogram", tags: ["brand"] } });
   await prisma.site.update({
     where: { id: aurelia.site.id },
-    data: { settings: { tagline: "Interior architecture in New England" }, branding: { accent: "#2B2620", logoText: "Aurelia", logoAssetId: logoAsset.id } },
+    data: { graphqlEnabled: true, settings: { tagline: "Interior architecture in New England" }, branding: { accent: "#2B2620", logoText: "Aurelia", logoAssetId: logoAsset.id } },
   });
   const home = await publishPage(aurelia.site.id, aurelia.page.id, designer.id, "Home", "home", buildAureliaHome(images), {
     seoTitle: "Aurelia Interiors · Interior architecture in New England",
