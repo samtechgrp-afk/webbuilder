@@ -2,6 +2,7 @@ import "server-only";
 import DataLoader from "dataloader";
 import type { MediaAsset, Post, PostRevision, PostStatus, Prisma, Taxonomy, Term } from "@prisma/client";
 import type { TenantDb } from "@/lib/tenant-db";
+import type { SiteLocaleInfo } from "@/lib/i18n/locales";
 import type { RevisionMeta } from "../cms/dynamic";
 
 /**
@@ -39,9 +40,18 @@ export interface PostNode {
   /** Term ids; null means "load the working copy's terms". */
   termIds: string[] | null;
   seo: { title: string | null; description: string | null; canonicalUrl: string | null; noIndex: boolean; imageId: string | null };
+  /** "" for the default language, else the language code. */
+  locale: string;
+  translationId: string | null;
 }
 
-type LiveRow = Post & { publishedRevision: PostRevision | null };
+type Group = { translation?: { translationId: string } | null };
+type LiveRow = Post & { publishedRevision: PostRevision | null } & Group;
+type PreviewRow = Post & Group;
+
+/** Includes every PostNode query needs. */
+export const LIVE_INCLUDE = { publishedRevision: true, translation: { select: { translationId: true } } } as const;
+export const PREVIEW_INCLUDE = { translation: { select: { translationId: true } } } as const;
 
 export function liveNode(post: LiveRow): PostNode | null {
   const rev = post.publishedRevision;
@@ -75,10 +85,12 @@ export function liveNode(post: LiveRow): PostNode | null {
       noIndex: !!(meta.seo ? seo.noIndex : post.noIndex),
       imageId: (meta.seo && "ogImageId" in seo ? seo.ogImageId : post.ogImageId) ?? null,
     },
+    locale: post.locale,
+    translationId: post.translation?.translationId ?? null,
   };
 }
 
-export function previewNode(post: Post): PostNode | null {
+export function previewNode(post: PreviewRow): PostNode | null {
   if (post.status === "TRASHED") return null;
   return {
     id: post.id,
@@ -99,6 +111,8 @@ export function previewNode(post: Post): PostNode | null {
     fields: null,
     termIds: null,
     seo: { title: post.seoTitle, description: post.seoDescription, canonicalUrl: post.canonicalUrl, noIndex: post.noIndex, imageId: post.ogImageId },
+    locale: post.locale,
+    translationId: post.translation?.translationId ?? null,
   };
 }
 
@@ -123,12 +137,20 @@ export function createLoaders(db: TenantDb, siteId: string) {
   let postTypes: Promise<Prisma.PostTypeGetPayload<{ include: { taxonomies: { select: { id: true } } } }>[]> | null = null;
   let fieldGroups: Promise<Prisma.FieldGroupGetPayload<{ include: { fields: true } }>[]> | null = null;
   let taxonomies: Promise<Prisma.TaxonomyGetPayload<{ include: { postTypes: { select: { id: true } } } }>[]> | null = null;
+  let locales: Promise<SiteLocaleInfo[]> | null = null;
 
   return {
     /** Every post type of the site (one query per request). */
     postTypes: () => (postTypes ??= db.postType.findMany({ where: { key: { not: "template" } }, include: { taxonomies: { select: { id: true } } }, orderBy: { createdAt: "asc" } })),
     /** Every taxonomy of the site (one query per request). */
     taxonomies: () => (taxonomies ??= db.taxonomy.findMany({ include: { postTypes: { select: { id: true } } }, orderBy: { key: "asc" } })),
+
+    /** The site's languages, default first (one query per request). */
+    locales: () =>
+      (locales ??= db.siteLocale.findMany({
+        orderBy: [{ isDefault: "desc" }, { order: "asc" }, { createdAt: "asc" }],
+        select: { code: true, label: true, prefix: true, isDefault: true, currency: true, domain: true },
+      })),
 
     /** Active field groups with their fields (one query per request). */
     fieldGroups: () => (fieldGroups ??= db.fieldGroup.findMany({ where: { active: true }, include: { fields: { orderBy: { order: "asc" } } }, orderBy: { order: "asc" } })),
@@ -142,19 +164,41 @@ export function createLoaders(db: TenantDb, siteId: string) {
     taxonomy: new DataLoader<string, Taxonomy | null>(async (ids) => byId(ids, await db.taxonomy.findMany({ where: { id: { in: [...ids] } } }))),
 
     livePost: new DataLoader<string, PostNode | null>(async (ids) => {
-      const rows = await db.post.findMany({ where: { id: { in: [...ids] }, ...LIVE }, include: { publishedRevision: true } });
+      const rows = await db.post.findMany({ where: { id: { in: [...ids] }, ...LIVE }, include: LIVE_INCLUDE });
       return byId(ids, rows).map((r) => (r ? liveNode(r) : null));
     }),
     previewPost: new DataLoader<string, PostNode | null>(async (ids) => {
-      const rows = await db.post.findMany({ where: { id: { in: [...ids] }, ...PREVIEWABLE } });
+      const rows = await db.post.findMany({ where: { id: { in: [...ids] }, ...PREVIEWABLE }, include: PREVIEW_INCLUDE });
       return byId(ids, rows).map((r) => (r ? previewNode(r) : null));
     }),
+    /** The default-language original of each translation group (live versions). */
+    liveOriginal: new DataLoader<string, PostNode | null>(async (groups) => {
+      const rows = await db.post.findMany({ where: { locale: "", translation: { translationId: { in: [...groups] } }, ...LIVE }, include: LIVE_INCLUDE });
+      const map = new Map(rows.map((r) => [r.translation!.translationId, liveNode(r)]));
+      return groups.map((g) => map.get(g) ?? null);
+    }),
+    /** The default-language original of each translation group (working copies). */
+    previewOriginal: new DataLoader<string, PostNode | null>(async (groups) => {
+      const rows = await db.post.findMany({ where: { locale: "", translation: { translationId: { in: [...groups] } }, ...PREVIEWABLE }, include: PREVIEW_INCLUDE });
+      const map = new Map(rows.map((r) => [r.translation!.translationId, previewNode(r)]));
+      return groups.map((g) => map.get(g) ?? null);
+    }),
+    /** Members of each translation group with whether they're live. */
+    groupMembers: new DataLoader<string, { postId: string; localeCode: string; live: boolean; slug: string; postTypeId: string; locale: string }[]>(async (groups) => {
+      const rows = await db.postTranslation.findMany({
+        where: { translationId: { in: [...groups] }, post: PREVIEWABLE },
+        select: { translationId: true, localeCode: true, post: { select: { id: true, slug: true, postTypeId: true, locale: true, publishedRevisionId: true } } },
+      });
+      return grouped(groups, rows, (r) => r.translationId).map((list) =>
+        list.map((r) => ({ postId: r.post.id, localeCode: r.localeCode, live: !!r.post.publishedRevisionId, slug: r.post.slug, postTypeId: r.post.postTypeId, locale: r.post.locale })),
+      );
+    }),
     liveChildren: new DataLoader<string, PostNode[]>(async (ids) => {
-      const rows = await db.post.findMany({ where: { parentId: { in: [...ids] }, ...LIVE }, include: { publishedRevision: true }, orderBy: [{ menuOrder: "asc" }, { title: "asc" }] });
+      const rows = await db.post.findMany({ where: { parentId: { in: [...ids] }, ...LIVE }, include: LIVE_INCLUDE, orderBy: [{ menuOrder: "asc" }, { title: "asc" }] });
       return grouped(ids, rows, (r) => r.parentId).map((list) => list.map(liveNode).filter((n): n is PostNode => !!n));
     }),
     previewChildren: new DataLoader<string, PostNode[]>(async (ids) => {
-      const rows = await db.post.findMany({ where: { parentId: { in: [...ids] }, ...PREVIEWABLE }, orderBy: [{ menuOrder: "asc" }, { title: "asc" }] });
+      const rows = await db.post.findMany({ where: { parentId: { in: [...ids] }, ...PREVIEWABLE }, include: PREVIEW_INCLUDE, orderBy: [{ menuOrder: "asc" }, { title: "asc" }] });
       return grouped(ids, rows, (r) => r.parentId).map((list) => list.map(previewNode).filter((n): n is PostNode => !!n));
     }),
     /** Working-copy field values by post, keyed by field key. */

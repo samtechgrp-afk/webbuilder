@@ -15,7 +15,7 @@ export default async function FieldGroupsPage({ params }: PageProps<"/admin/site
     t.db.fieldGroup.findMany({ orderBy: [{ order: "asc" }, { label: "asc" }], include: { _count: { select: { fields: true } } } }),
     t.db.postType.findMany({ select: { id: true, labelPlural: true } }),
     t.db.term.findMany({ select: { id: true, name: true } }),
-    t.db.post.findMany({ where: { postType: { hierarchical: true } }, select: { id: true, title: true } }),
+    t.db.post.findMany({ where: { postType: { hierarchical: true }, locale: "" }, select: { id: true, title: true } }),
   ]);
   const names = new Map<string, string>([...postTypes.map((p) => [p.id, p.labelPlural] as const), ...terms.map((x) => [x.id, x.name] as const), ...posts.map((p) => [p.id, p.title] as const)]);
   const describe = (location: unknown) => {

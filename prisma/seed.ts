@@ -91,6 +91,34 @@ async function publishEntry(
   return post;
 }
 
+/** A translation of `source` in `locale`, grouped with it (the original joins the group as the default language). */
+async function translate(
+  source: { id: string; siteId: string; postTypeId: string },
+  defaultCode: string,
+  locale: string,
+  authorId: string,
+  t: { title: string; slug: string; document: unknown; excerpt?: string; fields?: Record<string, unknown>; seo?: { seoTitle?: string; seoDescription?: string }; publish: boolean },
+) {
+  const { siteId } = source;
+  await prisma.postTranslation.upsert({ where: { postId: source.id }, create: { siteId, translationId: source.id, postId: source.id, localeCode: defaultCode }, update: {} });
+  const doc = t.document as Prisma.InputJsonValue;
+  const post = await prisma.post.create({
+    data: {
+      siteId, postTypeId: source.postTypeId, authorId, locale, title: t.title, slug: t.slug, excerpt: t.excerpt, draft: doc,
+      seoTitle: t.seo?.seoTitle, seoDescription: t.seo?.seoDescription, status: t.publish ? "PUBLISHED" : "DRAFT", publishedAt: t.publish ? new Date() : null,
+    },
+  });
+  await prisma.postTranslation.create({ data: { siteId, translationId: source.id, postId: post.id, localeCode: locale } });
+  const fields = await prisma.customField.findMany({ where: { siteId, key: { in: Object.keys(t.fields ?? {}) } } });
+  for (const f of fields) await prisma.fieldValue.create({ data: { siteId, postId: post.id, fieldId: f.id, value: t.fields![f.key] as Prisma.InputJsonValue } });
+  const meta = { fields: t.fields ?? {}, featuredImageId: null, excerpt: t.excerpt ?? null, termIds: [], template: null, parentId: null, authorName: null, seo: { seoTitle: t.seo?.seoTitle ?? null, seoDescription: t.seo?.seoDescription ?? null, noIndex: false } };
+  const rev = await prisma.postRevision.create({
+    data: { siteId, postId: post.id, version: 1, kind: t.publish ? "PUBLISHED" : "DRAFT", title: t.title, document: doc, meta: meta as Prisma.InputJsonValue, message: "Translated", authorId },
+  });
+  if (t.publish) await prisma.post.update({ where: { id: post.id }, data: { publishedRevisionId: rev.id } });
+  return post;
+}
+
 async function main() {
   console.log("Resetting demo data…");
   await prisma.site.deleteMany();
@@ -184,8 +212,9 @@ async function main() {
     { title: "Velvet Garden Chair", slug: "velvet-garden-chair", image: images.portrait, term: seating.id, price: 1450, material: "Moss cotton velvet, oak", sku: "AUR-S-031", excerpt: "A deep, low chair upholstered in moss-green velvet." },
     { title: "Linen Lounge Sofa", slug: "linen-lounge-sofa", image: images.bedroom, term: seating.id, price: 3900, material: "Belgian linen, kiln-dried ash", sku: "AUR-S-007", excerpt: "Loose linen covers over a feather-wrapped frame." },
   ];
+  const productPosts = [];
   for (const [i, item] of products.entries()) {
-    await publishEntry(aurelia.site.id, product.id, olivia.id, {
+    productPosts[i] = await publishEntry(aurelia.site.id, product.id, olivia.id, {
       title: item.title, slug: item.slug, excerpt: item.excerpt, featuredImageId: item.image.assetId, termIds: [item.term],
       publishedAt: new Date(Date.now() - (i + 1) * 86_400_000),
       fields: { price: { amount: item.price, currency: "USD" }, material: item.material, sku: item.sku, dimensions: [{ label: "Height", value: `${40 + i * 15} cm` }] },
@@ -200,6 +229,60 @@ async function main() {
       siteId: aurelia.site.id, postTypeId: aurelia.post.id, authorId: sam.id, title: "Five ways to warm up a north-facing room", slug: "warm-up-a-north-facing-room", status: "PENDING_REVIEW",
       draft: { type: "html", html: "<p>North light is soft, even and cool…</p>" },
     },
+  });
+
+  // Languages: English (default, clean URLs), French under /fr and Spanish
+  // under /es. French has the home page, a product and the 404 page
+  // translated; Spanish has only an unpublished draft, so its pages fall
+  // back to English.
+  await prisma.siteLocale.createMany({
+    data: [
+      { siteId: aurelia.site.id, code: "en-US", label: "English", prefix: "en", isDefault: true, currency: "USD", order: 0 },
+      { siteId: aurelia.site.id, code: "fr-FR", label: "Français", prefix: "fr", currency: "EUR", order: 1 },
+      { siteId: aurelia.site.id, code: "es-ES", label: "Español", prefix: "es", currency: "EUR", order: 2 },
+    ],
+  });
+  await translate(home, "en-US", "fr-FR", olivia.id, {
+    title: "Accueil",
+    slug: "home",
+    publish: true,
+    seo: { seoTitle: "Aurelia Interiors · Architecture d'intérieur en Nouvelle-Angleterre", seoDescription: "Des intérieurs calmes et réfléchis, du premier croquis au dernier coussin." },
+    document: {
+      type: "translation",
+      version: 1,
+      overrides: {
+        "ann-text": { text: "Réservations ouvertes pour le printemps 2027 · Places limitées" },
+        "nav-1": { link: { label: "Projets", href: "/work" } },
+        "nav-3": { link: { label: "Journal", href: "/journal" } },
+        "header-cta": { link: { label: "Prendre rendez-vous", href: "/contact" } },
+        "hero-eyebrow": { text: "Architecture d'intérieur · Depuis 2011" },
+        "hero-title": { text: "Des pièces qui semblent vous avoir toujours appartenu." },
+        "hero-cta": { link: { label: "Démarrer votre projet", href: "/contact" } },
+        "offer-title": { text: "La consultation déco" },
+        "offer-price": { price: { amount: 420, currency: "EUR", compareAt: null } },
+      },
+    },
+  });
+  await translate(home, "en-US", "es-ES", olivia.id, {
+    title: "Inicio",
+    slug: "home",
+    publish: false,
+    document: { type: "translation", version: 1, overrides: { "hero-title": { text: "Borrador: habitaciones que parecen tuyas desde siempre." } } },
+  });
+  await translate(productPosts[0], "en-US", "fr-FR", olivia.id, {
+    title: "Lampe de table en albâtre",
+    slug: "lampe-de-table-albatre",
+    excerpt: "De l'albâtre tourné à la main qui s'illumine comme une lanterne au crépuscule.",
+    fields: { material: "Albâtre d'Espagne, laiton" },
+    document: { type: "html", html: "<p>Chaque lampe est tournée à la main dans un bloc d'albâtre.</p>" },
+    publish: true,
+  });
+  const notFoundPage = await prisma.post.findFirstOrThrow({ where: { siteId: aurelia.site.id, slug: "page-not-found" } });
+  await translate(notFoundPage, "en-US", "fr-FR", olivia.id, {
+    title: "Page introuvable",
+    slug: "page-introuvable",
+    publish: true,
+    document: { type: "translation", version: 1, overrides: { "nf-title": { text: "Cette pièce n'existe pas (encore)." }, "nf-home": { link: { label: "Retour à l'accueil", href: "/" } } } },
   });
 
   // ── Tenant 2: Northwind Dental (proves isolation) ──────────────────────────

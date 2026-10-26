@@ -42,6 +42,19 @@ export interface ClientEditorProps {
   contextPostTypeId: string | null;
   /** Set when editing a post type's single template. */
   template: { postTypeLabel: string; previewTitle: string | null } | null;
+  /** The page's languages on a multilingual site: the canvas edits the shared layout, translations open in their drawer. */
+  languages?: EditorLanguage[];
+}
+
+export interface EditorLanguage {
+  code: string;
+  label: string;
+  isDefault: boolean;
+  /** Where to edit this language's text (the translations drawer), or start its translation. */
+  href: string;
+  /** This page at its public address in this language, with drafts. */
+  previewHref: string;
+  status: "original" | "live" | "draft" | "missing";
 }
 
 const HEARTBEAT_MS = 45_000;
@@ -172,6 +185,8 @@ export function ClientEditor(props: ClientEditorProps) {
           </p>
         </div>
 
+        {props.languages && props.languages.length > 1 && <LanguageMenu languages={props.languages} />}
+
         <div className="mx-auto flex rounded-lg bg-zinc-900 p-0.5" role="group" aria-label="Preview size">
           {BREAKPOINT_ORDER.map((bp) => (
             <button
@@ -271,7 +286,8 @@ export function ClientEditor(props: ClientEditorProps) {
 
       <div className="flex min-h-0 flex-1">
         {designMode && <DesignSidebar />}
-        <Canvas tokens={tokens} />
+        {/* Language switchers on the canvas show the site's languages; their links point at previews. */}
+        <Canvas tokens={tokens} languages={props.languages?.map((l) => ({ code: l.code, label: l.label, href: l.previewHref, current: l.isDefault, translated: l.status !== "missing" }))} />
         <aside className="w-80 shrink-0 overflow-y-auto border-l border-zinc-200 bg-white" aria-label="Inspector">
           <Inspector
             siteId={site.id}
@@ -388,5 +404,42 @@ function HistoryPanel({
         </ol>
       </aside>
     </div>
+  );
+}
+
+const LANGUAGE_STATUS: Record<EditorLanguage["status"], string> = { original: "Editing layout", live: "Translated", draft: "Draft translation", missing: "Not translated" };
+
+/** The canvas header's language menu. The canvas always edits the one layout every language shares. */
+function LanguageMenu({ languages }: { languages: EditorLanguage[] }) {
+  const current = languages.find((l) => l.isDefault) ?? languages[0];
+  return (
+    <details className="relative" data-canvas-languages="">
+      <summary className="cursor-pointer list-none rounded-md px-2.5 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 [&::-webkit-details-marker]:hidden">
+        <span aria-hidden>🌐</span> {current.label} ▾
+      </summary>
+      <div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-lg border border-zinc-800 bg-zinc-900 p-1.5 text-xs shadow-xl">
+        <p className="px-2 py-1.5 text-[11px] leading-snug text-zinc-400">Layout and styles are shared by every language. Translations change text, images and links only.</p>
+        <ul>
+          {languages.map((l) => (
+            <li key={l.code} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-zinc-800">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-zinc-100">{l.label}</p>
+                <p className="text-[11px] text-zinc-400">{LANGUAGE_STATUS[l.status]}</p>
+              </div>
+              {!l.isDefault && (
+                <a href={l.href} className="rounded px-1.5 py-0.5 text-zinc-200 hover:bg-zinc-700" data-canvas-translate={l.code}>
+                  {l.status === "missing" ? "Translate" : "Edit text"}
+                </a>
+              )}
+              {l.status !== "missing" && (
+                <a href={l.previewHref} target="_blank" rel="noreferrer" className="rounded px-1.5 py-0.5 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100">
+                  Preview ↗
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </details>
   );
 }

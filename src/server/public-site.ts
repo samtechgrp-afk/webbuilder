@@ -2,8 +2,9 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { prisma } from "@/lib/db";
 import { tenantDb } from "@/lib/tenant-db";
-import { isBuilderDocument } from "@/lib/builder/types";
-import { ENTRY_INCLUDE, buildDynamicPosts, loadDynamicData, publishedSource, type RevisionMeta } from "./cms/dynamic";
+import { isBuilderDocument, type BuilderDocument } from "@/lib/builder/types";
+import { composeDocument } from "@/lib/i18n/translate";
+import { ENTRY_INCLUDE, buildDynamicPosts, entryPath, inLocale, liveOriginal, loadDynamicData, localizedSources, type RevisionMeta } from "./cms/dynamic";
 
 /** Cache tag for everything a tenant's public site renders. Publishing expires it. */
 export const siteCacheTag = (siteId: string) => `site:${siteId}`;
@@ -19,7 +20,7 @@ export async function resolveSite(key: string) {
   cacheLife("hours");
   const host = decodeURIComponent(key).toLowerCase();
   const site = await prisma.site.findFirst({
-    where: { OR: [{ subdomain: host }, { customDomain: host }], status: { not: "SUSPENDED" } },
+    where: { OR: [{ subdomain: host }, { customDomain: host }, { locales: { some: { domain: host } } }], status: { not: "SUSPENDED" } },
   });
   if (site) cacheTag(siteCacheTag(site.id));
   return site;
@@ -29,35 +30,57 @@ const LIVE = { publishedRevisionId: { not: null }, status: { not: "TRASHED" as c
 
 type SiteLike = { id: string; name: string; settings: unknown; branding: unknown };
 
-export async function getPublishedPage(site: SiteLike, slugParts: string[] | undefined, linkBase: string) {
+/**
+ * The document a live page renders: its own, or for a translation the
+ * original's live layout with the translation's text and media laid over
+ * it (so structure and styles never drift between languages).
+ */
+async function liveDocument(siteId: string, post: { locale: string; translation: { translationId: string } | null; publishedRevision: { document: unknown } | null }): Promise<BuilderDocument | null> {
+  const own = post.publishedRevision?.document;
+  if (!post.locale) return isBuilderDocument(own) ? own : null;
+  const original = await liveOriginal(tenantDb(siteId), post);
+  const base = original?.publishedRevision?.document;
+  return isBuilderDocument(base) ? composeDocument(base, own) : null;
+}
+
+/** `locale` is the stored value: "" for the default language, else the locale code. */
+export async function getPublishedPage(site: SiteLike, slugParts: string[] | undefined, linkBase: string, locale = "") {
   "use cache";
   cacheLife("hours");
   cacheTag(siteCacheTag(site.id));
   const slug = slugParts?.length ? slugParts.join("/") : "home";
   const post = await prisma.post.findFirst({
-    where: { siteId: site.id, slug, postType: { key: "page" }, ...LIVE },
+    where: { siteId: site.id, locale, slug, postType: { key: "page" }, ...LIVE },
     include: { ...ENTRY_INCLUDE, publishedRevision: true, ogImage: true },
   });
-  if (!post?.publishedRevision || !isBuilderDocument(post.publishedRevision.document)) return null;
-  const document = post.publishedRevision.document;
-  const data = await loadDynamicData(site.id, document, site, publishedSource(post), linkBase);
-  return { post, seo: ((post.publishedRevision.meta ?? {}) as RevisionMeta).seo, document, data };
+  if (!post?.publishedRevision) return null;
+  const document = await liveDocument(site.id, post);
+  if (!document) return null;
+  const db = tenantDb(site.id);
+  const [source] = await localizedSources(db, [post]);
+  const data = await loadDynamicData(site.id, document, site, source, linkBase, locale);
+  return { post, seo: ((post.publishedRevision.meta ?? {}) as RevisionMeta).seo, document, data, alternates: await liveGroup(site.id, post.id) };
 }
 
-/** The site's designated 404 page, rendered by /site-404 with HTTP status 404. */
-export async function getNotFoundPage(site: SiteLike, linkBase: string) {
+/** The site's designated 404 page (in `locale` when it's translated), rendered by /site-404 with HTTP status 404. */
+export async function getNotFoundPage(site: SiteLike, linkBase: string, locale = "") {
   "use cache";
   cacheLife("hours");
   cacheTag(siteCacheTag(site.id));
   const id = ((site.settings ?? {}) as { notFoundPageId?: string | null }).notFoundPageId;
   if (!id) return null;
-  const post = await prisma.post.findFirst({
-    where: { id, siteId: site.id, postType: { key: "page" }, ...LIVE },
-    include: { ...ENTRY_INCLUDE, publishedRevision: true },
-  });
-  if (!post?.publishedRevision || !isBuilderDocument(post.publishedRevision.document)) return null;
-  const document = post.publishedRevision.document;
-  return { document, data: await loadDynamicData(site.id, document, site, publishedSource(post), linkBase) };
+  const include = { ...ENTRY_INCLUDE, publishedRevision: true } as const;
+  const original = await prisma.post.findFirst({ where: { id, siteId: site.id, postType: { key: "page" }, ...LIVE }, include });
+  if (!original) return null;
+  const translated =
+    locale && original.translation
+      ? await prisma.post.findFirst({ where: { siteId: site.id, locale, translation: { translationId: original.translation.translationId }, ...LIVE }, include })
+      : null;
+  const post = translated ?? original;
+  const document = await liveDocument(site.id, post);
+  if (!document) return null;
+  const [source] = await localizedSources(tenantDb(site.id), [post]);
+  return { document, locale: translated ? locale : "", data: await loadDynamicData(site.id, document, site, source, linkBase, translated ? locale : "") };
 }
 
 /**
@@ -65,7 +88,7 @@ export async function getNotFoundPage(site: SiteLike, linkBase: string) {
  * published single template when there is one, otherwise with the default
  * entry layout.
  */
-export async function getPublishedEntry(site: SiteLike, prefix: string, slug: string, linkBase: string) {
+export async function getPublishedEntry(site: SiteLike, prefix: string, slug: string, linkBase: string, locale = "") {
   "use cache";
   cacheLife("hours");
   cacheTag(siteCacheTag(site.id));
@@ -75,34 +98,55 @@ export async function getPublishedEntry(site: SiteLike, prefix: string, slug: st
   });
   if (!postType) return null;
   const post = await prisma.post.findFirst({
-    where: { siteId: site.id, postTypeId: postType.id, slug, ...LIVE },
+    where: { siteId: site.id, postTypeId: postType.id, locale, slug, ...LIVE },
     include: { ...ENTRY_INCLUDE, publishedRevision: true, ogImage: true },
   });
-  const source = post && publishedSource(post);
-  if (!post || !source) return null;
+  if (!post) return null;
   const db = tenantDb(site.id);
+  const [source] = await localizedSources(db, [post]);
+  if (!source) return null;
   const [entry] = await buildDynamicPosts(db, [source]);
   const tplDoc = postType.singleTemplate?.publishedRevision?.document;
   const template = isBuilderDocument(tplDoc) ? tplDoc : null;
-  const data = template ? await loadDynamicData(site.id, template, site, source, linkBase) : null;
-  return { post, postType, entry, template, data, seo: ((post.publishedRevision?.meta ?? {}) as RevisionMeta).seo };
+  const data = template ? await loadDynamicData(site.id, template, site, source, linkBase, locale) : null;
+  return { post, postType, entry, template, data, seo: ((post.publishedRevision?.meta ?? {}) as RevisionMeta).seo, alternates: await liveGroup(site.id, post.id) };
 }
 
-/** Archive listing at /<routePrefix> for post types with an archive. */
-export async function getPublishedArchive(site: SiteLike, prefix: string) {
+/** Archive listing at /<routePrefix> for post types with an archive; in another language, translated where possible. */
+export async function getPublishedArchive(site: SiteLike, prefix: string, locale = "") {
   "use cache";
   cacheLife("hours");
   cacheTag(siteCacheTag(site.id));
   const postType = await prisma.postType.findFirst({ where: { siteId: site.id, routePrefix: prefix, hasArchive: true, key: { notIn: ["page", "template"] } } });
   if (!postType) return null;
   const posts = await prisma.post.findMany({
-    where: { siteId: site.id, postTypeId: postType.id, ...LIVE },
+    where: { siteId: site.id, postTypeId: postType.id, locale: "", ...LIVE },
     orderBy: [{ menuOrder: "asc" }, { publishedAt: "desc" }],
     take: 48,
     include: { ...ENTRY_INCLUDE, publishedRevision: true },
   });
-  const entries = await buildDynamicPosts(tenantDb(site.id), posts.map(publishedSource).filter((x) => !!x));
+  const db = tenantDb(site.id);
+  const entries = await buildDynamicPosts(db, (await inLocale(db, posts, locale)).filter((x) => !!x));
   return { postType, entries };
+}
+
+/**
+ * The live members of a post's translation group with their site paths,
+ * for hreflang alternates. Empty for an entry that has no translations.
+ */
+export async function liveGroup(siteId: string, postId: string): Promise<{ localeCode: string; path: string }[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(siteCacheTag(siteId));
+  const group = await prisma.postTranslation.findUnique({ where: { postId }, select: { translationId: true } });
+  if (!group) return [];
+  const members = await prisma.postTranslation.findMany({
+    where: { siteId, translationId: group.translationId, post: LIVE },
+    select: { localeCode: true, post: { select: { slug: true, locale: true, postType: { select: { key: true, routePrefix: true } } } } },
+  });
+  // Translations only go live on top of a live original.
+  if (!members.some((m) => !m.post.locale)) return [];
+  return members.length > 1 ? members.map((m) => ({ localeCode: m.localeCode, path: entryPath(m.post.postType, m.post.slug) })) : [];
 }
 
 /** Published entries of an API-enabled post type, for /api/v1/sites/<site>/<type>. */
@@ -114,16 +158,16 @@ export async function getApiEntries(siteId: string, typeKey: string, page: numbe
   if (!postType) return null;
   const take = 50;
   const [total, posts] = await Promise.all([
-    prisma.post.count({ where: { siteId, postTypeId: postType.id, ...LIVE } }),
+    prisma.post.count({ where: { siteId, postTypeId: postType.id, locale: "", ...LIVE } }),
     prisma.post.findMany({
-      where: { siteId, postTypeId: postType.id, ...LIVE },
+      where: { siteId, postTypeId: postType.id, locale: "", ...LIVE },
       orderBy: [{ publishedAt: "desc" }, { id: "asc" }],
       skip: (page - 1) * take,
       take,
       include: { ...ENTRY_INCLUDE, publishedRevision: true, terms: { include: { term: { select: { name: true, slug: true, taxonomy: { select: { key: true } } } } } } },
     }),
   ]);
-  const entries = await buildDynamicPosts(tenantDb(siteId), posts.map(publishedSource).filter((x) => !!x));
+  const entries = await buildDynamicPosts(tenantDb(siteId), (await localizedSources(tenantDb(siteId), posts)).filter((x) => !!x));
   return {
     postType: { key: postType.key, label: postType.labelPlural },
     total,

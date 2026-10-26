@@ -69,7 +69,7 @@ export async function createEntry(t: TenantContext, input: { postTypeId: string;
   if (postType.key === "page" && !t.can("design.layout")) throw new EditError("Only designers can add pages", "forbidden");
 
   const title = input.title?.trim().slice(0, 200) || `New ${postType.labelSingular.toLowerCase()}`;
-  const slug = await uniqueSlug(slugFromRule(postType.slugRule, title), async (s) => !!(await t.db.post.findFirst({ where: { postTypeId: postType.id, slug: s }, select: { id: true } })));
+  const slug = await uniqueSlug(slugFromRule(postType.slugRule, title), async (s) => !!(await t.db.post.findFirst({ where: { postTypeId: postType.id, locale: "", slug: s }, select: { id: true } })));
   const draft = postType.usesBuilder ? blankBuilderDoc() : { type: "html", html: "" };
 
   const post = await t.db.$transaction(async (tx) => {
@@ -122,7 +122,7 @@ export const entryInputSchema = z.object({
 export type EntryInput = z.input<typeof entryInputSchema>;
 
 /** Rich text anywhere in a value (including inside repeater rows and blocks) gets sanitised. */
-function sanitizeValue(def: FieldDef, value: unknown): unknown {
+export function sanitizeValue(def: FieldDef, value: unknown): unknown {
   if (isEmptyValue(value)) return value;
   switch (def.type) {
     case "RICH_TEXT":
@@ -142,7 +142,7 @@ function sanitizeValue(def: FieldDef, value: unknown): unknown {
 }
 
 /** Drafts may leave required fields empty; submitting, publishing and scheduling may not. */
-function relaxRequired(def: FieldDef): FieldDef {
+export function relaxRequired(def: FieldDef): FieldDef {
   return {
     ...def,
     required: false,
@@ -156,7 +156,7 @@ function relaxRequired(def: FieldDef): FieldDef {
 }
 
 /** Proves every id a set of values points at belongs to this site (and fits the field's config). */
-async function verifyRefs(t: TenantContext, defs: FieldDef[], values: Record<string, unknown>): Promise<Violation[]> {
+export async function verifyRefs(t: TenantContext, defs: FieldDef[], values: Record<string, unknown>): Promise<Violation[]> {
   const violations: Violation[] = [];
   for (const def of defs) {
     const refs = emptyRefs();
@@ -200,6 +200,7 @@ export async function saveEntry(t: TenantContext, raw: EntryInput) {
     include: { postType: { include: { taxonomies: { select: { id: true } } } }, fieldValues: { include: { field: true } } },
   });
   if (!post || post.postType.key === "template") throw new EditError("Entry not found", "not_found");
+  if (post.locale) throw new EditError("Edit translations under Translations, next to their original", "invalid");
   if (!canEdit(t, post)) throw new EditError("You can't edit this entry", "forbidden");
   if (post.status === "TRASHED") throw new EditError("Restore this entry from the trash before editing it", "invalid");
   if ((input.intent === "publish" || input.intent === "schedule") && !t.can("post.publish")) throw new EditError("You can't publish on this site", "forbidden");
@@ -218,8 +219,11 @@ export async function saveEntry(t: TenantContext, raw: EntryInput) {
   if (slug !== post.slug) {
     if (post.publishedRevisionId && !t.can("post.publish")) v("slug", "Only publishers can change the address of a live entry");
     if (post.slug === "home" && post.postType.key === "page") v("slug", "The home page's address can't change");
-    const clash = await t.db.post.findFirst({ where: { postTypeId: post.postTypeId, slug, id: { not: post.id } }, select: { id: true } });
+    const clash = await t.db.post.findFirst({ where: { postTypeId: post.postTypeId, locale: post.locale, slug, id: { not: post.id } }, select: { id: true } });
     if (clash) v("slug", "Another entry already uses that address");
+    if (post.postType.key === "page" && (await t.db.siteLocale.findFirst({ where: { prefix: slug.split("/")[0], isDefault: false }, select: { id: true } }))) {
+      v("slug", `/${slug.split("/")[0]} is a language prefix; pick another address`);
+    }
   }
 
   let ogImageId: string | null = input.seo.ogImageId ?? null;
@@ -396,7 +400,7 @@ export async function bulkAction(t: TenantContext, input: { ids: string[]; actio
           continue;
         }
         const meta = await snapshotMeta(t.db, post.id);
-        const missing = await missingRequired(t, post, meta);
+        const missing = post.locale ? [] : await missingRequired(t, post, meta);
         if (missing.length) {
           skip(post, `required fields are empty: ${missing.join(", ")}`);
           continue;
@@ -416,7 +420,7 @@ export async function bulkAction(t: TenantContext, input: { ids: string[]; actio
       }
       case "draft":
         if (!t.can("post.publish")) return forbidden("unpublish");
-        if (post.postType.key === "page" && post.slug === "home") {
+        if (post.postType.key === "page" && post.slug === "home" && !post.locale) {
           skip(post, "the home page must stay live");
           continue;
         }
@@ -429,7 +433,7 @@ export async function bulkAction(t: TenantContext, input: { ids: string[]; actio
           skip(post, "you can only trash your own unpublished drafts");
           continue;
         }
-        if (post.postType.key === "page" && post.slug === "home") {
+        if (post.postType.key === "page" && post.slug === "home" && !post.locale) {
           skip(post, "the home page can't be trashed");
           continue;
         }
@@ -454,9 +458,18 @@ export async function bulkAction(t: TenantContext, input: { ids: string[]; actio
           skip(post, "move it to the trash first");
           continue;
         }
+        // Deleting an original deletes its translations: they have no layout or shared fields of their own.
+        if (!post.locale) {
+          const group = await t.db.postTranslation.findUnique({ where: { postId: post.id }, select: { translationId: true } });
+          if (group) await t.db.post.deleteMany({ where: { locale: { not: "" }, translation: { translationId: group.translationId } } });
+        }
         await t.db.post.delete({ where: { id: post.id } });
         break;
       case "duplicate": {
+        if (post.locale) {
+          skip(post, "duplicate the original, then translate the copy");
+          continue;
+        }
         if (!t.can("post.create") || (post.postType.key === "page" && !t.can("design.layout"))) {
           skip(post, "you can't create this kind of entry");
           continue;
@@ -479,7 +492,7 @@ function forbidden(what: string): never {
 async function duplicateEntry(t: TenantContext, postId: string) {
   const src = await t.db.post.findUniqueOrThrow({ where: { id: postId }, include: { fieldValues: true, terms: true } });
   const title = `${src.title} (copy)`.slice(0, 200);
-  const slug = await uniqueSlug(`${src.slug}-copy`, async (s) => !!(await t.db.post.findFirst({ where: { postTypeId: src.postTypeId, slug: s }, select: { id: true } })));
+  const slug = await uniqueSlug(`${src.slug}-copy`, async (s) => !!(await t.db.post.findFirst({ where: { postTypeId: src.postTypeId, locale: src.locale, slug: s }, select: { id: true } })));
   return t.db.$transaction(async (tx) => {
     const post = await tx.post.create({
       data: {

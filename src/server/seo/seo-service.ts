@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { canonicalPointsElsewhere, resolveSeo, seoIssues, type EntrySeo, type ResolvedSeo, type SeoIssue } from "@/lib/seo/meta";
 import { readSiteSeo, siteSeoSchema, type SiteSeo, type SiteSeoInput } from "@/lib/seo/settings";
 import type { SitemapUrl } from "@/lib/seo/sitemap";
+import { groupAlternates, localeBase, localePath, type SiteLocaleInfo } from "@/lib/i18n/locales";
 import type { TenantContext } from "@/lib/tenant";
 import { EditError } from "../content-service";
 import type { RevisionMeta } from "../cms/dynamic";
@@ -46,7 +47,10 @@ export async function saveSiteSeo(t: TenantContext, raw: SiteSeoInput) {
 
 /** Every live entry with what it shows to search engines, from its published snapshot. */
 async function liveEntries(siteId: string) {
-  const site = await prisma.site.findUniqueOrThrow({ where: { id: siteId }, select: { name: true, settings: true } });
+  const site = await prisma.site.findUniqueOrThrow({
+    where: { id: siteId },
+    select: { name: true, settings: true, locales: { orderBy: [{ isDefault: "desc" }, { order: "asc" }, { createdAt: "asc" }], select: { code: true, label: true, prefix: true, isDefault: true, currency: true, domain: true } } },
+  });
   const seo = readSiteSeo(site.settings);
   const notFoundPageId = ((site.settings ?? {}) as { notFoundPageId?: string | null }).notFoundPageId ?? null;
   const posts = await prisma.post.findMany({
@@ -64,14 +68,20 @@ async function liveEntries(siteId: string) {
       publishedAt: true,
       updatedAt: true,
       postTypeId: true,
+      locale: true,
+      translation: { select: { translationId: true, localeCode: true } },
       postType: { select: { key: true, routePrefix: true, labelSingular: true } },
       publishedRevision: { select: { title: true, meta: true, createdAt: true } },
     },
   });
   const excluded = new Set(seo.excludedPostTypeIds ?? []);
+  const locales: SiteLocaleInfo[] = site.locales;
+  // Translations are only public on top of a live original.
+  const liveGroups = new Set(posts.filter((p) => !p.locale && p.translation).map((p) => p.translation!.translationId));
   return {
     site: { name: site.name, seo },
-    entries: posts.map((p) => {
+    locales,
+    entries: posts.filter((p) => !p.locale || (p.translation && liveGroups.has(p.translation.translationId))).map((p) => {
       const meta = (p.publishedRevision?.meta ?? {}) as RevisionMeta;
       return {
         id: p.id,
@@ -84,6 +94,8 @@ async function liveEntries(siteId: string) {
         excluded: excluded.has(p.postTypeId),
         lastmod: p.publishedRevision?.createdAt ?? p.publishedAt ?? p.updatedAt,
         hasImage: !!(meta.seo?.ogImageId || meta.featuredImageId || seo.defaultOgImageId),
+        locale: locales.find((l) => (p.locale ? l.code === p.locale : l.isDefault)) ?? null,
+        group: p.translation?.translationId ?? null,
       };
     }),
   };
@@ -94,19 +106,28 @@ export async function getSitemapUrls(siteId: string, base: string): Promise<Site
   "use cache";
   cacheLife("hours");
   cacheTag(siteCacheTag(siteId));
-  const { site, entries } = await liveEntries(siteId);
+  const { site, entries, locales } = await liveEntries(siteId);
   if (site.seo.discourageIndexing) return [];
   const urls: SitemapUrl[] = [];
+  const groups = new Map<string, { localeCode: string; path: string }[]>();
+  for (const e of entries) if (e.group && e.locale) groups.set(e.group, [...(groups.get(e.group) ?? []), { localeCode: e.locale.code, path: e.path }]);
   for (const e of entries) {
-    const r = resolveSeo(e, site, base);
-    if (!r.index || canonicalPointsElsewhere(r, base, e.path)) continue;
-    urls.push({ loc: r.canonical, lastmod: e.lastmod, priority: e.isHome ? 1 : e.path.split("/").length > 2 ? 0.6 : 0.8 });
+    const lbase = localeBase(base, e.locale);
+    const r = resolveSeo(e, site, lbase);
+    if (!r.index || canonicalPointsElsewhere(r, lbase, e.path)) continue;
+    const members = e.group ? (groups.get(e.group) ?? []) : [];
+    const alternates = members.length > 1 ? groupAlternates(members, locales, base) : undefined;
+    urls.push({ loc: r.canonical, lastmod: e.lastmod, priority: e.isHome ? 1 : e.path.split("/").length > 2 ? 0.6 : 0.8, alternates });
   }
   const archives = await prisma.postType.findMany({
     where: { siteId, hasArchive: true, key: { notIn: ["page", "template"] }, id: { notIn: site.seo.excludedPostTypeIds ?? [] } },
     select: { routePrefix: true, key: true },
   });
-  for (const a of archives) urls.push({ loc: `${base.replace(/\/+$/, "")}/${a.routePrefix ?? a.key}`, changefreq: "weekly", priority: 0.7 });
+  for (const a of archives) {
+    const path = `/${a.routePrefix ?? a.key}`;
+    const alternates = locales.length > 1 ? groupAlternates(locales.map((l) => ({ localeCode: l.code, path })), locales, base) : undefined;
+    for (const l of locales.length ? locales : [null]) urls.push({ loc: `${localeBase(base, l)}${path}`, changefreq: "weekly", priority: 0.7, alternates });
+  }
   // Home first, then pages and archives, then entries (stable within each).
   return urls.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 }
@@ -124,10 +145,10 @@ export interface AuditRow {
 export async function seoAudit(t: TenantContext, base: string): Promise<AuditRow[]> {
   if (!t.can("content.edit") && !t.can("site.settings")) t.assert("site.settings");
   const { site, entries } = await liveEntries(t.site.id);
-  const resolved = entries.map((e) => ({ e, r: resolveSeo(e, site, base) }));
+  const resolved = entries.map((e) => ({ e, r: resolveSeo(e, site, localeBase(base, e.locale)) }));
   const titleCounts = new Map<string, number>();
   for (const { r } of resolved) titleCounts.set(r.title.toLowerCase(), (titleCounts.get(r.title.toLowerCase()) ?? 0) + 1);
-  return resolved.map(({ e, r }) => ({ id: e.id, title: e.title, path: e.path, typeLabel: e.typeLabel, resolved: r, issues: seoIssues(r, { hasImage: e.hasImage, titleCounts }) }));
+  return resolved.map(({ e, r }) => ({ id: e.id, title: e.title, path: e.locale?.domain ? `${e.locale.domain}${e.path}` : localePath(e.locale, e.path), typeLabel: e.typeLabel, resolved: r, issues: seoIssues(r, { hasImage: e.hasImage, titleCounts }) }));
 }
 
 /** The first of the given images that still exists, for og:image. Cached with the site. */

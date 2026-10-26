@@ -53,6 +53,16 @@ const BASE_CSS = `
 .site-root [data-w="richtext"] blockquote{margin-left:0;padding-left:1em;border-left:2px solid currentColor;opacity:.85}
 .site-root [data-w="richtext"][data-empty]{min-height:80px;background:repeating-linear-gradient(135deg,rgba(0,0,0,.03) 0 12px,rgba(0,0,0,.06) 12px 24px)}
 .site-root [data-loop-empty]{grid-column:1/-1;opacity:.6}
+.site-root [data-w="langswitch"] ul{display:flex;flex-wrap:wrap;gap:inherit;margin:0;padding:0;list-style:none}
+.site-root [data-w="langswitch"] a{color:inherit;text-decoration:none;opacity:.7}
+.site-root [data-w="langswitch"] a:hover,.site-root [data-w="langswitch"] a[aria-current]{opacity:1;text-decoration:underline;text-underline-offset:.25em}
+.site-root [data-w="langswitch"] details{position:relative}
+.site-root [data-w="langswitch"] summary{cursor:pointer;list-style:none}
+.site-root [data-w="langswitch"] summary::-webkit-details-marker{display:none}
+.site-root [data-w="langswitch"] summary::after{content:" ▾";font-size:.8em}
+.site-root [data-w="langswitch"] details ul{position:absolute;z-index:20;top:calc(100% + .4rem);right:0;flex-direction:column;gap:.15rem;min-width:10rem;padding:.4rem;border-radius:var(--radius-md,8px);background:var(--color-background,#fff);color:var(--color-text,#111);box-shadow:0 10px 30px rgba(0,0,0,.15)}
+.site-root [data-w="langswitch"] details a{display:block;padding:.35rem .6rem}
+.site-root [data-w="langswitch"][data-empty]{min-width:8rem;min-height:1.6rem;background:repeating-linear-gradient(135deg,rgba(0,0,0,.03) 0 8px,rgba(0,0,0,.06) 8px 16px)}
 `;
 
 export function buildCss(doc: BuilderDocument, tokens: DesignTokens = {}): string {

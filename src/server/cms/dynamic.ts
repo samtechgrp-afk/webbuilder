@@ -3,6 +3,7 @@ import type { DynamicData, DynamicFieldValue, DynamicPost, DynamicSite } from "@
 import { collectRefs, emptyRefs, isEmptyValue, valueToText, type FieldDef, type FieldRefs } from "@/lib/cms/fields";
 import type { BuilderDocument, ImageValue, LoopQuery } from "@/lib/builder/types";
 import { MAX_LOOP_ITEMS, isLoopQuery } from "@/lib/builder/tree";
+import { mergeEntryFields } from "@/lib/i18n/translate";
 import { tenantDb, type TenantDb } from "@/lib/tenant-db";
 import { fieldDefFromRow } from "./field-defs";
 
@@ -173,10 +174,47 @@ export async function buildDynamicPosts(db: TenantDb, entries: EntrySource[], de
 const entryInclude = {
   postType: { select: { key: true, routePrefix: true } },
   author: { select: { name: true, email: true } },
+  translation: { select: { translationId: true } },
 } as const;
 
+type PublishedPost = Prisma.PostGetPayload<{ include: typeof entryInclude & { publishedRevision: true } }>;
+
+const LIVE_WHERE = { publishedRevisionId: { not: null }, status: { not: "TRASHED" as const } };
+
+/** Live originals of translated posts, by translation group. */
+async function liveOriginals(db: TenantDb, posts: { locale: string; translation: { translationId: string } | null }[]) {
+  const groups = [...new Set(posts.filter((p) => p.locale && p.translation).map((p) => p.translation!.translationId))];
+  if (!groups.length) return new Map<string, PublishedPost>();
+  const rows = await db.post.findMany({ where: { locale: "", translation: { translationId: { in: groups } }, ...LIVE_WHERE }, include: { ...entryInclude, publishedRevision: true } });
+  return new Map(rows.map((r) => [r.translation!.translationId, r]));
+}
+
+/**
+ * Published sources for posts in any language. A translation shows its own
+ * title, slug, body and translatable fields over its original's shared
+ * fields and featured image; a translation whose original isn't live is
+ * left out (its layout and shared facts aren't public).
+ */
+export async function localizedSources(db: TenantDb, posts: PublishedPost[], defs?: Map<string, FieldDef>): Promise<(EntrySource | null)[]> {
+  const originals = await liveOriginals(db, posts);
+  const byKey = originals.size ? (defs ?? (await fieldDefsByKey(db))) : null;
+  return posts.map((p) => {
+    const own = publishedSource(p);
+    if (!own || !p.locale) return own;
+    const original = p.translation ? originals.get(p.translation.translationId) : undefined;
+    const base = original && publishedSource(original);
+    if (!base) return null;
+    return { ...own, featuredImageId: own.featuredImageId ?? base.featuredImageId, fields: mergeEntryFields(byKey, base.fields, own.fields) };
+  });
+}
+
+/** The live original of one translation, or null. */
+export async function liveOriginal(db: TenantDb, post: { locale: string; translation: { translationId: string } | null }) {
+  return (await liveOriginals(db, [post])).values().next().value ?? null;
+}
+
 /** A published entry, read from its published revision snapshot. */
-export function publishedSource(post: Prisma.PostGetPayload<{ include: typeof entryInclude & { publishedRevision: true } }>): EntrySource | null {
+export function publishedSource(post: PublishedPost): EntrySource | null {
   const rev = post.publishedRevision;
   if (!rev) return null;
   const meta = (rev.meta ?? {}) as RevisionMeta;
@@ -221,13 +259,19 @@ const ORDER: Record<LoopQuery["orderBy"], (dir: "asc" | "desc") => Prisma.PostOr
   menu: (dir) => ({ menuOrder: dir }),
 };
 
-export async function loopItems(db: TenantDb, query: LoopQuery, defs?: Map<string, FieldDef>): Promise<DynamicPost[]> {
+/**
+ * A loop grid's entries. Lists are always built from the default-language
+ * originals, so every language shows the same items in the same order; in
+ * another language each item is swapped for its live translation when
+ * there is one.
+ */
+export async function loopItems(db: TenantDb, query: LoopQuery, defs?: Map<string, FieldDef>, locale = ""): Promise<DynamicPost[]> {
   if (!isLoopQuery(query) || !query.postTypeId) return [];
   const posts = await db.post.findMany({
     where: {
       postTypeId: query.postTypeId,
-      publishedRevisionId: { not: null },
-      status: { not: "TRASHED" },
+      locale: "",
+      ...LIVE_WHERE,
       ...(query.termId ? { terms: { some: { termId: query.termId } } } : {}),
     },
     orderBy: [ORDER[query.orderBy](query.order), { id: "asc" }],
@@ -235,7 +279,25 @@ export async function loopItems(db: TenantDb, query: LoopQuery, defs?: Map<strin
     take: Math.min(query.limit, MAX_LOOP_ITEMS),
     include: { ...entryInclude, publishedRevision: true },
   });
-  return buildDynamicPosts(db, posts.map(publishedSource).filter((e): e is EntrySource => !!e), defs);
+  return buildDynamicPosts(db, (await inLocale(db, posts, locale, defs)).filter((e): e is EntrySource => !!e), defs);
+}
+
+/** Swaps default-language posts for their live translations in `locale`, keeping order. */
+export async function inLocale(db: TenantDb, originals: PublishedPost[], locale: string, defs?: Map<string, FieldDef>): Promise<(EntrySource | null)[]> {
+  if (!locale) return originals.map(publishedSource);
+  const groups = originals.map((p) => p.translation?.translationId).filter((x): x is string => !!x);
+  const translated = groups.length
+    ? await db.post.findMany({ where: { locale, translation: { translationId: { in: groups } }, ...LIVE_WHERE }, include: { ...entryInclude, publishedRevision: true } })
+    : [];
+  const byGroup = new Map(translated.map((p) => [p.translation!.translationId, p]));
+  const byKey = translated.length ? (defs ?? (await fieldDefsByKey(db))) : null;
+  return originals.map((o) => {
+    const base = publishedSource(o);
+    const t = o.translation ? byGroup.get(o.translation.translationId) : undefined;
+    const own = t && publishedSource(t);
+    if (!base || !own) return base;
+    return { ...own, featuredImageId: own.featuredImageId ?? base.featuredImageId, fields: mergeEntryFields(byKey, base.fields, own.fields) };
+  });
 }
 
 export async function siteData(db: TenantDb, site: { name: string; settings?: unknown; branding: unknown }, home = "/"): Promise<DynamicSite> {
@@ -256,6 +318,7 @@ export async function loadDynamicData(
   site: { name: string; settings?: unknown; branding: unknown },
   current: EntrySource | null,
   linkBase = "",
+  locale = "",
 ): Promise<DynamicData> {
   const db = tenantDb(siteId);
   const defs = await fieldDefsByKey(db);
@@ -264,7 +327,7 @@ export async function loadDynamicData(
   const [post, siteInfo] = await Promise.all([
     current ? buildDynamicPosts(db, [current], defs).then((r) => r[0]) : Promise.resolve(null),
     siteData(db, site, linkBase || "/"),
-    Promise.all(loopNodes.map(async (n) => (loops[n.id] = await loopItems(db, n.props.query as LoopQuery, defs)))),
+    Promise.all(loopNodes.map(async (n) => (loops[n.id] = await loopItems(db, n.props.query as LoopQuery, defs, locale)))),
   ]);
   return { site: siteInfo, post, loops };
 }

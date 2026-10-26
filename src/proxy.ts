@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session-token";
 import { SITE_ROOT_HEADER } from "@/lib/site-url";
 import { internalOrigin } from "@/lib/internal-origin";
-import { checkPublicRoute } from "@/server/route-check";
+import { LOCALE_COOKIE, LOCALE_HEADER, groupAlternates, linkHeader, localeHref, matchAcceptLanguage } from "@/lib/i18n/locales";
+import { checkPublicRoute, type RouteCheck } from "@/server/route-check";
 
 /**
  * Edge of the platform (Next.js 16 "proxy", formerly middleware).
@@ -16,9 +17,16 @@ import { checkPublicRoute } from "@/server/route-check";
  *    This is only a fast path; every page and action re-checks the session
  *    and the site Membership on the server.
  * 3. Real 404s: a public URL that doesn't resolve to live content is
- *    rewritten to the site's 404 page with HTTP status 404. Signed-in
- *    previews (`?preview=1`) skip the check; the page itself verifies the
- *    viewer may see drafts.
+ *    rewritten to the site's 404 page with HTTP status 404 (in the
+ *    visitor's language when that page is translated). Signed-in previews
+ *    (`?preview=1`) skip the check; the page itself verifies the viewer may
+ *    see drafts.
+ * 4. Languages: /fr/… selects a language (or the host is a language's own
+ *    domain). A default-language address that has a translation at another
+ *    slug redirects there; one without a translation shows the default
+ *    content. Opt-in Accept-Language detection sends first-time visitors
+ *    of a clean URL to their language once (then a cookie remembers the
+ *    choice), and every page announces its translations in a Link header.
  */
 const PORTAL_PATHS = /^\/(admin|login|logout|api|_next|uploads|favicon\.ico)(\/|$)/;
 
@@ -45,20 +53,24 @@ export async function proxy(request: NextRequest) {
     // Tells the site renderer its links live at the domain root, not under /sites/<key>.
     const headers = new Headers(request.headers);
     headers.set(SITE_ROOT_HEADER, "1");
-    return (await notFoundRewrite(request, tenantKey, pathname, headers)) ?? NextResponse.rewrite(url, { request: { headers } });
+    const route = await publicRoute(request, tenantKey, pathname, headers, true);
+    if (route instanceof NextResponse) return route;
+    return withLink(NextResponse.rewrite(url, { request: { headers } }), route.link);
   }
 
   const headers = new Headers(request.headers);
   headers.delete(SITE_ROOT_HEADER);
   const site = /^\/sites\/([^/]+)(\/.*)?$/.exec(pathname);
   if (site) {
-    const miss = await notFoundRewrite(request, site[1], site[2] ?? "/", headers);
-    if (miss) return miss;
+    const route = await publicRoute(request, site[1], site[2] ?? "/", headers, false);
+    if (route instanceof NextResponse) return route;
+    return withLink(NextResponse.next({ request: { headers } }), route.link);
   }
   if (pathname.startsWith("/site-404/")) {
     // The proxy's own fetch keeps its x-site-root, so links on the 404 page point at the right base.
     if (request.headers.get(INTERNAL_HEADER) === "1") return NextResponse.next();
-    return serveNotFound(request, pathname.slice("/site-404/".length), headers);
+    headers.delete(LOCALE_HEADER);
+    return serveNotFound(request, pathname.slice("/site-404/".length), headers, null);
   }
   return NextResponse.next({ request: { headers } });
 }
@@ -75,12 +87,14 @@ const SEO_FILES = /^\/(robots\.txt|sitemap\.xml)$/;
  * navigations (RSC requests) are rewritten as usual: the browser shows the
  * 404 layout and the status doesn't matter there.
  */
-async function serveNotFound(request: NextRequest, key: string, headers: Headers) {
+async function serveNotFound(request: NextRequest, key: string, headers: Headers, locale: string | null) {
   const url = request.nextUrl.clone();
   url.pathname = `/site-404/${key}`;
   url.search = "";
+  if (locale) headers.set(LOCALE_HEADER, locale);
   if (request.headers.has("rsc")) return NextResponse.rewrite(url, { status: 404, request: { headers } });
   const forward = new Headers({ [INTERNAL_HEADER]: "1", accept: "text/html" });
+  if (locale) forward.set(LOCALE_HEADER, locale);
   const ua = request.headers.get("user-agent");
   if (ua) forward.set("user-agent", ua);
   if (headers.get(SITE_ROOT_HEADER) === "1") forward.set(SITE_ROOT_HEADER, "1");
@@ -91,18 +105,68 @@ async function serveNotFound(request: NextRequest, key: string, headers: Headers
   });
 }
 
-async function notFoundRewrite(request: NextRequest, key: string, path: string, headers: Headers) {
-  if (SEO_FILES.test(path)) return null;
-  if (request.nextUrl.searchParams.has("preview") && (await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value))) return null;
-  let check: Awaited<ReturnType<typeof checkPublicRoute>>;
+const BOT_UA = /bot|crawl|spider|slurp|facebookexternalhit|embedly|preview|lighthouse|headless/i;
+
+function withLink(res: NextResponse, link: string | null) {
+  if (link) res.headers.set("link", link);
+  return res;
+}
+
+/** The site's main public base URL (for absolute hreflang links), seen from this request. */
+function mainBase(request: NextRequest, key: string, check: Extract<RouteCheck, { site: true }>, onOwnHost: boolean) {
+  if (check.customDomain) return `https://${check.customDomain}`;
+  const origin = request.nextUrl.origin;
+  if (!onOwnHost) return `${origin}/sites/${key}`;
+  if (!check.hostLocale) return origin;
+  const root = (process.env.ROOT_DOMAIN ?? "localhost:3000").toLowerCase();
+  return `${request.nextUrl.protocol}//${check.subdomain}.${root}`;
+}
+
+/** Routing for one public site URL: a response (404, redirect) or the Link header to add. */
+async function publicRoute(request: NextRequest, key: string, path: string, headers: Headers, onOwnHost: boolean): Promise<NextResponse | { link: string | null }> {
+  headers.delete(LOCALE_HEADER);
+  if (SEO_FILES.test(path)) return { link: null };
+  if (request.nextUrl.searchParams.has("preview") && (await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value))) return { link: null };
+  let check: RouteCheck;
   try {
     check = await checkPublicRoute(key, path.split("/").filter(Boolean).map((p) => decodeURIComponent(p)));
   } catch (err) {
     if (!(err instanceof URIError)) throw err;
-    check = { site: true, exists: false };
+    return serveNotFound(request, key, headers, null);
   }
-  if (check.site && check.exists) return null;
-  return serveNotFound(request, key, headers);
+  if (!check.site) return serveNotFound(request, key, headers, null);
+  if (!check.exists) return serveNotFound(request, key, headers, check.locale && check.locales.find((l) => l.code === check.locale && !l.isDefault) ? check.locale : null);
+
+  const base = mainBase(request, key, check, onOwnHost);
+  const ctx = { siteBase: onOwnHost ? "" : `/sites/${key}`, hostLocale: check.hostLocale, mainOrigin: base };
+  const href = (code: string, sitePath: string) => {
+    const target = localeHref(check.locales.find((l) => l.code === code) ?? null, sitePath, ctx);
+    return new URL(target + request.nextUrl.search, request.url);
+  };
+
+  if (check.redirect && check.locale) return NextResponse.redirect(href(check.locale, check.redirect), 308);
+
+  if (
+    check.localeDetection &&
+    request.method === "GET" &&
+    !check.prefixed &&
+    !check.hostLocale &&
+    !request.headers.has("rsc") &&
+    !request.cookies.has(LOCALE_COOKIE) &&
+    !BOT_UA.test(request.headers.get("user-agent") ?? "")
+  ) {
+    const wanted = matchAcceptLanguage(request.headers.get("accept-language"), check.locales);
+    const target = wanted && !wanted.isDefault ? check.alternates.find((a) => a.localeCode === wanted.code) : undefined;
+    if (wanted && target) {
+      const res = NextResponse.redirect(href(wanted.code, target.path), 307);
+      // Once is enough: a visitor who then picks another language keeps it.
+      res.cookies.set(LOCALE_COOKIE, wanted.code, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+      res.headers.set("vary", "accept-language, cookie");
+      return res;
+    }
+  }
+  const alternates = groupAlternates(check.alternates, check.locales, base);
+  return { link: alternates.length > 1 ? linkHeader(alternates) : null };
 }
 
 export const config = {

@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
+import { localePath } from "@/lib/i18n/locales";
+import { adminLocale } from "@/server/i18n/admin-locale";
+import { readSiteLocales } from "@/server/i18n/locale-service";
 import { ContentTable, type ContentRow } from "./ContentTable";
 import { NewEntryButton } from "./NewEntryButton";
 
@@ -35,10 +38,14 @@ export default async function ContentPage({ params, searchParams }: PageProps<"/
   const t = await getTenant(siteId);
   if (!t.can("post.create") && !t.can("content.edit") && !t.can("design.layout")) notFound();
 
+  // The admin bar's language picker decides which language's entries are listed.
+  const locales = await readSiteLocales(t.site.id);
+  const lang = locales.length > 1 ? await adminLocale(t.site.id, locales) : null;
+  const locale = lang && !lang.isDefault ? lang.code : "";
   const postTypes = await t.db.postType.findMany({
     where: { key: { not: "template" } },
     orderBy: [{ isSystem: "desc" }, { labelPlural: "asc" }],
-    include: { _count: { select: { posts: { where: { status: { not: "TRASHED" } } } } } },
+    include: { _count: { select: { posts: { where: { status: { not: "TRASHED" }, locale } } } } },
   });
   const type = postTypes.find((p) => p.key === one(sp.type)) ?? postTypes[0];
   if (!type) notFound();
@@ -49,7 +56,7 @@ export default async function ContentPage({ params, searchParams }: PageProps<"/
   const dir: Prisma.SortOrder = one(sp.dir) === "asc" ? "asc" : "desc";
   const page = Math.max(1, Number(one(sp.page)) || 1);
 
-  const base: Prisma.PostWhereInput = { postTypeId: type.id, ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { slug: { contains: q.toLowerCase() } }] } : {}) };
+  const base: Prisma.PostWhereInput = { postTypeId: type.id, locale, ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { slug: { contains: q.toLowerCase() } }] } : {}) };
   const where: Prisma.PostWhereInput = { ...base, ...STATUS_TABS.find((s) => s.key === statusKey)!.where };
 
   const [counts, total, posts] = await Promise.all([
@@ -100,9 +107,11 @@ export default async function ContentPage({ params, searchParams }: PageProps<"/
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900">Content</h1>
-          <p className="text-sm text-zinc-500">Every page and entry on {t.site.name}.</p>
+          <p className="text-sm text-zinc-500">
+            {locale ? `${lang!.label} translations on ${t.site.name}. Start new ones under Translations.` : `Every page and entry on ${t.site.name}${lang ? ` in ${lang.label}` : ""}.`}
+          </p>
         </div>
-        {t.can("post.create") && (type.key !== "page" || t.can("design.layout")) && (
+        {!locale && t.can("post.create") && (type.key !== "page" || t.can("design.layout")) && (
           <NewEntryButton siteId={t.site.id} postTypeId={type.id} label={type.labelSingular} />
         )}
       </div>
@@ -152,13 +161,14 @@ export default async function ContentPage({ params, searchParams }: PageProps<"/
 
       <ContentTable
         siteId={t.site.id}
-        liveBase={`/sites/${t.site.subdomain}`}
+        liveBase={`/sites/${t.site.subdomain}${locale ? localePath(lang, "/").replace(/\/$/, "") : ""}`}
+        translations={!!locale}
         postType={{ key: type.key, label: type.labelSingular, plural: type.labelPlural, usesBuilder: type.usesBuilder, routePrefix: type.routePrefix }}
         rows={rows}
         trash={statusKey === "trash"}
         perms={{
           publish: t.can("post.publish"),
-          create: t.can("post.create") && (type.key !== "page" || t.can("design.layout")),
+          create: !locale && t.can("post.create") && (type.key !== "page" || t.can("design.layout")),
           restore: t.can("revisions.restore"),
           visual: t.can("content.edit") || t.can("design.layout"),
         }}

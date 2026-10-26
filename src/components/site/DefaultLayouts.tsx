@@ -28,9 +28,9 @@ const LAYOUT_CSS = `
 .dl-card p{color:var(--color-muted,#666);line-height:1.5}
 `;
 
-function Shell({ tokens, children }: { tokens: DesignTokens; children: React.ReactNode }) {
+function Shell({ tokens, lang, children }: { tokens: DesignTokens; lang?: string; children: React.ReactNode }) {
   return (
-    <div className="site-root">
+    <div className="site-root" lang={lang || undefined}>
       <style dangerouslySetInnerHTML={{ __html: buildCss(EMPTY, tokens) + LAYOUT_CSS }} />
       {children}
     </div>
@@ -39,10 +39,10 @@ function Shell({ tokens, children }: { tokens: DesignTokens; children: React.Rea
 
 const withBase = (href: string, base: string) => (base && href.startsWith("/") ? `${base}${href}` : href);
 
-export function DefaultEntry({ entry, label, tokens }: { entry: DynamicPost; label: string; tokens: DesignTokens }) {
+export function DefaultEntry({ entry, label, tokens, lang }: { entry: DynamicPost; label: string; tokens: DesignTokens; lang?: string }) {
   const fields = Object.entries(entry.fields).filter(([, f]) => f.text && f.type !== "RICH_TEXT");
   return (
-    <Shell tokens={tokens}>
+    <Shell tokens={tokens} lang={lang}>
       <main className="dl dl-narrow">
         <article>
           <p className="dl-kicker">
@@ -74,9 +74,9 @@ export function DefaultEntry({ entry, label, tokens }: { entry: DynamicPost; lab
   );
 }
 
-export function DefaultArchive({ title, entries, tokens, linkBase }: { title: string; entries: DynamicPost[]; tokens: DesignTokens; linkBase: string }) {
+export function DefaultArchive({ title, entries, tokens, linkBase, lang }: { title: string; entries: DynamicPost[]; tokens: DesignTokens; linkBase: string; lang?: string }) {
   return (
-    <Shell tokens={tokens}>
+    <Shell tokens={tokens} lang={lang}>
       <main className="dl">
         <h1>{title}</h1>
         {entries.length ? (
@@ -101,9 +101,9 @@ export function DefaultArchive({ title, entries, tokens, linkBase }: { title: st
 }
 
 /** The fallback "page not found" for sites without a designed 404 page. */
-export function DefaultNotFound({ siteName, tokens, linkBase }: { siteName: string; tokens: DesignTokens; linkBase: string }) {
+export function DefaultNotFound({ siteName, tokens, linkBase, lang }: { siteName: string; tokens: DesignTokens; linkBase: string; lang?: string }) {
   return (
-    <Shell tokens={tokens}>
+    <Shell tokens={tokens} lang={lang}>
       <main className="dl dl-narrow" style={{ minHeight: "70vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <p className="dl-kicker">404 · {siteName}</p>
         <h1>We couldn&apos;t find that page.</h1>

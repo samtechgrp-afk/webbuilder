@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 import { CLONE_SEP } from "@/lib/cms/binding";
 import { isBoundField, nodeCapabilities, parentMap } from "@/lib/builder/policy";
-import { SiteDocument, type RenderHooks } from "@/lib/builder/render";
+import { SiteDocument, type LanguageLink, type RenderHooks } from "@/lib/builder/render";
 import type { DesignTokens } from "@/lib/builder/styles";
 import { BREAKPOINTS } from "@/lib/builder/types";
 import { WIDGETS } from "@/lib/builder/widgets";
@@ -15,7 +15,7 @@ import { useEditor } from "./store";
  * component tree as the public site; the hooks only add selection outlines,
  * lock badges, inline text editing and, for designers, drag and drop.
  */
-export function Canvas({ tokens }: { tokens: DesignTokens }) {
+export function Canvas({ tokens, languages }: { tokens: DesignTokens; languages?: LanguageLink[] }) {
   const doc = useEditor((s) => s.doc);
   const ctx = useEditor((s) => s.ctx);
   const selectedId = useEditor((s) => s.selectedId);
@@ -133,7 +133,7 @@ export function Canvas({ tokens }: { tokens: DesignTokens }) {
         }}
         onDrop={onDrop}
       >
-        <SiteDocument doc={doc} tokens={tokens} hooks={hooks} data={dynamic ?? undefined} editor />
+        <SiteDocument doc={doc} tokens={tokens} hooks={hooks} data={dynamic ?? undefined} editor languages={languages} />
         {drop && (
           <div
             aria-hidden

@@ -41,6 +41,8 @@ const INTENT_KIND: Record<SaveIntent, RevisionKind> = {
 async function loadPost(t: TenantContext, postId: string) {
   const post = await t.db.post.findUnique({ where: { id: postId }, include: { postType: true } });
   if (!post) throw new EditError("Page not found", "not_found");
+  // A translation has no layout of its own: it only overrides the original's text and media.
+  if (post.locale) throw new EditError("Translations share the original page's layout. Edit their text and images under Translations.", "guardrail");
   return post;
 }
 
@@ -84,7 +86,7 @@ async function resolveImage(t: TenantContext, img: ImageValue): Promise<ImageVal
   return { ...toImage(asset), alt: img.alt || asset.altText || "" };
 }
 
-async function normaliseContent(t: TenantContext, next: BuilderDocument, changed: { nodeId: string; field: string }[]) {
+export async function normaliseContent(t: TenantContext, next: BuilderDocument, changed: { nodeId: string; field: string }[]) {
   const violations: Violation[] = [];
   for (const { nodeId, field } of changed) {
     const node = next.nodes[nodeId];

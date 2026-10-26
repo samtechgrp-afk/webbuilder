@@ -3,7 +3,7 @@ import { applyDynamic, baseNodeId, type DynamicData } from "@/lib/cms/binding";
 import { formatPrice } from "./content";
 import { buildCss, nodeClass, type DesignTokens } from "./styles";
 import type { BuilderDocument, BuilderNode, ImageValue, LinkValue, PriceValue } from "./types";
-import { WIDGETS } from "./widgets";
+import { WIDGETS, type LanguageSwitcherProps } from "./widgets";
 
 /**
  * One renderer for the live site and the editor canvas, so what clients edit
@@ -32,14 +32,28 @@ interface RenderOptions {
    * under the platform path, "" on its own domain.
    */
   linkBase?: string;
+  /** Language of the content (the wrapper's `lang`). */
+  lang?: string;
+  /** The current page in each of the site's languages, for language switchers. */
+  languages?: LanguageLink[];
 }
 
-export function SiteDocument({ doc, tokens = {}, hooks, data, editor, linkBase = "" }: RenderOptions) {
+/** One entry of a language switcher. `href` is final (prefix or domain already applied). */
+export interface LanguageLink {
+  code: string;
+  label: string;
+  href: string;
+  current: boolean;
+  /** This page exists in that language (otherwise the link goes to that language's home). */
+  translated: boolean;
+}
+
+export function SiteDocument({ doc, tokens = {}, hooks, data, editor, linkBase = "", lang, languages }: RenderOptions) {
   // Styles come from the template document; loop copies reuse the original's class.
   const view = data ? applyDynamic(doc, data, { editor }) : doc;
-  const ctx: Ctx = { doc: view, hooks, linkBase };
+  const ctx: Ctx = { doc: view, hooks, linkBase, languages, editor, lang };
   return (
-    <div className="site-root">
+    <div className="site-root" lang={lang || undefined}>
       <style dangerouslySetInnerHTML={{ __html: buildCss(doc, tokens) }} />
       <NodeView id={view.rootId} ctx={ctx} />
     </div>
@@ -50,6 +64,10 @@ interface Ctx {
   doc: BuilderDocument;
   hooks?: RenderHooks;
   linkBase: string;
+  languages?: LanguageLink[];
+  editor?: boolean;
+  /** Formats prices the way readers of this language expect. */
+  lang?: string;
 }
 
 const withBase = (href: string, base: string) => (base && /^\/(?!\/)/.test(href) ? `${base}${href === "/" ? "" : href}` || "/" : href);
@@ -130,6 +148,8 @@ function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
     case "heading":
     case "text":
       return <Tag {...common}>{text("text")}</Tag>;
+    case "langswitch":
+      return <LanguageSwitcher common={common} Tag={Tag} props={node.props as Partial<LanguageSwitcherProps>} languages={ctx.languages} editor={ctx.editor} />;
     case "image": {
       const img = node.props.image as ImageValue | undefined;
       return <div {...common}>{img?.src ? <Img img={img} priority={!!node.props.priority} /> : null}</div>;
@@ -151,10 +171,42 @@ function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
       if (!price) return null;
       return (
         <Tag {...common}>
-          {formatPrice(price.amount, price.currency)}
-          {price.compareAt ? <s>{formatPrice(price.compareAt, price.currency)}</s> : null}
+          {formatPrice(price.amount, price.currency, ctx.lang)}
+          {price.compareAt ? <s>{formatPrice(price.compareAt, price.currency, ctx.lang)}</s> : null}
         </Tag>
       );
     }
   }
+}
+
+function LanguageSwitcher({ common, Tag, props, languages, editor }: { common: Record<string, unknown>; Tag: keyof React.JSX.IntrinsicElements; props: Partial<LanguageSwitcherProps>; languages?: LanguageLink[]; editor?: boolean }) {
+  if (!languages || languages.length < 2) {
+    // A single-language site shows nothing to visitors; the canvas keeps a placeholder to select.
+    return editor ? <Tag {...common} data-empty="" aria-label="Language switcher (add a second language in Settings)" /> : null;
+  }
+  const name = (l: LanguageLink) => (props.display === "code" ? l.code.split("-")[0].toUpperCase() : l.label);
+  const list = (
+    <ul>
+      {languages.map((l) => (
+        <li key={l.code}>
+          <a href={l.href} hrefLang={l.code} lang={l.code} aria-current={l.current ? "true" : undefined} data-lang={l.code}>
+            {name(l)}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+  const current = languages.find((l) => l.current) ?? languages[0];
+  return (
+    <Tag {...common} aria-label="Language">
+      {props.variant === "dropdown" ? (
+        <details>
+          <summary>{name(current)}</summary>
+          {list}
+        </details>
+      ) : (
+        list
+      )}
+    </Tag>
+  );
 }

@@ -42,6 +42,7 @@ const ICONS: Record<WidgetType, string> = {
   gallery: "▤",
   richtext: "≡",
   loop: "↻",
+  langswitch: "文",
 };
 
 /** Where a clicked palette item lands: inside the selected container, after a selected leaf, else at the end of the page. */

@@ -13,7 +13,11 @@ import { createEntry, saveEntry } from "../cms/entries";
 import { contentHtml, entryPath } from "../cms/dynamic";
 import { EditError } from "../content-service";
 import type { Viewer } from "./api-keys";
-import { LIVE, PREVIEWABLE, liveNode, previewNode, type Loaders, type PostNode } from "./loaders";
+import { isBuilderDocument } from "@/lib/builder/types";
+import { groupAlternates, localeBase, localePath, type SiteLocaleInfo } from "@/lib/i18n/locales";
+import { composeDocument, mergeEntryFields } from "@/lib/i18n/translate";
+import { fieldDefFromRow } from "../cms/field-defs";
+import { LIVE, LIVE_INCLUDE, PREVIEWABLE, PREVIEW_INCLUDE, liveNode, previewNode, type Loaders, type PostNode } from "./loaders";
 
 /**
  * Resolvers for the site schema (src/lib/graphql/sdl.ts). Every read goes
@@ -69,6 +73,38 @@ const ORDER: Record<string, (live: boolean) => Prisma.PostOrderByWithRelationInp
   MODIFIED_DESC: () => [{ updatedAt: "desc" }],
 };
 
+// ── Languages ────────────────────────────────────────────────────────────────
+
+/** The Post.locale value for a `locale` argument: "" for the default language. Unknown codes are an error. */
+async function storedLocale(ctx: GqlContext, code: unknown): Promise<string> {
+  if (code === undefined || code === null || code === "") return "";
+  const locales = await ctx.loaders.locales();
+  const l = locales.find((x) => x.code.toLowerCase() === String(code).toLowerCase());
+  if (!l) throw gqlError(locales.length ? `Unknown locale "${String(code)}". This site has: ${locales.map((x) => x.code).join(", ")}` : "This site has a single language", "BAD_USER_INPUT");
+  return l.isDefault ? "" : l.code;
+}
+
+async function localeOf(ctx: GqlContext, n: { locale: string }): Promise<SiteLocaleInfo | null> {
+  const locales = await ctx.loaders.locales();
+  return locales.find((l) => (n.locale ? l.code === n.locale : l.isDefault)) ?? null;
+}
+
+/** A translation's original (same preview mode), or null for originals. */
+function originalOf(ctx: GqlContext, n: PostNode): Promise<PostNode | null> {
+  if (!n.locale || !n.translationId) return Promise.resolve(null);
+  return (n.preview ? ctx.loaders.previewOriginal : ctx.loaders.liveOriginal).load(n.translationId);
+}
+
+/** Live translations are only public on top of a live original. */
+async function visible(ctx: GqlContext, n: PostNode | null): Promise<PostNode | null> {
+  if (!n || !n.locale || n.preview) return n;
+  return (await originalOf(ctx, n)) ? n : null;
+}
+
+async function fieldDefMap(ctx: GqlContext) {
+  return new Map((await ctx.loaders.fieldGroups()).flatMap((g) => g.fields).map((f) => [f.key, fieldDefFromRow(f)]));
+}
+
 // ── Post queries ─────────────────────────────────────────────────────────────
 
 interface PostWhere {
@@ -86,8 +122,9 @@ async function postTypeByKey(ctx: GqlContext, key: string) {
   return type;
 }
 
-async function findPosts(ctx: GqlContext, postTypeId: string, args: { first?: unknown; after?: unknown; where?: PostWhere | null; orderBy?: unknown; parentFilter?: { parentId: string | null } }) {
+async function findPosts(ctx: GqlContext, postTypeId: string, args: { first?: unknown; after?: unknown; where?: PostWhere | null; orderBy?: unknown; locale?: unknown; parentFilter?: { parentId: string | null } }) {
   const where = args.where ?? {};
+  const locale = await storedLocale(ctx, args.locale);
   const statuses = where.status ?? null;
   // Anything but live content reads working copies, which is private.
   const preview = !!statuses?.some((s) => s !== "PUBLISHED");
@@ -114,6 +151,7 @@ async function findPosts(ctx: GqlContext, postTypeId: string, args: { first?: un
   const search = where.search?.trim().slice(0, 100);
   const filter: Prisma.PostWhereInput = {
     postTypeId,
+    locale,
     ...(preview ? { ...PREVIEWABLE, status: { in: statuses as never } } : LIVE),
     ...(args.parentFilter ?? {}),
     ...(where.parent !== undefined && where.parent !== null ? { parentId: where.parent } : {}),
@@ -130,33 +168,41 @@ async function findPosts(ctx: GqlContext, postTypeId: string, args: { first?: un
   const take = pageSize(args.first);
   const orderBy = [...(ORDER[String(args.orderBy ?? "DATE_DESC")] ?? ORDER.DATE_DESC)(!preview), { id: "asc" as const }];
   const nodes = preview
-    ? (await ctx.db.post.findMany({ where: filter, orderBy, skip: offset, take: take + 1 })).map(previewNode)
-    : (await ctx.db.post.findMany({ where: filter, orderBy, skip: offset, take: take + 1, include: { publishedRevision: true } })).map(liveNode);
-  const list = nodes.filter((n): n is PostNode => !!n);
+    ? (await ctx.db.post.findMany({ where: filter, orderBy, skip: offset, take: take + 1, include: PREVIEW_INCLUDE })).map(previewNode)
+    : (await ctx.db.post.findMany({ where: filter, orderBy, skip: offset, take: take + 1, include: LIVE_INCLUDE })).map(liveNode);
+  const list = (await Promise.all(nodes.map((n) => visible(ctx, n)))).filter((n): n is PostNode => !!n);
   for (const n of list) (n.preview ? ctx.loaders.previewPost : ctx.loaders.livePost).prime(n.id, n);
   return connection(list, offset, take, () => ctx.db.post.count({ where: filter }));
 }
 
-async function findOne(ctx: GqlContext, args: { id?: unknown; type?: unknown; slug?: unknown; preview?: unknown }) {
+async function findOne(ctx: GqlContext, args: { id?: unknown; type?: unknown; slug?: unknown; preview?: unknown; locale?: unknown }) {
   const preview = args.preview === true;
   if (preview) requirePreview(ctx);
   const loader = preview ? ctx.loaders.previewPost : ctx.loaders.livePost;
+  const hasLocale = args.locale !== undefined && args.locale !== null;
+  const locale = await storedLocale(ctx, args.locale);
   if (typeof args.id === "string") {
-    const node = await loader.load(args.id);
+    let node = await visible(ctx, await loader.load(args.id));
     if (node && typeof args.type === "string") {
       const type = await postTypeByKey(ctx, args.type);
       if (node.postTypeId !== type.id) return null;
+    }
+    // By id in another language: that entry's translation.
+    if (node && hasLocale && node.locale !== locale) {
+      if (!node.translationId) return null;
+      const member = (await ctx.loaders.groupMembers.load(node.translationId)).find((m) => m.locale === locale);
+      node = member ? await visible(ctx, await loader.load(member.postId)) : null;
     }
     return node;
   }
   if (typeof args.type !== "string" || typeof args.slug !== "string") throw gqlError("Pass an id, or a type and a slug", "BAD_USER_INPUT");
   const type = await postTypeByKey(ctx, args.type);
   const post = await ctx.db.post.findFirst({
-    where: { postTypeId: type.id, slug: args.slug, ...(preview ? PREVIEWABLE : LIVE) },
-    ...(preview ? {} : { include: { publishedRevision: true } }),
+    where: { postTypeId: type.id, locale, slug: args.slug, ...(preview ? PREVIEWABLE : LIVE) },
+    include: preview ? PREVIEW_INCLUDE : LIVE_INCLUDE,
   });
   if (!post) return null;
-  const node = preview ? previewNode(post) : liveNode(post as never);
+  const node = await visible(ctx, preview ? previewNode(post) : liveNode(post as never));
   if (node) loader.prime(node.id, node);
   return node;
 }
@@ -339,6 +385,7 @@ export function resolvers(types: CustomFieldTypes): Record<string, Record<string
         const tax = (await ctx.loaders.taxonomies()).find((t) => t.key === a.taxonomy);
         return tax ? ctx.db.term.findFirst({ where: { taxonomyId: tax.id, slug: a.slug } }) : null;
       },
+      locales: (_: unknown, __: Args, ctx: GqlContext) => ctx.loaders.locales(),
       mediaAsset: (_: unknown, a: { id: string }, ctx: GqlContext) => ctx.loaders.media.load(a.id),
       mediaAssets: async (_: unknown, a: Args, ctx: GqlContext) => {
         // The library holds files for unpublished work too, so browsing it is private; live entries still return their images.
@@ -393,15 +440,39 @@ export function resolvers(types: CustomFieldTypes): Record<string, Record<string
       },
     },
 
+    Locale: {
+      url: (l: SiteLocaleInfo, _: Args, ctx: GqlContext) => `${localeBase(ctx.baseUrl, l)}/`,
+    },
+
     Post: {
       type: async (n: PostNode, _: Args, ctx: GqlContext) => (await ctx.loaders.postTypes()).find((p) => p.id === n.postTypeId),
       uri: async (n: PostNode, _: Args, ctx: GqlContext) => {
         const type = (await ctx.loaders.postTypes()).find((p) => p.id === n.postTypeId)!;
-        return entryPath(type, n.slug);
+        const l = await localeOf(ctx, n);
+        return l?.domain ? entryPath(type, n.slug) : localePath(l, entryPath(type, n.slug));
       },
       url: async (n: PostNode, _: Args, ctx: GqlContext) => {
         const type = (await ctx.loaders.postTypes()).find((p) => p.id === n.postTypeId)!;
-        return `${ctx.baseUrl}${entryPath(type, n.slug)}`;
+        return `${localeBase(ctx.baseUrl, await localeOf(ctx, n))}${entryPath(type, n.slug)}`;
+      },
+      locale: async (n: PostNode, _: Args, ctx: GqlContext) => (await localeOf(ctx, n))?.code ?? null,
+      translations: async (n: PostNode, _: Args, ctx: GqlContext) => {
+        if (!n.translationId) return [];
+        const members = (await ctx.loaders.groupMembers.load(n.translationId)).filter((m) => m.postId !== n.id && (n.preview || m.live));
+        const loader = n.preview ? ctx.loaders.previewPost : ctx.loaders.livePost;
+        return (await Promise.all(members.map(async (m) => visible(ctx, await loader.load(m.postId))))).filter(Boolean);
+      },
+      hreflangs: async (n: PostNode, _: Args, ctx: GqlContext) => {
+        if (!n.translationId) return [];
+        const [members, locales, types] = await Promise.all([ctx.loaders.groupMembers.load(n.translationId), ctx.loaders.locales(), ctx.loaders.postTypes()]);
+        const live = members.filter((m) => m.live);
+        if (!live.some((m) => !m.locale)) return [];
+        const list = groupAlternates(
+          live.map((m) => ({ localeCode: m.localeCode, path: entryPath(types.find((t) => t.id === m.postTypeId)!, m.slug) })),
+          locales,
+          ctx.baseUrl,
+        );
+        return list.length > 1 ? list.map((a) => ({ hreflang: a.hreflang, locale: a.hreflang === "x-default" ? null : a.hreflang, url: a.href })) : [];
       },
       isPreview: (n: PostNode) => n.preview,
       content: async (n: PostNode, _: Args, ctx: GqlContext) => {
@@ -410,7 +481,11 @@ export function resolvers(types: CustomFieldTypes): Record<string, Record<string
       },
       document: async (n: PostNode, _: Args, ctx: GqlContext) => {
         const type = (await ctx.loaders.postTypes()).find((p) => p.id === n.postTypeId);
-        return type?.usesBuilder ? n.content : null;
+        if (!type?.usesBuilder) return null;
+        if (!n.locale) return n.content;
+        // A translation renders the original's layout with its own text and media.
+        const original = await originalOf(ctx, n);
+        return original && isBuilderDocument(original.content) ? composeDocument(original.content, n.content) : null;
       },
       date: (n: PostNode) => n.publishedAt?.toISOString() ?? null,
       modified: (n: PostNode) => n.updatedAt.toISOString(),
@@ -419,17 +494,32 @@ export function resolvers(types: CustomFieldTypes): Record<string, Record<string
         if (n.authorName !== undefined) return { id: n.authorId, name: n.authorName };
         return ctx.loaders.user.load(n.authorId);
       },
-      featuredImage: (n: PostNode, _: Args, ctx: GqlContext) => (n.featuredImageId ? ctx.loaders.media.load(n.featuredImageId) : null),
+      featuredImage: async (n: PostNode, _: Args, ctx: GqlContext) => {
+        const id = n.featuredImageId ?? (await originalOf(ctx, n))?.featuredImageId;
+        return id ? ctx.loaders.media.load(id) : null;
+      },
       terms: async (n: PostNode, a: { taxonomy?: string | null }, ctx: GqlContext) => {
-        const termIds = n.termIds ?? (await ctx.loaders.draftTermIds.load(n.id));
+        // Terms are shared by every language: a translation shows its original's.
+        const source = (await originalOf(ctx, n)) ?? n;
+        const termIds = source.termIds ?? (await ctx.loaders.draftTermIds.load(source.id));
         const terms = found(await ctx.loaders.term.loadMany(termIds));
         if (!a.taxonomy) return terms;
         const tax = (await ctx.loaders.taxonomies()).find((t) => t.key === a.taxonomy);
         return terms.filter((t) => t.taxonomyId === tax?.id);
       },
-      customFields: async (n: PostNode, _: Args, ctx: GqlContext) => ({ values: n.fields ?? (await ctx.loaders.draftFields.load(n.id)), preview: n.preview }) satisfies FieldObject,
+      customFields: async (n: PostNode, _: Args, ctx: GqlContext) => {
+        const own = n.fields ?? (await ctx.loaders.draftFields.load(n.id));
+        const original = await originalOf(ctx, n);
+        if (!original) return { values: own, preview: n.preview } satisfies FieldObject;
+        // Translatable fields from the translation, shared facts (prices, relations…) from the original.
+        const base = original.fields ?? (await ctx.loaders.draftFields.load(original.id));
+        return { values: mergeEntryFields(await fieldDefMap(ctx), base, own), preview: n.preview } satisfies FieldObject;
+      },
       seo: (n: PostNode) => n.seo,
-      parent: (n: PostNode, _: Args, ctx: GqlContext) => (n.parentId ? (n.preview ? ctx.loaders.previewPost : ctx.loaders.livePost).load(n.parentId) : null),
+      parent: async (n: PostNode, _: Args, ctx: GqlContext) => {
+        const parentId = n.locale ? (await originalOf(ctx, n))?.parentId : n.parentId;
+        return parentId ? (n.preview ? ctx.loaders.previewPost : ctx.loaders.livePost).load(parentId) : null;
+      },
       children: (n: PostNode, _: Args, ctx: GqlContext) => (n.preview ? ctx.loaders.previewChildren : ctx.loaders.liveChildren).load(n.id),
     },
     PostSeo: {

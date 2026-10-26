@@ -44,9 +44,12 @@ export function ContentTable({
   trash,
   perms,
   sort,
+  translations = false,
 }: {
   siteId: string;
   liveBase: string;
+  /** Rows are translations: they open in the side-by-side translation drawer. */
+  translations?: boolean;
   postType: { key: string; label: string; plural: string; usesBuilder: boolean; routePrefix: string | null };
   rows: ContentRow[];
   trash: boolean;
@@ -163,7 +166,7 @@ export function ContentTable({
                 </td>
                 <td className="px-3 py-3">
                   {r.canEdit && !trash ? (
-                    <Link href={`/admin/sites/${siteId}/content/${r.id}`} className="font-medium text-zinc-900 hover:underline">
+                    <Link href={translations ? `/admin/sites/${siteId}/translations?edit=${r.id}` : `/admin/sites/${siteId}/content/${r.id}`} className="font-medium text-zinc-900 hover:underline">
                       {r.title}
                     </Link>
                   ) : (
@@ -186,7 +189,7 @@ export function ContentTable({
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex justify-end gap-1">
-                    {!trash && postType.usesBuilder && perms.visual && r.canEdit && (
+                    {!trash && !translations && postType.usesBuilder && perms.visual && r.canEdit && (
                       <Link href={`/admin/sites/${siteId}/pages/${r.id}/edit`} className="rounded-md px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100">
                         Edit visually
                       </Link>

@@ -77,7 +77,8 @@ export function buildAureliaHome(img: SampleImages): BuilderDocument {
   b.add("nav-3", "button", { name: "Nav link", props: { link: { label: "Journal", href: "/journal" } }, style: { desktop: { color: "var(--color-text)", fontSize: ".9375rem" } } });
   b.add("nav", "container", { name: "Navigation", tag: "nav", children: ["nav-1", "nav-2", "nav-3"], style: { desktop: { display: "flex", gap: "2.25rem" }, mobile: { display: "none" } } });
   b.add("header-cta", "button", { name: "Header button", props: { link: { label: "Book a consultation", href: "/contact" } }, style: { desktop: { ...primaryBtn, padding: ".7rem 1.2rem", fontSize: ".875rem" } } });
-  b.add("header-inner", "container", { name: "Header row", children: ["brand", "nav", "header-cta"], style: { desktop: { ...shell, display: "flex", alignItems: "center", justifyContent: "space-between" } } });
+  b.add("lang", "langswitch", { name: "Language switcher", props: { display: "code", variant: "inline" }, style: { desktop: { display: "flex", gap: ".75rem", fontSize: ".8125rem", letterSpacing: ".08em" }, mobile: { display: "none" } } });
+  b.add("header-inner", "container", { name: "Header row", children: ["brand", "nav", "lang", "header-cta"], style: { desktop: { ...shell, display: "flex", alignItems: "center", justifyContent: "space-between" } } });
   b.add("header", "section", { name: "Header", tag: "header", locks: { layout: true, style: true }, children: ["header-inner"], style: { desktop: { padding: "1.4rem 2rem" }, mobile: { padding: "1rem 1.25rem" } } });
 
   // Hero
