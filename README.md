@@ -76,6 +76,8 @@ npm run e2e:seo                  # Playwright: sitemap/robots per site, live met
 npm run e2e:graphql              # Playwright: playground, keys, typed queries, no N+1, draft protection, isolation, depth/cost limits, lockout
 npm run e2e:export               # Playwright: background export → zip contents → served by a plain static server → client lockout, delete
 npm run e2e:404                  # Playwright: true 404 status, custom 404 page, drafts/trash hidden, editor preview
+STRIPE_API_BASE=http://127.0.0.1:4242 npm start   # for the shop suite, start the server against the local Stripe mock
+npm run e2e:ecommerce            # Playwright + Stripe mock: payments lockout, catalog, grid, variants, cart drawer, checkout, signed webhook, stock, orders
 npm run e2e:i18n                 # Playwright: languages, prefixed routing, Accept-Language, locale domain, translation drawer, structural lockout, hreflang, sitemap, GraphQL
 CRON_SECRET=… npm run e2e:cms    # Playwright: CPT + fields → client entry → loop grid binding → live site, media, trash, restore, schedule
 ```
@@ -95,11 +97,27 @@ A site starts with one language. Designers and admins add more under **Settings 
 
 Limits in this version: single templates aren't translated (entries in other languages use the original template with their own field values); translations carry no terms, so term-filtered lists in another language come back empty; a GraphQL list in another language returns translated entries only.
 
+## Shop
+
+A native catalog with Stripe Checkout, separate from content post types.
+
+- **Products** (`/admin/sites/<id>/products`, `commerce.manage`: designers and client admins): photos from the media library, price and compare-at price, SKU, stock tracking, physical or digital, and up to three options (Size, Color…) whose every combination is a variant with its own price, SKU and stock. Prices are stored in minor units.
+- **Orders** (`/orders`): filter by status, see items, customer and shipping address, mark fulfilled or refunded (refunds themselves are issued in Stripe).
+- **Payments** (`Settings → Payments`, `site.settings`: designers only): Stripe secret key and webhook signing secret, encrypted at rest with AES-256-GCM (`SECRETS_KEY`, else derived from `SESSION_SECRET`) and only ever shown masked; shipping countries; the product page template. The currency follows the default language (Phase 8), or the store currency on single-language sites.
+- **Widgets**: *Product grid* (sort, limit, hide sold-out, optional visitor sorting), *Product details* (gallery, live price per variant, option selectors, stock, Add to cart; a fixed product or the page's product) and *Cart* (button with count and a slide-out drawer: quantities, subtotal, checkout). The cart lives in `localStorage` per site and is only a wish list. These three are the only Client Components on the live site.
+- **Product pages** live at `/products/<slug>` (in every language), laid out by the chosen template, with Product JSON-LD and sitemap entries. Static exports include them as a catalog without cart or checkout.
+- **Checkout** (`POST /api/v1/sites/<site>/checkout`, same-origin only) re-reads every product, variant, price and stock level from the site's own catalog, creates a `PENDING` order with prices frozen, and opens a Stripe Checkout session carrying the order id.
+- **Webhook** (`POST /api/webhooks/stripe`, one endpoint for every shop): the signature must verify against the signing secret of the site the session names. `checkout.session.completed` marks the order `PAID` and takes items out of stock in one transaction, once; `checkout.session.expired` cancels it.
+
+Stripe is called over its REST API (`src/server/commerce/stripe.ts`); `STRIPE_API_BASE` points it at another host, which is how `e2e:ecommerce` runs against `scripts/stripe-mock.mjs` without real keys. The seeded Aurelia shop uses placeholder keys, so real payments need a designer to enter real ones.
+
+Limits in this version: product content isn't translated; no taxes, shipping rates, discounts or customer accounts (Stripe Checkout can add tax and shipping later); refunds don't restock automatically.
+
 ## Where things live
 
 | Path | What |
 | --- | --- |
-| `prisma/schema.prisma` | Data model: tenants, users, roles, memberships, CPTs, posts, revisions, edit locks, custom fields, taxonomies, media, audit log |
+| `prisma/schema.prisma` | Data model: tenants, users, roles, memberships, CPTs, posts, revisions, edit locks, custom fields, taxonomies, media, audit log, store, products, variants, orders |
 | `src/proxy.ts` | Host routing (subdomain / custom domain → tenant) and the admin auth gate |
 | `src/lib/tenant-db.ts` | `tenantDb(siteId)`: Prisma client that forces every query into one site |
 | `src/lib/tenant.ts` | `getTenant(siteId)`: session + membership + permissions + scoped DB, 404 for non-members |
@@ -134,3 +152,8 @@ Limits in this version: single templates aren't translated (entries in other lan
 | `src/lib/i18n/*` | Locale paths, Accept-Language matching, hreflang, translation overlay (`composeDocument`) |
 | `src/server/i18n/*`, `src/server/i18n-actions.ts` | Language settings, translation create/save with structure guardrails, admin language picker |
 | `src/app/admin/sites/[siteId]/translations`, `settings/languages` | Side-by-side translation drawer and language settings |
+| `src/lib/commerce/*` | Money, cart, variant and storefront logic, Stripe signatures and form encoding (pure) |
+| `src/server/commerce/*`, `src/server/commerce-actions.ts` | Catalog reads, products, orders, store settings, checkout, Stripe client, webhook processing |
+| `src/components/commerce/*` | Product grid, product details and cart drawer widgets (Client Components) |
+| `src/app/admin/sites/[siteId]/products`, `orders`, `settings/payments` | Product manager, orders dashboard, payment settings |
+| `src/app/api/v1/sites/[site]/checkout`, `src/app/api/webhooks/stripe` | Checkout session API and Stripe webhook |

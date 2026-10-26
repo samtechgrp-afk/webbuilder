@@ -83,6 +83,12 @@ export const STATUS_LABEL: Record<string, string> = {
   SCHEDULED: "Scheduled",
   ARCHIVED: "Archived",
   TRASHED: "Trash",
+  ACTIVE: "Active",
+  PENDING: "Awaiting payment",
+  PAID: "Paid",
+  FULFILLED: "Fulfilled",
+  REFUNDED: "Refunded",
+  CANCELLED: "Cancelled",
 };
 
 const STATUS_STYLE: Record<string, string> = {
@@ -92,6 +98,12 @@ const STATUS_STYLE: Record<string, string> = {
   SCHEDULED: "bg-sky-50 text-sky-800 ring-sky-600/20",
   ARCHIVED: "bg-zinc-100 text-zinc-500 ring-zinc-500/20",
   TRASHED: "bg-red-50 text-red-700 ring-red-600/20",
+  ACTIVE: "bg-emerald-50 text-emerald-800 ring-emerald-600/20",
+  PENDING: "bg-amber-50 text-amber-800 ring-amber-600/20",
+  PAID: "bg-sky-50 text-sky-800 ring-sky-600/20",
+  FULFILLED: "bg-emerald-50 text-emerald-800 ring-emerald-600/20",
+  REFUNDED: "bg-violet-50 text-violet-800 ring-violet-600/20",
+  CANCELLED: "bg-zinc-100 text-zinc-500 ring-zinc-500/20",
 };
 
 export function StatusBadge({ status }: { status: string }) {
@@ -127,6 +139,12 @@ export function Dialog({
     if (open && !d.open) d.showModal();
     if (!open && d.open) d.close();
   }, [open]);
+  // Next keeps a route it navigated away from mounted but hidden; a modal left
+  // open there would keep the new page inert. Hiding runs effect cleanups.
+  useEffect(() => {
+    const d = ref.current;
+    return () => d?.close();
+  }, []);
   return (
     <dialog
       ref={ref}

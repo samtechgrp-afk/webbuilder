@@ -1,4 +1,5 @@
 import type { BindKind } from "@/lib/cms/fields";
+import type { CartProps, ProductDetailsProps, ProductGridProps } from "@/lib/commerce/types";
 import type { LoopQuery, ResponsiveStyle, SemanticTag, StyleKey, WidgetType } from "./types";
 
 /**
@@ -129,6 +130,39 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     hint: "Links to this page in the site's other languages",
     defaults: { props: { display: "label", variant: "inline" } satisfies LanguageSwitcherProps, style: { desktop: { display: "flex", gap: "var(--space-sm)", fontSize: "0.9rem" } } },
   },
+  productgrid: {
+    label: "Product grid",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "section"],
+    contentFields: [],
+    hint: "Cards for the shop's products with Add to cart",
+    defaults: {
+      props: { limit: 6, sort: "newest", inStockOnly: false, showSort: false, buttonLabel: "Add to cart" } satisfies ProductGridProps,
+      style: { desktop: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "var(--space-md)" }, tablet: { gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }, mobile: { gridTemplateColumns: "minmax(0, 1fr)" } },
+    },
+  },
+  product: {
+    label: "Product details",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "section", "article"],
+    contentFields: [],
+    hint: "Gallery, price, variant pickers and Add to cart",
+    defaults: {
+      props: { productId: null, buttonLabel: "Add to cart" } satisfies ProductDetailsProps,
+      style: { desktop: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "var(--space-lg)" }, mobile: { gridTemplateColumns: "minmax(0, 1fr)" } },
+    },
+  },
+  cart: {
+    label: "Cart",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "nav"],
+    contentFields: [],
+    hint: "Cart button with a slide-out drawer and checkout",
+    defaults: { props: { label: "Cart" } satisfies CartProps, style: { desktop: { fontSize: "0.9rem" } } },
+  },
 };
 
 /** How the language switcher shows its links. */
@@ -163,6 +197,9 @@ export const BINDABLE: Record<WidgetType, BindTarget[]> = {
   gallery: [{ key: "images", label: "Images", accepts: "gallery" }],
   richtext: [{ key: "html", label: "Content", accepts: "html" }],
   langswitch: [],
+  productgrid: [],
+  product: [],
+  cart: [],
 };
 
 /** The content field a binding target belongs to ("link.href" → "link"). */

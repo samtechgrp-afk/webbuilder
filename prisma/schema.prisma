@@ -155,6 +155,11 @@ model Site {
   apiKeys      ApiKey[]
   locales      SiteLocale[]
   translations PostTranslation[]
+  store        Store?
+  products     Product[]
+  productVariants ProductVariant[]
+  orders       Order[]
+  orderItems   OrderItem[]
   editLocks    EditLock[]
   auditLogs    AuditLog[]
 }
@@ -689,4 +694,144 @@ model PostTranslation {
 
   @@unique([translationId, localeCode])
   @@index([siteId, translationId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Commerce
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A site's shop settings. Stripe keys are encrypted at rest (src/server/crypto.ts)
+/// and only roles with `site.settings` can see or change them.
+model Store {
+  siteId              String   @id
+  /// Checkout is accepted only when on and a Stripe key is set.
+  enabled             Boolean  @default(false)
+  /// ISO 4217. Used when the site has no languages; otherwise the default language's currency wins.
+  currency            String   @default("USD")
+  /// Builder template that renders /products/<slug> (needs a Product details widget).
+  productTemplateId   String?
+  /// ISO 3166 alpha-2 codes Stripe Checkout may ship to (physical products).
+  shippingCountries   String[] @default([])
+  stripeSecretKey     String?
+  stripeWebhookSecret String?
+  /// Last order number handed out (orders show as #1001, #1002…).
+  orderCounter        Int      @default(1000)
+  updatedAt           DateTime @updatedAt
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+/// A product in the native catalog. Prices are in the store currency's minor
+/// unit (cents). With variants, stock and SKUs live on the variants.
+model Product {
+  id             String        @id @default(cuid())
+  siteId         String
+  title          String
+  slug           String
+  description    String        @default("")
+  /// Media library asset ids, first is the cover.
+  images         String[]      @default([])
+  price          Int
+  compareAtPrice Int?
+  sku            String?
+  inventory      Int           @default(0)
+  trackInventory Boolean       @default(true)
+  isPhysical     Boolean       @default(true)
+  status         ProductStatus @default(DRAFT)
+  /// Variant options: [{ "name": "Color", "values": ["Red", "Blue"] }].
+  options        Json          @default("[]")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  site       Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  variants   ProductVariant[]
+  orderItems OrderItem[]
+
+  @@unique([siteId, slug])
+  @@index([siteId, status])
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  siteId    String
+  productId String
+  /// "Red / Large"
+  title     String
+  /// Overrides the product price when set.
+  price     Int?
+  sku       String?
+  inventory Int     @default(0)
+  /// { "Color": "Red", "Size": "Large" }
+  attributes Json   @default("{}")
+  position  Int     @default(0)
+
+  site       Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@index([siteId, productId])
+}
+
+enum OrderStatus {
+  /// Checkout started, not paid yet.
+  PENDING
+  PAID
+  FULFILLED
+  REFUNDED
+  CANCELLED
+}
+
+/// Created when checkout starts (prices and items frozen), marked PAID by the
+/// Stripe webhook, which also takes the items out of stock.
+model Order {
+  id                    String      @id @default(cuid())
+  siteId                String
+  number                Int
+  stripeSessionId       String?     @unique
+  stripePaymentIntentId String?
+  customerEmail         String?
+  customerName          String?
+  totalAmount           Int
+  currency              String
+  status                OrderStatus @default(PENDING)
+  shippingAddr          Json?
+  /// Language the customer checked out in.
+  locale                String      @default("")
+  paidAt                DateTime?
+  fulfilledAt           DateTime?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  site  Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  items OrderItem[]
+
+  @@unique([siteId, number])
+  @@index([siteId, status, createdAt])
+}
+
+model OrderItem {
+  id           String  @id @default(cuid())
+  siteId       String
+  orderId      String
+  productId    String?
+  variantId    String?
+  title        String
+  variantTitle String?
+  sku          String?
+  quantity     Int
+  /// Unit price at checkout, minor units.
+  price        Int
+
+  site    Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([siteId, orderId])
 }

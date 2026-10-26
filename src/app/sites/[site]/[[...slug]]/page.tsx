@@ -9,12 +9,16 @@ import { jsonLdScript, pageSeo, type SeoTarget } from "@/server/seo/page-seo";
 import { getPublishedArchive, getPublishedEntry, getPublishedPage, resolveSite } from "@/server/public-site";
 import { defaultLocale } from "@/lib/i18n/locales";
 import { baseFor, languageLinks, metadataLanguages, siteLocaleContext } from "@/server/i18n/site-locale";
+import { PRODUCT_BASE } from "@/lib/commerce/types";
+import { toMajor } from "@/lib/commerce/money";
+import { getProductPage, loadCommerceData } from "@/server/commerce/catalog";
 
 /**
  * A client's live website. Reached directly at /sites/<subdomain>/… or via
  * the proxy rewrite for <subdomain>.<ROOT_DOMAIN> and custom domains.
  * Resolves, in order: a builder page at the full path, a CPT entry at
- * /<prefix>/<slug>, a CPT archive at /<prefix>. Rendered as Server
+ * /<prefix>/<slug>, a CPT archive at /<prefix>, a shop product at
+ * /products/<slug>. Rendered as Server
  * Components from cached reads; publishing revalidates them.
  */
 export const instant = false;
@@ -34,6 +38,11 @@ async function resolve(key: string, slug: string[] | undefined) {
       const entry = await getPublishedEntry(site, loc.rest[0], loc.rest[1], loc.linkBase, stored);
       if (entry) return { kind: "entry" as const, entry, alternates: entry.alternates };
     }
+    if (loc.rest.length === 2 && loc.rest[0] === PRODUCT_BASE) {
+      // Products aren't translated: every language shows the same product at the same path.
+      const product = await getProductPage(site, loc.rest[1]);
+      if (product) return { kind: "product" as const, product, alternates: loc.locales.map((l) => ({ localeCode: l.code, path: `/${PRODUCT_BASE}/${loc.rest[1]}` })) };
+    }
     if (loc.rest.length === 1) {
       const archive = await getPublishedArchive(site, loc.rest[0], stored);
       if (archive) return { kind: "archive" as const, archive, alternates: loc.locales.map((l) => ({ localeCode: l.code, path: `/${loc.rest[0]}` })) };
@@ -41,11 +50,13 @@ async function resolve(key: string, slug: string[] | undefined) {
     return null;
   };
   const own = await find(loc.stored);
-  if (own) return { ...base, ...own, fallback: false };
   // Not translated yet: show the default-language version (the proxy already
   // redirected when a translation exists at another address).
-  const fallback = loc.stored ? await find("") : null;
-  return fallback ? { ...base, ...fallback, fallback: true } : null;
+  const hit = own ? { ...own, fallback: false } : loc.stored ? await find("").then((f) => (f ? { ...f, fallback: true } : null)) : null;
+  if (!hit) return null;
+  const doc = hit.kind === "page" ? hit.page.document : hit.kind === "entry" ? hit.entry.template : hit.kind === "product" ? hit.product.document : null;
+  const commerce = doc ? await loadCommerceData(row, doc, loc.linkBase, { current: hit.kind === "product" ? hit.product.product : null }) : undefined;
+  return { ...base, ...hit, commerce };
 }
 
 type Resolved = NonNullable<Awaited<ReturnType<typeof resolve>>>;
@@ -63,6 +74,20 @@ function seoI18n(r: Resolved) {
 
 /** What search engines and social cards see, from the published snapshot only. */
 function seoTarget(r: Resolved): SeoTarget {
+  if (r.kind === "product") {
+    const p = r.product.product;
+    const currency = r.commerce?.currency ?? "USD";
+    const variantPrices = p.variants.map((v) => v.price);
+    return {
+      kind: "product",
+      title: p.title,
+      path: p.path,
+      excerpt: p.description.slice(0, 300),
+      postTypeId: "",
+      featuredImageId: p.images[0]?.assetId ?? null,
+      offer: { price: toMajor(variantPrices.length ? Math.min(...variantPrices) : p.price, currency), currency, available: p.available },
+    };
+  }
   if (r.kind === "archive") {
     const pt = r.archive.postType;
     return { kind: "archive", title: pt.labelPlural, path: `/${pt.routePrefix ?? pt.key}`, postTypeId: pt.id };
@@ -111,12 +136,15 @@ export default async function PublicPage({ params, searchParams }: PageProps<"/s
 function SiteBody({ r }: { r: Resolved }) {
   const lang = contentLocale(r)?.code;
   const languages = r.loc.locales.length > 1 ? languageLinks(r.loc, r.alternates, r.loc.locale?.code ?? null) : undefined;
+  const commerce = r.commerce;
   switch (r.kind) {
     case "page":
-      return <SiteDocument doc={r.page.document} data={r.page.data} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} />;
+      return <SiteDocument doc={r.page.document} data={r.page.data} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} />;
+    case "product":
+      return <SiteDocument doc={r.product.document} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} />;
     case "entry":
       return r.entry.template && r.entry.data ? (
-        <SiteDocument doc={r.entry.template} data={r.entry.data} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} />
+        <SiteDocument doc={r.entry.template} data={r.entry.data} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} />
       ) : (
         <DefaultEntry entry={r.entry.entry} label={r.entry.postType.labelSingular} tokens={r.tokens} lang={lang} />
       );
@@ -135,15 +163,17 @@ async function Preview({ siteKey, slug }: { siteKey: string; slug: string[] | un
   const tokens = (row.designTokens ?? {}) as DesignTokens;
   const p = await getPreview({ id: row.id, name: row.name, settings: row.settings, branding: row.branding }, loc.rest, linkBase, loc.stored);
   if (!p) notFound();
+  const previewDoc = p.kind === "page" ? p.document : p.template;
+  const commerce = previewDoc ? await loadCommerceData(row, previewDoc, linkBase) : undefined;
   return (
     <>
       <p role="status" data-preview-banner="" style={{ position: "sticky", top: 0, zIndex: 50, margin: 0, padding: ".5rem 1rem", textAlign: "center", font: "500 13px/1.5 system-ui, sans-serif", background: "#312e81", color: "#fff" }}>
         Preview of unpublished changes ({p.status.toLowerCase().replace("_", " ")}). Visitors don&apos;t see this version.
       </p>
       {p.kind === "page" ? (
-        <SiteDocument doc={p.document} data={p.data} tokens={tokens} linkBase={linkBase} lang={lang} />
+        <SiteDocument doc={p.document} data={p.data} tokens={tokens} linkBase={linkBase} lang={lang} commerce={commerce} />
       ) : p.template && p.data ? (
-        <SiteDocument doc={p.template} data={p.data} tokens={tokens} linkBase={linkBase} lang={lang} />
+        <SiteDocument doc={p.template} data={p.data} tokens={tokens} linkBase={linkBase} lang={lang} commerce={commerce} />
       ) : (
         <DefaultEntry entry={p.entry} label={p.postType.labelSingular} tokens={tokens} lang={lang} />
       )}

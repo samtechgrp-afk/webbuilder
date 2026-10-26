@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { splitLocalePath, type SiteLocaleInfo } from "@/lib/i18n/locales";
+import { PRODUCT_BASE } from "@/lib/commerce/types";
 
 /**
  * Does a public URL resolve to live content? The proxy asks this before
@@ -8,8 +9,8 @@ import { splitLocalePath, type SiteLocaleInfo } from "@/lib/i18n/locales";
  * time the page itself could call notFound().
  *
  * Mirrors the resolution order of src/app/sites/[site]/[[...slug]]: a
- * builder page at the full path, a CPT entry at /<prefix>/<slug>, a CPT
- * archive at /<prefix>. Only live content counts (a published revision and
+ * builder page at the full path, a CPT entry at /<prefix>/<slug>, an
+ * active shop product at /products/<slug>, a CPT archive at /<prefix>. Only live content counts (a published revision and
  * not in the trash), so drafts, scheduled and trashed entries are 404s.
  * The site's designated 404 page is never served at its own address.
  *
@@ -46,7 +47,7 @@ export type RouteCheck =
       localeDetection: boolean;
     };
 
-type Hit = { postId: string } | { archive: string };
+type Hit = { postId: string } | { archive: string } | { product: string };
 
 async function findContent(siteId: string, parts: string[], locale: string, hidden: string[]): Promise<Hit | null> {
   const slug = parts.length ? parts.join("/") : "home";
@@ -62,6 +63,10 @@ async function findContent(siteId: string, parts: string[], locale: string, hidd
       select: { id: true },
     });
     if (entry) return { postId: entry.id };
+    if (parts[0] === PRODUCT_BASE) {
+      const product = await prisma.product.findFirst({ where: { siteId, slug: parts[1], status: "ACTIVE" }, select: { slug: true } });
+      if (product) return { product: product.slug };
+    }
   }
   if (parts.length === 1) {
     const archive = await prisma.postType.findFirst({
@@ -82,6 +87,7 @@ function entryPath(postType: { key: string; routePrefix: string | null }, slug: 
 async function alternatesFor(siteId: string, hit: Hit, locales: SiteLocaleInfo[]): Promise<RouteAlternate[]> {
   if (!locales.length) return [];
   if ("archive" in hit) return locales.map((l) => ({ localeCode: l.code, path: `/${hit.archive}` }));
+  if ("product" in hit) return locales.map((l) => ({ localeCode: l.code, path: `/${PRODUCT_BASE}/${hit.product}` }));
   const group = await prisma.postTranslation.findUnique({ where: { postId: hit.postId }, select: { translationId: true } });
   if (!group) return [];
   const members = await prisma.postTranslation.findMany({

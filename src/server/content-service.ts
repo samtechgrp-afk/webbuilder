@@ -132,7 +132,8 @@ export async function normaliseContent(t: TenantContext, next: BuilderDocument, 
 
 /**
  * Rich content never stores HTML of its own (it only shows bound, sanitised
- * data), and every loop grid must query one of this site's post types.
+ * data), every loop grid must query one of this site's post types, and a
+ * product details widget may only feature one of this site's products.
  */
 async function checkDynamicNodes(t: TenantContext, doc: BuilderDocument) {
   for (const node of Object.values(doc.nodes)) {
@@ -140,6 +141,11 @@ async function checkDynamicNodes(t: TenantContext, doc: BuilderDocument) {
       const { html: _drop, ...rest } = node.props;
       void _drop;
       node.props = rest;
+    }
+    if (node.type === "product" && typeof node.props.productId === "string") {
+      if (!(await t.db.product.findUnique({ where: { id: node.props.productId }, select: { id: true } }))) {
+        throw new EditError("A product details widget points at a product that doesn't exist", "invalid");
+      }
     }
     if (node.type !== "loop") continue;
     const q = node.props.query as { postTypeId: string | null; termId?: string | null };

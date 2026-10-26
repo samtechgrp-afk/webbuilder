@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { strToU8, zipSync, type Zippable } from "fflate";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { PRODUCT_BASE } from "@/lib/commerce/types";
 import { assetSource, compileCss, compileHtml, outputPath } from "@/lib/export/compile";
 import { internalOrigin } from "@/lib/internal-origin";
 import { readSiteSeo } from "@/lib/seo/settings";
@@ -100,7 +101,7 @@ export async function deleteExport(t: TenantContext, input: { id: string }) {
  * same fallback the live site serves).
  */
 export async function exportTargets(siteId: string, notFoundPageId: string | null) {
-  const [posts, archives, locales] = await Promise.all([
+  const [posts, archives, locales, products] = await Promise.all([
     prisma.post.findMany({
       where: { siteId, ...LIVE, postType: { key: { not: "template" } }, ...(notFoundPageId ? { id: { not: notFoundPageId } } : {}) },
       orderBy: [{ postType: { key: "asc" } }, { slug: "asc" }],
@@ -116,13 +117,15 @@ export async function exportTargets(siteId: string, notFoundPageId: string | nul
     }),
     prisma.postType.findMany({ where: { siteId, hasArchive: true, key: { notIn: ["page", "template"] } }, select: { key: true, routePrefix: true, labelPlural: true } }),
     readSiteLocales(siteId),
+    prisma.product.findMany({ where: { siteId, status: "ACTIVE" }, orderBy: { slug: "asc" }, select: { slug: true } }),
   ]);
   // The 404 page's translations become the 404 page too, never an address of their own.
   const hidden = notFoundPageId ? await notFoundGroups(notFoundPageId) : [];
   const originals = posts.filter((p) => !p.locale && !(p.translation && hidden.includes(p.translation.translationId)));
   const liveGroups = new Set(originals.map((p) => p.translation?.translationId).filter(Boolean));
   const translations = posts.filter((p) => p.locale && p.translation && liveGroups.has(p.translation.translationId));
-  const archivePaths = archives.map((a) => `/${a.routePrefix ?? a.key}`);
+  // Shop products become catalog pages (checkout needs the platform, so the static copy has no cart).
+  const archivePaths = [...archives.map((a) => `/${a.routePrefix ?? a.key}`), ...products.map((p) => `/${PRODUCT_BASE}/${p.slug}`)];
   const pages = [...originals.map((p) => entryPath(p.postType, p.slug)), ...archivePaths];
   for (const l of locales.filter((x) => !x.isDefault)) {
     for (const o of originals) {

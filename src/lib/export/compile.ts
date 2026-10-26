@@ -58,7 +58,11 @@ export function compileHtml(html: string, ctx: CompileContext): { html: string; 
     .replace(/(href|src)="(?=["#?])/g, '$1="/')
     .replace(/\/_next\/static\//g, "/assets/")
     .replace(/(\/favicon\.ico)\?[^"']*/g, "$1");
-  return { html: out, assets: collectAssets(out) };
+  // Carts and checkout need the platform: a static copy shows the catalog without them.
+  const shop = /data-w="(?:cart|product|productgrid)"/.test(out)
+    ? out.replace("</head>", `<style data-static-shop="">[data-w="cart"],[data-add-to-cart],[data-choose-options],[data-grid-sort],[data-w="product"] form{display:none!important}</style></head>`)
+    : out;
+  return { html: shop, assets: collectAssets(shop) };
 }
 
 /** Rewrites a stylesheet at `cssPath` (a bundle path) and collects what it loads, including relative url()s such as fonts. */

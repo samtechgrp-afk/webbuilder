@@ -13,7 +13,7 @@ import { getShareImage } from "./seo-service";
 type SiteRow = { id: string; name: string; subdomain: string; customDomain: string | null; settings: unknown; branding: unknown };
 
 export interface SeoTarget {
-  kind: "page" | "entry" | "archive";
+  kind: "page" | "entry" | "archive" | "product";
   title: string;
   path: string;
   excerpt?: string | null;
@@ -23,6 +23,8 @@ export interface SeoTarget {
   publishedAt?: Date | null;
   modifiedAt?: Date | null;
   authorName?: string | null;
+  /** Product pages: what Google shows as the offer. Price in major units. */
+  offer?: { price: number; currency: string; available: boolean; sku?: string | null };
 }
 
 /**
@@ -86,6 +88,24 @@ function jsonLd(site: SiteRow, target: SeoTarget, r: ResolvedSeo, base: string, 
       dateModified: target.modifiedAt?.toISOString(),
       author: target.authorName ? { "@type": "Person", name: target.authorName } : undefined,
       publisher: { "@type": "Organization", name: site.name },
+    };
+  }
+  if (target.kind === "product" && target.offer) {
+    return {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: target.title,
+      description: r.description ?? undefined,
+      image: imageUrl ?? undefined,
+      sku: target.offer.sku ?? undefined,
+      url: r.canonical,
+      offers: {
+        "@type": "Offer",
+        url: r.canonical,
+        price: target.offer.price,
+        priceCurrency: target.offer.currency,
+        availability: target.offer.available ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      },
     };
   }
   return { "@context": "https://schema.org", "@type": target.kind === "archive" ? "CollectionPage" : "WebPage", name: r.title, url: r.canonical, description: r.description ?? undefined };

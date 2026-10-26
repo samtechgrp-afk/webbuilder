@@ -57,7 +57,7 @@ export type ResponsiveStyle = Partial<Record<Breakpoint, StyleProps>>;
 
 export type WidgetType =
   | "section" | "container" | "heading" | "text" | "image" | "button" | "price"
-  | "gallery" | "richtext" | "loop" | "langswitch";
+  | "gallery" | "richtext" | "loop" | "langswitch" | "productgrid" | "product" | "cart";
 
 export type SemanticTag =
   | "section" | "header" | "main" | "footer" | "article" | "aside" | "nav" | "div"

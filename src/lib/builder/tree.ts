@@ -1,3 +1,4 @@
+import { isGridProps } from "@/lib/commerce/storefront";
 import type { Binding, Breakpoint, BuilderDocument, BuilderNode, LoopQuery, StyleKey, WidgetType } from "./types";
 import { BREAKPOINT_ORDER } from "./types";
 import { BINDABLE, WIDGETS } from "./widgets";
@@ -193,6 +194,8 @@ export function structuralProblem(doc: BuilderDocument): string | null {
     const bindingIssue = bindingProblem(node);
     if (bindingIssue) return bindingIssue;
     if (node.type === "loop" && !isLoopQuery(node.props.query)) return "Loop grid query is invalid";
+    const commerceIssue = commerceProblem(node);
+    if (commerceIssue) return commerceIssue;
   }
   const reachable = subtreeIds(doc, doc.rootId);
   if (new Set(reachable).size !== reachable.length) return "The page contains a loop";
@@ -216,6 +219,21 @@ function bindingProblem(node: BuilderNode): string | null {
       return "A dynamic binding is malformed";
     }
     if (b.fallback !== undefined && (typeof b.fallback !== "string" || b.fallback.length > 200)) return "A binding fallback is too long";
+  }
+  return null;
+}
+
+const shortLabel = (v: unknown) => v === undefined || (typeof v === "string" && v.length <= 40);
+
+function commerceProblem(node: BuilderNode): string | null {
+  const p = node.props;
+  switch (node.type) {
+    case "productgrid":
+      return isGridProps(p) ? null : "Product grid settings are invalid";
+    case "product":
+      return (p.productId === null || (typeof p.productId === "string" && p.productId.length <= 40)) && shortLabel(p.buttonLabel) ? null : "Product details settings are invalid";
+    case "cart":
+      return shortLabel(p.label) ? null : "Cart settings are invalid";
   }
   return null;
 }

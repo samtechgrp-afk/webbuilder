@@ -14,6 +14,7 @@ import { localePath } from "@/lib/i18n/locales";
 import { readSiteLocales } from "@/server/i18n/locale-service";
 import { translationMenu } from "@/server/i18n/translation-service";
 import type { EditorLanguage } from "@/components/editor/ClientEditor";
+import { editorCommerce } from "@/server/commerce/catalog";
 
 export const metadata: Metadata = { title: "Editor" };
 
@@ -87,6 +88,7 @@ export default async function EditPage({ params }: PageProps<"/admin/sites/[site
           }),
         )
       : undefined;
+  const commerce = await editorCommerce(t.site, linkBase, post.id);
   const dynamic = await loadDynamicData(t.site.id, post.draft, t.site, previewEntry ? await draftSource(t.db, previewEntry.id) : null, linkBase);
 
   return (
@@ -117,6 +119,7 @@ export default async function EditPage({ params }: PageProps<"/admin/sites/[site
         contextPostTypeId={contextPostTypeId}
         template={templateFor ? { postTypeLabel: templateFor.labelSingular, previewTitle: previewEntry?.title ?? null } : null}
         languages={languages}
+        commerce={commerce}
       />
     </div>
   );

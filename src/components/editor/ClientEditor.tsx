@@ -7,6 +7,7 @@ import type { DesignTokens } from "@/lib/builder/styles";
 import { BREAKPOINT_ORDER, BREAKPOINTS, type BuilderDocument } from "@/lib/builder/types";
 import type { DynamicData } from "@/lib/cms/binding";
 import type { LoopQuery } from "@/lib/builder/types";
+import type { CommerceData } from "@/lib/commerce/types";
 import { heartbeatEditLock, leaveEditor, previewLoop, restorePageRevision, savePage } from "@/server/editor-actions";
 import { Canvas } from "./Canvas";
 import { Inspector } from "./Inspector";
@@ -44,6 +45,8 @@ export interface ClientEditorProps {
   template: { postTypeLabel: string; previewTitle: string | null } | null;
   /** The page's languages on a multilingual site: the canvas edits the shared layout, translations open in their drawer. */
   languages?: EditorLanguage[];
+  /** The shop's catalog for product grids, product details and cart widgets. */
+  commerce?: CommerceData;
 }
 
 export interface EditorLanguage {
@@ -82,6 +85,7 @@ export function ClientEditor(props: ClientEditorProps) {
     useEditor.getState().init(props.document, { permissions: readOnly ? [] : props.permissions }, props.version);
     useEditor.getState().initDynamic(props.dynamic, props.catalog, props.contextPostTypeId);
     useEditor.getState().initTokens(props.tokens, props.tokensVersion);
+    useEditor.getState().initCommerce(props.commerce ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id, readOnly]);
 

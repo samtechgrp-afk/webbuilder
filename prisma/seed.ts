@@ -4,10 +4,18 @@ import { rm } from "node:fs/promises";
 import path from "node:path";
 import { SYSTEM_ROLES, type SystemRoleKey } from "../src/lib/rbac";
 import { processImage } from "../src/server/media-processing";
-import { aureliaTokens, buildAureliaHome, type SampleImages } from "./sample-site";
+import { encryptSecret } from "../src/server/crypto";
+import { aureliaTokens, buildAureliaHome, buildAureliaProductTemplate, buildAureliaStore, type SampleImages } from "./sample-site";
 
 const prisma = new PrismaClient();
 export const DEMO_PASSWORD = "demo-password-2026";
+/**
+ * Placeholder Stripe credentials for the demo shop. Not real keys: checkout
+ * only works against the local Stripe mock (STRIPE_API_BASE, see
+ * scripts/e2e-ecommerce.mjs) until a designer enters real ones.
+ */
+export const DEMO_STRIPE_KEY = "sk_test_aureliaDemoKeyNotReal2026";
+export const DEMO_WEBHOOK_SECRET = "whsec_aureliaDemoSigningSecret2026";
 
 /** Abstract "interior" artwork so the demo has real images without shipping photos. */
 function artwork(w: number, h: number, palette: string[], seed: number) {
@@ -40,6 +48,26 @@ async function seedImages(siteId: string, uploaderId: string) {
     images[key] = { assetId: asset.id, src: asset.url, alt: asset.altText ?? "", width: asset.width ?? undefined, height: asset.height ?? undefined };
   }
   return images;
+}
+
+/** Product photos for the demo shop, drawn like the interior artwork. */
+async function seedProductImages(siteId: string, uploaderId: string) {
+  const specs: [string, string, string[]][] = [
+    ["cushion-sand", "linen-cushion-in-sand.png", ["#EFE6D8", "#D9C7A8", "#B39B74", "#7D6A4E"]],
+    ["cushion-sage", "linen-cushion-in-sage.png", ["#E3E8DE", "#C2CDB6", "#8E9E7C", "#5B6B4C"]],
+    ["vase", "stoneware-vase.png", ["#EDE7E1", "#CDBFB2", "#9A8574", "#5E4F43"]],
+    ["candles", "beeswax-candles.png", ["#F4EBD6", "#E6D2A0", "#C9A45C", "#8A6B32"]],
+    ["gift", "studio-gift-card.png", ["#2B2620", "#4A4036", "#C9B79C", "#F4EFE7"]],
+    ["tray", "walnut-tray.png", ["#E8DCCF", "#B99C80", "#7A5A40", "#4A3526"]],
+  ];
+  const ids: Record<string, string> = {};
+  let i = 10;
+  for (const [key, name, palette] of specs) {
+    const processed = await processImage(siteId, artwork(1000, 1250, palette, ++i), name);
+    const asset = await prisma.mediaAsset.create({ data: { ...processed, siteId, uploadedById: uploaderId, tags: ["shop", key] } });
+    ids[key] = asset.id;
+  }
+  return ids;
 }
 
 async function createSite(data: { name: string; subdomain: string; branding: object; tokens: object }) {
@@ -285,6 +313,60 @@ async function main() {
     document: { type: "translation", version: 1, overrides: { "nf-title": { text: "Cette pièce n'existe pas (encore)." }, "nf-home": { link: { label: "Retour à l'accueil", href: "/" } } } },
   });
 
+  // ── Shop: native products, a shop page and a product page template ─────────
+  const shopImages = await seedProductImages(aurelia.site.id, designer.id);
+  const templateType = await prisma.postType.create({
+    data: { siteId: aurelia.site.id, key: "template", labelSingular: "Template", labelPlural: "Templates", usesBuilder: true, isSystem: true },
+  });
+  const productTemplate = await publishPage(aurelia.site.id, templateType.id, designer.id, "Product page", "product-page", buildAureliaProductTemplate());
+  await publishPage(aurelia.site.id, aurelia.page.id, designer.id, "Shop", "store", buildAureliaStore(), {
+    seoTitle: "The studio shop · Aurelia Interiors",
+    seoDescription: "Linen, stoneware and candles we keep specifying for clients.",
+  });
+  await prisma.store.create({
+    data: {
+      siteId: aurelia.site.id,
+      enabled: true,
+      currency: "USD",
+      productTemplateId: productTemplate.id,
+      shippingCountries: ["US", "CA", "GB", "FR", "ES"],
+      stripeSecretKey: encryptSecret(DEMO_STRIPE_KEY),
+      stripeWebhookSecret: encryptSecret(DEMO_WEBHOOK_SECRET),
+    },
+  });
+  const day = 24 * 60 * 60 * 1000;
+  const shopStart = Date.now() - 30 * day;
+  const cushion = await prisma.product.create({
+    data: {
+      siteId: aurelia.site.id,
+      title: "Linen Cushion Cover",
+      slug: "linen-cushion-cover",
+      description: "Stonewashed Belgian linen with a hidden zip and a feather insert.\n\nMade for us in Kortrijk, softer with every wash.",
+      images: [shopImages["cushion-sand"], shopImages["cushion-sage"]],
+      price: 4800,
+      status: "ACTIVE",
+      options: [{ name: "Color", values: ["Sand", "Sage"] }, { name: "Size", values: ["45 cm", "60 cm"] }],
+      createdAt: new Date(shopStart + 4 * day),
+    },
+  });
+  const cushionVariants: [string, string, number | null, number, string][] = [
+    ["Sand", "45 cm", null, 6, "AUR-CU-SA45"],
+    ["Sand", "60 cm", 5800, 3, "AUR-CU-SA60"],
+    ["Sage", "45 cm", null, 4, "AUR-CU-SG45"],
+    ["Sage", "60 cm", 5800, 0, "AUR-CU-SG60"],
+  ];
+  await prisma.productVariant.createMany({
+    data: cushionVariants.map(([color, size, price, inventory, sku], position) => ({ siteId: aurelia.site.id, productId: cushion.id, title: `${color} / ${size}`, attributes: { Color: color, Size: size }, price, inventory, sku, position })),
+  });
+  await prisma.product.createMany({
+    data: [
+      { siteId: aurelia.site.id, title: "Stoneware Bud Vase", slug: "stoneware-bud-vase", description: "Wheel-thrown in Vermont and finished in a dry oatmeal glaze. Each one is a little different.", images: [shopImages.vase], price: 6500, compareAtPrice: 7800, sku: "AUR-VA-01", inventory: 3, status: "ACTIVE", createdAt: new Date(shopStart + 3 * day) },
+      { siteId: aurelia.site.id, title: "Beeswax Candle Set", slug: "beeswax-candle-set", description: "Three hand-dipped pure beeswax tapers that burn clean and smell faintly of honey.", images: [shopImages.candles], price: 2400, sku: "AUR-CA-03", inventory: 25, status: "ACTIVE", createdAt: new Date(shopStart + 2 * day) },
+      { siteId: aurelia.site.id, title: "Studio Gift Card", slug: "studio-gift-card", description: "Redeemable against any shop order or a design consultation. Delivered by email.", images: [shopImages.gift], price: 10000, trackInventory: false, isPhysical: false, status: "ACTIVE", createdAt: new Date(shopStart + day) },
+      { siteId: aurelia.site.id, title: "Walnut Serving Tray", slug: "walnut-serving-tray", description: "Coming this winter.", images: [shopImages.tray], price: 12000, inventory: 0, status: "DRAFT", createdAt: new Date(shopStart) },
+    ],
+  });
+
   // ── Tenant 2: Northwind Dental (proves isolation) ──────────────────────────
   const northwind = await createSite({
     name: "Northwind Dental",
@@ -310,7 +392,7 @@ async function main() {
 
   console.log(`
 Seeded.
-  Aurelia live site:    /sites/aurelia   (home page id ${home.id})
+  Aurelia live site:    /sites/aurelia   (home page id ${home.id}, shop at /sites/aurelia/store)
   Northwind live site:  /sites/northwind
 
   Logins (password: ${DEMO_PASSWORD})
