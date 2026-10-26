@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session-token";
 import { SITE_ROOT_HEADER } from "@/lib/site-url";
+import { internalOrigin } from "@/lib/internal-origin";
 import { checkPublicRoute } from "@/server/route-check";
 
 /**
@@ -66,14 +67,6 @@ const INTERNAL_HEADER = "x-site-404-internal";
 
 /** Served by their own route handlers (which 404 unknown sites themselves), not by the page resolver. */
 const SEO_FILES = /^\/(robots\.txt|sitemap\.xml)$/;
-
-/**
- * Where the proxy fetches the rendered 404 page from. A fixed origin, never
- * the request's Host header, so a forged Host can't point the fetch
- * elsewhere.
- */
-const internalOrigin = () =>
-  process.env.INTERNAL_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://127.0.0.1:${process.env.PORT ?? 3000}`);
 
 /**
  * Responds with the site's 404 page and HTTP status 404. With Partial

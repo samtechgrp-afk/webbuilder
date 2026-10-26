@@ -2,7 +2,7 @@
 
 A visual website builder and multi-tenant CMS with a client portal. Designers build premium sites with full control; clients sign in to their own portal and edit words, images, links and prices directly on the live page, inside guardrails the designer sets.
 
-**Status: phase 5.** Phase 1 laid the multi-tenant foundation, full Prisma schema, RBAC, Client Mode editor with locked containers, revisions and rollback, and media ingest (WebP). Phase 2 added Design mode: drag widgets from a palette, rearrange in Layers, and style every element per breakpoint. Phase 3 added the CMS:
+**Status: phase 6.** Phase 1 laid the multi-tenant foundation, full Prisma schema, RBAC, Client Mode editor with locked containers, revisions and rollback, and media ingest (WebP). Phase 2 added Design mode: drag widgets from a palette, rearrange in Layers, and style every element per breakpoint. Phase 3 added the CMS:
 
 - **Content dashboard** (`/admin/sites/:id/content`): per post type tables with search, sort, pagination and Published / Draft / Scheduled / Trash tabs; bulk publish, draft, trash, restore, delete and duplicate; a revision drawer with rollback; scheduled publishing through `/api/cron/scheduled`.
 - **Post types** (`/cpts`): labels, slug rules, URL prefix, archive, hierarchy, REST API toggle, icons, page templates, a taxonomy manager, and a single template designed on the canvas.
@@ -19,14 +19,21 @@ Phase 4 added the global design system:
 - **Editors**: `/admin/sites/:id/design-system` (panel, live specimen, history with restore) and a **Design system** drawer in Design mode that restyles the canvas as you edit. The Style inspector switches fields between a raw value and a global token.
 - **Guardrails**: only roles with `design.tokens` see the page or drawer; the server asserts the permission, validates every value (zod plus the CSS-injection filter) and refuses stale saves.
 
-Phase 5 adds SEO:
+Phase 5 added SEO:
 
 - **Live metadata**: title (site title template, home title), description (entry, then excerpt, then site default), canonical URL, Open Graph and Twitter cards with an absolute share image (entry share image, then featured image, then site default), Search Console / Bing verification on the home page, and JSON-LD (WebSite, Article, CollectionPage). Read from the published snapshot only.
 - **robots.txt and sitemap.xml per site**, on the site's own host and under `/sites/<site>/`. The sitemap lists live pages, entries and archives only, using the 404 rules (no drafts, review, scheduled or trashed entries, never the designated 404 page) and leaves out noindex entries, excluded post types and entries canonicalised elsewhere. "Discourage search engines" closes robots.txt and empties the sitemap.
 - **SEO screen** (`/seo`): an audit of every live page (missing, short or long descriptions, long or duplicate titles, no share image, hidden) for anyone who edits content, and site defaults for site-settings holders.
 - **Entry editor**: search and social previews built from the same rules as the live page, a share image and a canonical URL.
 
-GraphQL (deferred) and the export engine come next.
+Phase 6 adds the export engine:
+
+- **Static compilation** (`src/lib/export/compile.ts`): every live page, entry and archive is rendered by the live renderer and turned into a standalone `index.html`. Runtime scripts are dropped (JSON-LD stays), `/sites/<site>` paths become root-relative, canonical and Open Graph URLs point at the hosting address, and every stylesheet, font, image and icon the page uses is copied in. A page captured mid-stream is refused rather than exported half-rendered.
+- **Bundle**: one zip with the pages, `404.html` (the site's designed 404 page), `sitemap.xml` and `robots.txt` for the hosting address, `data/content.json` with published entries and fields, the CSS, fonts and media, and a README. Drafts, review, scheduled and trashed entries are never included. It works on any static host (Netlify, Vercel, Cloudflare Pages, S3, nginx).
+- **Export screen** (`/admin/sites/:id/export`): pick the hosting address, start an export that runs in the background with live progress, then download or delete it from the history. Each job lists warnings such as links with no page in the export. Bundles live in private storage (`storage/exports` under the app root, not public) and download only through an authenticated route.
+- **Guardrails**: only roles with `site.settings` see the screen; starting, downloading and deleting all check the permission on the server, and one export per site runs at a time.
+
+GraphQL (deferred) comes next.
 
 ## Quick start
 
@@ -60,6 +67,7 @@ npm run e2e                      # Playwright: client edits hero → publish →
 npm run e2e:designer             # Playwright: designer drags, reorders, styles per breakpoint → publish
 npm run e2e:tokens               # Playwright: presets + live preview, save → live CSS vars, drawer, token/raw toggle, client lockout, restore
 npm run e2e:seo                  # Playwright: sitemap/robots per site, live meta, site defaults, client entry SEO, lockout, discourage
+npm run e2e:export               # Playwright: background export → zip contents → served by a plain static server → client lockout, delete
 npm run e2e:404                  # Playwright: true 404 status, custom 404 page, drafts/trash hidden, editor preview
 CRON_SECRET=… npm run e2e:cms    # Playwright: CPT + fields → client entry → loop grid binding → live site, media, trash, restore, schedule
 ```
@@ -96,4 +104,6 @@ Reseed with the server stopped (or restart it after seeding): resolved sites are
 | `src/server/cms/*` | Entry save/bulk/restore/schedule, schema service (post types, taxonomies, field groups), media metadata, dynamic data loading, revision snapshots |
 | `src/server/sanitize.ts` | DOMPurify allowlists for rich text and uploaded SVG |
 | `src/server/route-check.ts`, `src/app/site-404` | Proxy-side route check and the per-site 404 page served with status 404 |
+| `src/lib/export/compile.ts`, `src/server/export/*` | Static HTML/CSS compiler; export jobs, bundling, private storage |
+| `src/app/admin/sites/[siteId]/export`, `src/app/api/sites/[siteId]/exports` | Export screen and authenticated bundle download |
 | `src/app/api/v1/sites/[site]/[type]` | Public REST API for post types with the API enabled |
