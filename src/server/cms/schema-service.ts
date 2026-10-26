@@ -15,7 +15,8 @@ import { asJson, snapshotMeta } from "./snapshot";
  * that forgets to check can't open it up.
  */
 
-const RESERVED_KEYS = new Set(["template", "admin", "api", "sites", "uploads", "login", "media", "page", "post"]);
+// "graphql" would shadow the REST endpoint of a post type with that key (/api/v1/sites/<site>/graphql).
+const RESERVED_KEYS = new Set(["template", "admin", "api", "sites", "uploads", "login", "media", "page", "post", "graphql"]);
 const RESERVED_PREFIXES = new Set(["admin", "api", "sites", "uploads", "login", "_next"]);
 
 export const postTypeInputSchema = z.object({

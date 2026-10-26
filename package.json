@@ -17,13 +17,18 @@
     "e2e:404": "node scripts/e2e-404.mjs",
     "e2e:tokens": "node scripts/e2e-tokens.mjs",
     "e2e:seo": "node scripts/e2e-seo.mjs",
-    "e2e:export": "node scripts/e2e-export.mjs"
+    "e2e:export": "node scripts/e2e-export.mjs",
+    "e2e:graphql": "node scripts/e2e-graphql.mjs"
   },
   "dependencies": {
+    "@graphiql/toolkit": "^0.12.1",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
+    "dataloader": "^2.2.3",
     "dompurify": "^3.4.17",
     "fflate": "^0.8.2",
+    "graphiql": "^5.4.0",
+    "graphql": "^16.14.2",
     "jose": "^6.2.13",
     "jsdom": "^26.1.0",
     "next": "16.4.3",

@@ -9,6 +9,7 @@ export const PERMISSIONS = {
   "design.tokens": "Edit global colours, typography, radii and shadows",
   "design.layout": "Edit structure, layout and styles; toggle locks",
   "design.code": "Edit custom CSS and head code",
+  "developer.api": "Turn on the GraphQL API and create or revoke API keys",
   "schema.manage": "Create post types, taxonomies and custom field groups",
   "content.edit": "Edit text, images, links and prices in unlocked areas",
   "media.upload": "Upload media",
