@@ -5,6 +5,8 @@ import { run } from "./action-result";
 import { bulkAction, createEntry, listEntryRevisions, restoreEntryRevision, saveEntry, type BulkAction, type EntryInput } from "./cms/entries";
 import { deleteAssets, tagAssets, updateAssetMeta } from "./cms/media-service";
 import { saveSiteIdentity } from "./cms/site-service";
+import { saveSiteSeo } from "./seo/seo-service";
+import type { SiteSeoInput } from "@/lib/seo/settings";
 import {
   createSingleTemplate,
   deleteFieldGroup,
@@ -88,4 +90,7 @@ export async function tagAssetsAction(input: WithSite<{ ids: string[]; tag: stri
 // Site identity
 export async function saveSiteIdentityAction(input: WithSite<Parameters<typeof saveSiteIdentity>[1]>) {
   return run(async () => saveSiteIdentity(await getTenant(input.siteId), input));
+}
+export async function saveSiteSeoAction(input: WithSite<SiteSeoInput>) {
+  return run(async () => saveSiteSeo(await getTenant(input.siteId), input));
 }

@@ -109,6 +109,13 @@ export const entryInputSchema = z.object({
     seoTitle: z.string().max(70).nullish(),
     seoDescription: z.string().max(170).nullish(),
     noIndex: z.boolean().optional(),
+    canonicalUrl: z
+      .string()
+      .trim()
+      .max(500)
+      .refine((v) => !v || /^https?:\/\/[^\s<>"]+$/i.test(v), { message: "The canonical URL must be a full http(s) address" })
+      .nullish(),
+    ogImageId: z.string().max(40).nullish(),
   }),
 });
 
@@ -215,6 +222,15 @@ export async function saveEntry(t: TenantContext, raw: EntryInput) {
     if (clash) v("slug", "Another entry already uses that address");
   }
 
+  let ogImageId: string | null = input.seo.ogImageId ?? null;
+  if (ogImageId) {
+    const asset = await t.db.mediaAsset.findUnique({ where: { id: ogImageId }, select: { mimeType: true } });
+    if (!asset || !asset.mimeType.startsWith("image/") || asset.mimeType === "image/svg+xml") {
+      v("ogImage", "Pick a photo (not an SVG) from this site's media library for the share image");
+      ogImageId = post.ogImageId;
+    }
+  }
+
   let featuredImageId: string | null = input.featuredImageId ?? null;
   if (featuredImageId) {
     const asset = await t.db.mediaAsset.findUnique({ where: { id: featuredImageId }, select: { mimeType: true } });
@@ -301,6 +317,8 @@ export async function saveEntry(t: TenantContext, raw: EntryInput) {
         seoTitle: input.seo.seoTitle?.trim() || null,
         seoDescription: input.seo.seoDescription?.trim() || null,
         noIndex: !!input.seo.noIndex,
+        canonicalUrl: input.seo.canonicalUrl?.trim() || null,
+        ogImageId,
         ...statusData,
       },
     });
@@ -467,7 +485,7 @@ async function duplicateEntry(t: TenantContext, postId: string) {
       data: {
         siteId: t.site.id, postTypeId: src.postTypeId, authorId: t.user.id, parentId: src.parentId, title, slug, status: "DRAFT",
         excerpt: src.excerpt, draft: asJson(src.draft), featuredImageId: src.featuredImageId, template: src.template, menuOrder: src.menuOrder,
-        seoTitle: src.seoTitle, seoDescription: src.seoDescription, noIndex: src.noIndex,
+        seoTitle: src.seoTitle, seoDescription: src.seoDescription, noIndex: src.noIndex, ogImageId: src.ogImageId,
       },
     });
     if (src.fieldValues.length) {

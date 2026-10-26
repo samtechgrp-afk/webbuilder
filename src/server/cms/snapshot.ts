@@ -26,7 +26,7 @@ export async function snapshotMeta(db: Tx, postId: string): Promise<RevisionMeta
     template: post.template,
     parentId: post.parentId,
     authorName: post.author?.name ?? post.author?.email ?? null,
-    seo: { seoTitle: post.seoTitle, seoDescription: post.seoDescription, noIndex: post.noIndex },
+    seo: { seoTitle: post.seoTitle, seoDescription: post.seoDescription, noIndex: post.noIndex, canonicalUrl: post.canonicalUrl, ogImageId: post.ogImageId },
   };
 }
 

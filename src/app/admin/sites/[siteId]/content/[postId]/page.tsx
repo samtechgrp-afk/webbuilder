@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { prisma } from "@/lib/db";
+import { readSiteSeo } from "@/lib/seo/settings";
 import { getTenant } from "@/lib/tenant";
+import { publicBaseUrl } from "@/server/seo/public-url";
+import { entryPath } from "@/server/seo/seo-service";
 import { fieldDefFromRow } from "@/server/cms/field-defs";
 import { contentHtml } from "@/server/cms/dynamic";
 import { postTypeTemplates } from "@/server/cms/entries";
@@ -59,6 +63,7 @@ export default async function EntryPage({ params }: PageProps<"/admin/sites/[sit
       : Promise.resolve([]),
   ]);
 
+  const siteRow = await prisma.site.findUniqueOrThrow({ where: { id: t.site.id }, select: { subdomain: true, customDomain: true, settings: true } });
   const lock = post.editLock && post.editLock.userId !== t.user.id && post.editLock.expiresAt > new Date() ? post.editLock.user.name : null;
   const live = `/sites/${t.site.subdomain}${post.postType.key === "page" ? (post.slug === "home" ? "" : `/${post.slug}`) : `/${post.postType.routePrefix ?? post.postType.key}/${post.slug}`}`;
 
@@ -80,7 +85,7 @@ export default async function EntryPage({ params }: PageProps<"/admin/sites/[sit
         menuOrder: post.menuOrder,
         termIds: post.terms.map((x) => x.termId),
         fields: Object.fromEntries(post.fieldValues.map((v) => [v.field.key, v.value])),
-        seo: { seoTitle: post.seoTitle, seoDescription: post.seoDescription, noIndex: post.noIndex },
+        seo: { seoTitle: post.seoTitle, seoDescription: post.seoDescription, noIndex: post.noIndex, canonicalUrl: post.canonicalUrl, ogImageId: post.ogImageId },
         scheduledAt: post.scheduledAt?.toISOString() ?? null,
         publishedAt: post.publishedAt?.toISOString() ?? null,
         isLive: !!post.publishedRevisionId,
@@ -116,6 +121,7 @@ export default async function EntryPage({ params }: PageProps<"/admin/sites/[sit
         canPreview: t.can("content.edit") || t.can("post.editAny") || t.can("design.layout"),
       }}
       lockedBy={lock}
+      seoContext={{ siteName: t.site.name, seo: readSiteSeo(siteRow.settings), base: await publicBaseUrl(siteRow), path: entryPath(post.postType, post.slug), isHome: post.postType.key === "page" && post.slug === "home" }}
     />
   );
 }

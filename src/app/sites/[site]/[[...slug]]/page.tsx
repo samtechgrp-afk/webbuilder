@@ -6,6 +6,8 @@ import { SiteDocument } from "@/lib/builder/render";
 import type { DesignTokens } from "@/lib/builder/styles";
 import { SITE_ROOT_HEADER, siteLinkBase } from "@/lib/site-url";
 import { getPreview } from "@/server/preview";
+import type { RevisionMeta } from "@/server/cms/dynamic";
+import { jsonLdScript, pageSeo, type SeoTarget } from "@/server/seo/page-seo";
 import { getPublishedArchive, getPublishedEntry, getPublishedPage, resolveSite } from "@/server/public-site";
 
 /**
@@ -37,27 +39,39 @@ async function resolve(key: string, slug: string[] | undefined) {
   return null;
 }
 
+type Resolved = NonNullable<Awaited<ReturnType<typeof resolve>>>;
+
+/** What search engines and social cards see, from the published snapshot only. */
+function seoTarget(r: Resolved): SeoTarget {
+  if (r.kind === "archive") {
+    const pt = r.archive.postType;
+    return { kind: "archive", title: pt.labelPlural, path: `/${pt.routePrefix ?? pt.key}`, postTypeId: pt.id };
+  }
+  const { post } = r.kind === "page" ? r.page : r.entry;
+  const meta = (post.publishedRevision?.meta ?? {}) as RevisionMeta;
+  // Revisions published before SEO was snapshotted fall back to the entry's own fields.
+  const seo = meta.seo ?? { seoTitle: post.seoTitle, seoDescription: post.seoDescription, noIndex: post.noIndex, canonicalUrl: post.canonicalUrl, ogImageId: post.ogImageId };
+  const path = r.kind === "page" ? (post.slug === "home" ? "/" : `/${post.slug}`) : `/${r.entry.postType.routePrefix ?? r.entry.postType.key}/${post.slug}`;
+  return {
+    kind: r.kind,
+    title: post.publishedRevision?.title ?? post.title,
+    path,
+    excerpt: meta.excerpt ?? post.excerpt,
+    seo,
+    postTypeId: post.postTypeId,
+    featuredImageId: meta.featuredImageId ?? null,
+    publishedAt: post.publishedAt,
+    modifiedAt: post.publishedRevision?.createdAt ?? null,
+    authorName: meta.authorName ?? null,
+  };
+}
+
 export async function generateMetadata({ params, searchParams }: PageProps<"/sites/[site]/[[...slug]]">): Promise<Metadata> {
   const { site: key, slug } = await params;
   if ((await searchParams).preview !== undefined) return { title: { absolute: "Preview" }, robots: { index: false } };
   const r = await resolve(key, slug);
   if (!r) return {};
-  if (r.kind === "archive") return { title: { absolute: `${r.archive.postType.labelPlural} · ${r.site.name}` } };
-  const { post, seo } = r.kind === "page" ? r.page : r.entry;
-  const title = seo?.seoTitle ?? post.seoTitle ?? `${post.publishedRevision?.title ?? post.title} · ${r.site.name}`;
-  const description = seo?.seoDescription ?? post.seoDescription ?? undefined;
-  return {
-    title: { absolute: title },
-    description,
-    robots: (seo?.noIndex ?? post.noIndex) ? { index: false } : undefined,
-    alternates: post.canonicalUrl ? { canonical: post.canonicalUrl } : undefined,
-    openGraph: {
-      title,
-      description,
-      siteName: r.site.name,
-      images: post.ogImage ? [{ url: post.ogImage.url, width: post.ogImage.width ?? undefined, height: post.ogImage.height ?? undefined }] : undefined,
-    },
-  };
+  return (await pageSeo(r.site, seoTarget(r))).metadata;
 }
 
 export default async function PublicPage({ params, searchParams }: PageProps<"/sites/[site]/[[...slug]]">) {
@@ -65,6 +79,16 @@ export default async function PublicPage({ params, searchParams }: PageProps<"/s
   if ((await searchParams).preview !== undefined) return <Preview siteKey={key} slug={slug} />;
   const r = await resolve(key, slug);
   if (!r) notFound();
+  const { jsonLd } = await pageSeo(r.site, seoTarget(r));
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
+      <SiteBody r={r} />
+    </>
+  );
+}
+
+function SiteBody({ r }: { r: Resolved }) {
   switch (r.kind) {
     case "page":
       return <SiteDocument doc={r.page.document} data={r.page.data} tokens={r.tokens} linkBase={r.linkBase} />;

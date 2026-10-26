@@ -64,6 +64,9 @@ export async function proxy(request: NextRequest) {
 
 const INTERNAL_HEADER = "x-site-404-internal";
 
+/** Served by their own route handlers (which 404 unknown sites themselves), not by the page resolver. */
+const SEO_FILES = /^\/(robots\.txt|sitemap\.xml)$/;
+
 /**
  * Where the proxy fetches the rendered 404 page from. A fixed origin, never
  * the request's Host header, so a forged Host can't point the fetch
@@ -96,6 +99,7 @@ async function serveNotFound(request: NextRequest, key: string, headers: Headers
 }
 
 async function notFoundRewrite(request: NextRequest, key: string, path: string, headers: Headers) {
+  if (SEO_FILES.test(path)) return null;
   if (request.nextUrl.searchParams.has("preview") && (await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value))) return null;
   let check: Awaited<ReturnType<typeof checkPublicRoute>>;
   try {
