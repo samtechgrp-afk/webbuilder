@@ -1,0 +1,491 @@
+{
+  "key": "online-academy",
+  "name": "Online Academy & Courses",
+  "sector": "health",
+  "description": "Friendly course marketplace with a course catalog (prices, levels, durations), instructor stats, learning steps and FAQ.",
+  "highlights": [
+    "Course post type with prices",
+    "Learning path steps",
+    "Instructor stats",
+    "FAQ"
+  ],
+  "site": {
+    "name": "Fieldnotes Academy",
+    "tagline": "Practical courses taught by working professionals",
+    "logoText": "Fieldnotes Academy",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Fieldnotes Academy offers practical, project-based online courses in design, data and product, taught by working professionals."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#FFFDF8",
+      "surface-low": "#FBF5E9",
+      "surface-mid": "#F4EAD5",
+      "surface-high": "#FFFFFF",
+      "primary": "#2563EB",
+      "on-primary": "#FFFFFF",
+      "accent": "#F59E0B",
+      "heading": "#14213D",
+      "text": "#3D4660",
+      "muted": "#76809A",
+      "border": "#EDE5D2"
+    },
+    "fonts": {
+      "heading": "var(--font-fraunces), Georgia, serif",
+      "display": "var(--font-fraunces), Georgia, serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.2,
+      "maxRatio": 1.3,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.08",
+      "snug": "1.3",
+      "body": "1.65"
+    },
+    "letterSpacing": {
+      "tight": "-0.02em",
+      "snug": "-0.005em",
+      "wide": "0.12em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "8px",
+      "md": "12px",
+      "lg": "20px",
+      "pill": "999px",
+      "button": "999px",
+      "card": "16px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "regular",
+    "cards": "bordered",
+    "headerBorder": false
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Courses",
+        "href": "/courses"
+      },
+      {
+        "label": "How it works",
+        "href": "/how-it-works"
+      }
+    ],
+    "action": {
+      "label": "Browse courses",
+      "href": "/courses"
+    }
+  },
+  "footer": {
+    "text": "Practical online courses taught by people who do the work.",
+    "columns": [
+      {
+        "title": "Learn",
+        "links": [
+          {
+            "label": "Courses",
+            "href": "/courses"
+          },
+          {
+            "label": "How it works",
+            "href": "/how-it-works"
+          }
+        ]
+      },
+      {
+        "title": "Company",
+        "links": [
+          {
+            "label": "Teach with us",
+            "href": "mailto:teach@example.com"
+          },
+          {
+            "label": "Help",
+            "href": "mailto:help@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} Ltd"
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Learner working on a laptop",
+      "motif": "device",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#F4EAD5",
+        "#FBF5E9",
+        "#2563EB",
+        "#F59E0B"
+      ]
+    },
+    {
+      "key": "c-1",
+      "alt": "UX research course thumbnail",
+      "motif": "interface",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#DBEAFE",
+        "#FFFFFF",
+        "#2563EB",
+        "#F59E0B"
+      ]
+    },
+    {
+      "key": "c-2",
+      "alt": "SQL for analysts thumbnail",
+      "motif": "pattern",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#FEF3C7",
+        "#FBF5E9",
+        "#14213D",
+        "#F59E0B"
+      ]
+    },
+    {
+      "key": "c-3",
+      "alt": "Product management course thumbnail",
+      "motif": "interface",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#F4EAD5",
+        "#FFFFFF",
+        "#14213D",
+        "#2563EB"
+      ]
+    },
+    {
+      "key": "c-4",
+      "alt": "Figma fundamentals thumbnail",
+      "motif": "aurora",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#E0E7FF",
+        "#FBF5E9",
+        "#2563EB",
+        "#F59E0B"
+      ]
+    },
+    {
+      "key": "cohort",
+      "alt": "Students on a live video call",
+      "motif": "portrait",
+      "width": 1200,
+      "height": 960,
+      "palette": [
+        "#FBF5E9",
+        "#F4EAD5",
+        "#14213D",
+        "#2563EB"
+      ]
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "course",
+      "singular": "Course",
+      "plural": "Courses",
+      "prefix": "learn",
+      "icon": "◈",
+      "description": "Online courses.",
+      "fields": [
+        {
+          "key": "level",
+          "label": "Level",
+          "type": "SELECT",
+          "options": [
+            "Beginner",
+            "Intermediate",
+            "Advanced"
+          ]
+        },
+        {
+          "key": "duration",
+          "label": "Duration",
+          "type": "TEXT"
+        },
+        {
+          "key": "price",
+          "label": "Price",
+          "type": "PRICE",
+          "required": true
+        },
+        {
+          "key": "instructor",
+          "label": "Instructor",
+          "type": "TEXT"
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "course",
+      "title": "UX Research Essentials",
+      "slug": "ux-research-essentials",
+      "excerpt": "Plan, run and synthesise interviews and usability tests.",
+      "body": [
+        "Plan, run and synthesise interviews and usability tests."
+      ],
+      "fields": {
+        "level": "Beginner",
+        "duration": "6 weeks",
+        "price": 249,
+        "instructor": "Hana Mori"
+      },
+      "image": "c-1"
+    },
+    {
+      "type": "course",
+      "title": "SQL for Analysts",
+      "slug": "sql-for-analysts",
+      "excerpt": "From SELECT to window functions with real company data.",
+      "body": [
+        "From SELECT to window functions with real company data."
+      ],
+      "fields": {
+        "level": "Intermediate",
+        "duration": "5 weeks",
+        "price": 199,
+        "instructor": "Omar Haddad"
+      },
+      "image": "c-2"
+    },
+    {
+      "type": "course",
+      "title": "Product Management Foundations",
+      "slug": "product-management-foundations",
+      "excerpt": "Discovery, prioritisation and roadmaps.",
+      "body": [
+        "Discovery, prioritisation and roadmaps."
+      ],
+      "fields": {
+        "level": "Beginner",
+        "duration": "8 weeks",
+        "price": 299,
+        "instructor": "Claire Dubois"
+      },
+      "image": "c-3"
+    },
+    {
+      "type": "course",
+      "title": "Advanced Figma",
+      "slug": "advanced-figma",
+      "excerpt": "Variables, auto layout and component libraries at scale.",
+      "body": [
+        "Variables, auto layout and component libraries at scale."
+      ],
+      "fields": {
+        "level": "Advanced",
+        "duration": "4 weeks",
+        "price": 179,
+        "instructor": "Kai Tanaka"
+      },
+      "image": "c-4"
+    }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Practical online courses",
+        "description": "Project-based courses in design, data and product, taught by working professionals."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "split",
+          "eyebrow": "Online courses",
+          "title": "Learn the job by doing the job",
+          "text": "Project-based courses in design, data and product, taught by people who do the work every day.",
+          "actions": [
+            {
+              "label": "Browse courses",
+              "href": "/courses"
+            },
+            {
+              "label": "How it works",
+              "href": "/how-it-works"
+            }
+          ],
+          "image": "hero"
+        },
+        {
+          "kind": "logos",
+          "title": "Our graduates work at",
+          "items": [
+            "Google",
+            "Airbnb",
+            "Spotify",
+            "Shopify",
+            "Canva",
+            "Duolingo"
+          ]
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Popular courses",
+          "title": "Start with one of these",
+          "postType": "course",
+          "limit": 3,
+          "card": "media",
+          "fields": [
+            "level",
+            "duration",
+            "price"
+          ],
+          "linkLabel": "View course",
+          "action": {
+            "label": "All courses",
+            "href": "/courses"
+          }
+        },
+        {
+          "kind": "stats",
+          "tone": "alt",
+          "items": [
+            {
+              "value": "85,000",
+              "label": "Learners"
+            },
+            {
+              "value": "4.8 / 5",
+              "label": "Average course rating"
+            },
+            {
+              "value": "120",
+              "label": "Instructors"
+            }
+          ]
+        },
+        {
+          "kind": "testimonials",
+          "items": [
+            {
+              "quote": "I finished the UX course on a Sunday and had my first interview on the Friday.",
+              "name": "Lucia M.",
+              "role": "UX researcher"
+            },
+            {
+              "quote": "The projects were harder than my actual job. In a good way.",
+              "name": "Ben A.",
+              "role": "Data analyst"
+            }
+          ]
+        },
+        {
+          "kind": "faq",
+          "tone": "alt",
+          "title": "Frequently asked questions",
+          "items": [
+            {
+              "q": "Do courses have deadlines?",
+              "a": "No. Learn at your own pace with lifetime access."
+            },
+            {
+              "q": "Do I get a certificate?",
+              "a": "Yes, every course ends with a certificate and a portfolio project."
+            },
+            {
+              "q": "Can I get a refund?",
+              "a": "Full refund within 30 days, no questions asked."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Courses",
+      "slug": "courses",
+      "seo": {
+        "title": "Courses",
+        "description": "All courses."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "Catalog",
+          "title": "All courses",
+          "postType": "course",
+          "limit": 12,
+          "card": "media",
+          "fields": [
+            "level",
+            "duration",
+            "price"
+          ],
+          "linkLabel": "View course"
+        }
+      ]
+    },
+    {
+      "title": "How it works",
+      "slug": "how-it-works",
+      "seo": {
+        "title": "How it works",
+        "description": "How learning works at {{site}}."
+      },
+      "sections": [
+        {
+          "kind": "steps",
+          "eyebrow": "How it works",
+          "title": "From first lesson to new job",
+          "items": [
+            {
+              "title": "Watch",
+              "text": "Short video lessons, 10 minutes or less."
+            },
+            {
+              "title": "Build",
+              "text": "A real project in every module."
+            },
+            {
+              "title": "Get feedback",
+              "text": "Reviews from instructors and peers."
+            },
+            {
+              "title": "Show it off",
+              "text": "A certificate and a portfolio piece."
+            }
+          ]
+        },
+        {
+          "kind": "split",
+          "tone": "alt",
+          "eyebrow": "Live cohorts",
+          "title": "Learn with others",
+          "text": "Join a monthly cohort for weekly live sessions and a study group.",
+          "image": "cohort"
+        }
+      ]
+    }
+  ]
+}

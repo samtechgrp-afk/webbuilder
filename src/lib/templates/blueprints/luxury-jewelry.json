@@ -1,0 +1,500 @@
+{
+  "key": "luxury-jewelry",
+  "name": "Luxury Jewelry & Watches",
+  "sector": "ecommerce",
+  "description": "Black-and-gold maison with a featured piece, ring sizes, appointment booking and a hushed, uppercase typographic voice.",
+  "highlights": [
+    "Featured product",
+    "Ring size variants",
+    "Appointment booking",
+    "Craft story"
+  ],
+  "site": {
+    "name": "Maison Orée",
+    "tagline": "Fine jewellery, made by hand in Paris",
+    "logoText": "Maison Orée",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Maison Orée makes fine jewellery and watches by hand in its Paris atelier, one piece at a time."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#0B0A08",
+      "surface-low": "#13110D",
+      "surface-mid": "#1B1813",
+      "surface-high": "#24201A",
+      "primary": "#C9A45C",
+      "on-primary": "#0B0A08",
+      "accent": "#E6CF9A",
+      "heading": "#F4EEE2",
+      "text": "#CFC6B5",
+      "muted": "#8E8577",
+      "border": "rgba(201, 164, 92, 0.2)"
+    },
+    "fonts": {
+      "heading": "var(--font-fraunces), Georgia, serif",
+      "display": "var(--font-fraunces), Georgia, serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.2,
+      "maxRatio": 1.3,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.05",
+      "snug": "1.3",
+      "body": "1.7"
+    },
+    "letterSpacing": {
+      "tight": "0em",
+      "snug": "0.02em",
+      "wide": "0.28em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "0px",
+      "md": "2px",
+      "lg": "4px",
+      "pill": "999px",
+      "button": "0px",
+      "card": "2px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(0, 0, 0, 0.5)",
+      "md": "0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 24px -8px rgba(0, 0, 0, 0.7)",
+      "lg": "0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 80px -20px rgba(0, 0, 0, 0.85)"
+    }
+  },
+  "look": {
+    "headings": "uppercase",
+    "density": "airy",
+    "cards": "bordered",
+    "headerBorder": true
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Collections",
+        "href": "/collections"
+      },
+      {
+        "label": "The atelier",
+        "href": "/atelier"
+      },
+      {
+        "label": "Appointments",
+        "href": "/appointments"
+      }
+    ],
+    "action": {
+      "label": "Book a visit",
+      "href": "/appointments"
+    }
+  },
+  "footer": {
+    "text": "Fine jewellery and watches, made by hand at 14 rue de la Paix.",
+    "columns": [
+      {
+        "title": "Maison",
+        "links": [
+          {
+            "label": "Collections",
+            "href": "/collections"
+          },
+          {
+            "label": "The atelier",
+            "href": "/atelier"
+          },
+          {
+            "label": "Appointments",
+            "href": "/appointments"
+          }
+        ]
+      },
+      {
+        "title": "Client care",
+        "links": [
+          {
+            "label": "Contact",
+            "href": "mailto:client@example.com"
+          },
+          {
+            "label": "Care guide",
+            "href": "/atelier"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} Paris"
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Gold ring on black velvet",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#13110D",
+        "#1B1813",
+        "#C9A45C",
+        "#E6CF9A"
+      ]
+    },
+    {
+      "key": "ring",
+      "alt": "Solitaire diamond ring",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#1B1813",
+        "#24201A",
+        "#E6CF9A",
+        "#FFFFFF"
+      ]
+    },
+    {
+      "key": "band",
+      "alt": "Hammered gold band",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#1B1813",
+        "#24201A",
+        "#C9A45C",
+        "#8E8577"
+      ]
+    },
+    {
+      "key": "watch",
+      "alt": "Automatic watch with enamel dial",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#13110D",
+        "#24201A",
+        "#CFC6B5",
+        "#C9A45C"
+      ]
+    },
+    {
+      "key": "earrings",
+      "alt": "Pearl drop earrings",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#1B1813",
+        "#24201A",
+        "#F4EEE2",
+        "#C9A45C"
+      ]
+    },
+    {
+      "key": "atelier",
+      "alt": "Jeweller's bench in the Paris atelier",
+      "motif": "arch",
+      "width": 1200,
+      "height": 960,
+      "palette": [
+        "#1B1813",
+        "#24201A",
+        "#C9A45C",
+        "#3A3328"
+      ]
+    }
+  ],
+  "postTypes": [],
+  "entries": [],
+  "products": [
+    {
+      "title": "Lumière Solitaire",
+      "slug": "lumiere-solitaire",
+      "description": "A one-carat round brilliant diamond on a slender band of 18-carat yellow gold.",
+      "images": [
+        "ring",
+        "hero"
+      ],
+      "price": 12800,
+      "sku": "MO-LS",
+      "inventory": 2,
+      "options": [
+        {
+          "name": "Ring size",
+          "values": [
+            "48",
+            "50",
+            "52",
+            "54",
+            "56"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Martelé Band",
+      "slug": "martele-band",
+      "description": "A hand-hammered band in recycled 18-carat gold that catches light from every angle.",
+      "images": [
+        "band"
+      ],
+      "price": 1950,
+      "sku": "MO-MB",
+      "inventory": 4,
+      "options": [
+        {
+          "name": "Ring size",
+          "values": [
+            "48",
+            "50",
+            "52",
+            "54",
+            "56",
+            "58"
+          ]
+        },
+        {
+          "name": "Gold",
+          "values": [
+            "Yellow",
+            "Rose"
+          ]
+        }
+      ],
+      "valuePrices": {
+        "Rose": 2050
+      }
+    },
+    {
+      "title": "Perle d'Or Earrings",
+      "slug": "perle-dor-earrings",
+      "description": "Akoya pearls suspended from fine gold chains.",
+      "images": [
+        "earrings"
+      ],
+      "price": 2400,
+      "sku": "MO-PE",
+      "inventory": 3
+    },
+    {
+      "title": "Orée Automatique",
+      "slug": "oree-automatique",
+      "description": "A 38 mm automatic watch with a grand feu enamel dial and alligator strap.",
+      "images": [
+        "watch"
+      ],
+      "price": 9600,
+      "sku": "MO-OA",
+      "inventory": 2,
+      "compareAt": 10400
+    }
+  ],
+  "store": {
+    "currency": "EUR",
+    "shippingCountries": [
+      "FR",
+      "BE",
+      "CH",
+      "DE",
+      "GB",
+      "IT",
+      "US"
+    ]
+  },
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Fine jewellery, made in Paris",
+        "description": "Fine jewellery and watches made by hand in our Paris atelier."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "split",
+          "eyebrow": "Haute joaillerie",
+          "title": "Made by hand. Made to be inherited.",
+          "text": "Each piece is drawn, cast and set in our atelier on rue de la Paix by the same small team of artisans.",
+          "actions": [
+            {
+              "label": "Discover the collections",
+              "href": "/collections"
+            },
+            {
+              "label": "Book an appointment",
+              "href": "/appointments"
+            }
+          ],
+          "image": "hero"
+        },
+        {
+          "kind": "product",
+          "tone": "alt",
+          "eyebrow": "The piece of the season",
+          "title": "The Lumière solitaire",
+          "product": "lumiere-solitaire",
+          "buttonLabel": "Add to bag"
+        },
+        {
+          "kind": "products",
+          "eyebrow": "Collections",
+          "title": "Signature pieces",
+          "limit": 4,
+          "columns": 4,
+          "buttonLabel": "Add to bag"
+        },
+        {
+          "kind": "split",
+          "reverse": true,
+          "eyebrow": "The atelier",
+          "title": "Two hundred hours in a single ring",
+          "text": "Our master jewellers work in 18-carat recycled gold and conflict-free stones, certified and traceable.",
+          "image": "atelier",
+          "action": {
+            "label": "Visit the atelier",
+            "href": "/atelier"
+          }
+        },
+        {
+          "kind": "testimonials",
+          "tone": "alt",
+          "items": [
+            {
+              "quote": "The most beautiful object I own, and the service was unforgettable.",
+              "name": "Charlotte D.",
+              "role": "Paris"
+            },
+            {
+              "quote": "They resized my grandmother's ring with such care.",
+              "name": "James W.",
+              "role": "London"
+            }
+          ]
+        },
+        {
+          "kind": "cta",
+          "title": "A private appointment",
+          "text": "Discover the collections with one of our advisers, in Paris or by video.",
+          "actions": [
+            {
+              "label": "Book a visit",
+              "href": "/appointments"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Collections",
+      "slug": "collections",
+      "seo": {
+        "title": "Collections",
+        "description": "Rings, earrings and watches from the {{site}} atelier."
+      },
+      "sections": [
+        {
+          "kind": "products",
+          "eyebrow": "Collections",
+          "title": "All pieces",
+          "limit": 12,
+          "columns": 3,
+          "showSort": true,
+          "buttonLabel": "Add to bag"
+        }
+      ]
+    },
+    {
+      "title": "The atelier",
+      "slug": "atelier",
+      "seo": {
+        "title": "The atelier",
+        "description": "How each piece is made."
+      },
+      "sections": [
+        {
+          "kind": "prose",
+          "eyebrow": "The atelier",
+          "title": "A house of eleven artisans",
+          "paragraphs": [
+            "{{site}} was founded in 1962 by Hélène Orée, a stone setter trained at the Place Vendôme.",
+            "Today eleven artisans design and make every piece in the same workshop, using recycled gold and stones we can trace to the mine."
+          ]
+        },
+        {
+          "kind": "steps",
+          "tone": "alt",
+          "title": "From sketch to setting",
+          "items": [
+            {
+              "title": "Drawing",
+              "text": "Every piece begins as a gouache painting."
+            },
+            {
+              "title": "Casting",
+              "text": "Recycled gold, cast in-house."
+            },
+            {
+              "title": "Setting",
+              "text": "Stones set by hand under the loupe."
+            },
+            {
+              "title": "Finishing",
+              "text": "Polished for a full day before it leaves."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Appointments",
+      "slug": "appointments",
+      "seo": {
+        "title": "Appointments",
+        "description": "Book a private appointment in Paris or by video."
+      },
+      "sections": [
+        {
+          "kind": "contact",
+          "eyebrow": "Appointments",
+          "title": "Book a private visit",
+          "text": "Our advisers welcome you in the salon or by video call, Tuesday to Saturday.",
+          "items": [
+            {
+              "label": "Salon",
+              "value": "14 rue de la Paix, Paris"
+            },
+            {
+              "label": "Telephone",
+              "value": "+33 1 40 00 00 00",
+              "href": "tel:+33140000000"
+            },
+            {
+              "label": "Email",
+              "value": "client@example.com",
+              "href": "mailto:client@example.com"
+            },
+            {
+              "label": "Hours",
+              "value": "Tue–Sat, 10:00–19:00"
+            }
+          ],
+          "action": {
+            "label": "Request an appointment",
+            "href": "mailto:client@example.com"
+          }
+        }
+      ]
+    }
+  ]
+}

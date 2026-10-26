@@ -1,0 +1,513 @@
+{
+  "key": "motion-studio",
+  "name": "Creative Design & Motion Studio",
+  "sector": "agency",
+  "description": "Loud, black-and-orange studio site with giant uppercase type, a project grid, client logos and a contact sheet.",
+  "highlights": [
+    "Project post type",
+    "Client logos",
+    "Process steps",
+    "Showreel gallery"
+  ],
+  "site": {
+    "name": "Kinetic",
+    "tagline": "Motion, brand and 3D for ambitious companies",
+    "logoText": "Kinetic",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Kinetic is a design and motion studio making brand systems, launch films and 3D for tech and culture."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#0A0A0A",
+      "surface-low": "#121212",
+      "surface-mid": "#1A1A1A",
+      "surface-high": "#222222",
+      "primary": "#FF5B1F",
+      "on-primary": "#0A0A0A",
+      "accent": "#FF5B1F",
+      "heading": "#F5F5F5",
+      "text": "#C8C8C8",
+      "muted": "#8A8A8A",
+      "border": "rgba(255, 255, 255, 0.12)"
+    },
+    "fonts": {
+      "heading": "var(--font-geist-sans), system-ui, sans-serif",
+      "display": "var(--font-geist-sans), system-ui, sans-serif",
+      "body": "var(--font-geist-sans), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.25,
+      "maxRatio": 1.38,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "0.92",
+      "snug": "1.2",
+      "body": "1.6"
+    },
+    "letterSpacing": {
+      "tight": "-0.04em",
+      "snug": "-0.01em",
+      "wide": "0.14em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "0px",
+      "md": "0px",
+      "lg": "0px",
+      "pill": "999px",
+      "button": "999px",
+      "card": "0px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(0, 0, 0, 0.5)",
+      "md": "0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 24px -8px rgba(0, 0, 0, 0.7)",
+      "lg": "0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 80px -20px rgba(0, 0, 0, 0.85)"
+    }
+  },
+  "look": {
+    "headings": "uppercase",
+    "density": "regular",
+    "cards": "flat",
+    "headerBorder": true
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Work",
+        "href": "/work"
+      },
+      {
+        "label": "Studio",
+        "href": "/studio"
+      },
+      {
+        "label": "Contact",
+        "href": "/contact"
+      }
+    ],
+    "action": {
+      "label": "Start a project",
+      "href": "/contact"
+    }
+  },
+  "footer": {
+    "text": "Motion, brand and 3D from Lisbon and New York.",
+    "columns": [
+      {
+        "title": "Studio",
+        "links": [
+          {
+            "label": "Work",
+            "href": "/work"
+          },
+          {
+            "label": "Studio",
+            "href": "/studio"
+          },
+          {
+            "label": "Contact",
+            "href": "/contact"
+          }
+        ]
+      },
+      {
+        "title": "Follow",
+        "links": [
+          {
+            "label": "Instagram",
+            "href": "https://instagram.com"
+          },
+          {
+            "label": "Vimeo",
+            "href": "https://vimeo.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} Studio"
+  },
+  "images": [
+    {
+      "key": "reel",
+      "alt": "Still from the studio showreel",
+      "motif": "aurora",
+      "width": 1800,
+      "height": 800,
+      "palette": [
+        "#0A0A0A",
+        "#1A1A1A",
+        "#FF5B1F",
+        "#FFB088"
+      ]
+    },
+    {
+      "key": "p-1",
+      "alt": "Launch film for a fintech",
+      "motif": "pattern",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#121212",
+        "#1A1A1A",
+        "#FF5B1F",
+        "#F5F5F5"
+      ]
+    },
+    {
+      "key": "p-2",
+      "alt": "Brand system for a music festival",
+      "motif": "aurora",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#1A0A04",
+        "#2A1208",
+        "#FF5B1F",
+        "#FFD166"
+      ]
+    },
+    {
+      "key": "p-3",
+      "alt": "3D product renders for headphones",
+      "motif": "object",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#1A1A1A",
+        "#222222",
+        "#FF5B1F",
+        "#C8C8C8"
+      ]
+    },
+    {
+      "key": "p-4",
+      "alt": "Title sequence for a documentary",
+      "motif": "landscape",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#0A0A0A",
+        "#222222",
+        "#FF5B1F",
+        "#F5F5F5"
+      ]
+    },
+    {
+      "key": "team",
+      "alt": "The studio team at work",
+      "motif": "arch",
+      "width": 1200,
+      "height": 960,
+      "palette": [
+        "#121212",
+        "#1A1A1A",
+        "#FF5B1F",
+        "#3A3A3A"
+      ]
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "project",
+      "singular": "Project",
+      "plural": "Projects",
+      "prefix": "projects",
+      "icon": "◆",
+      "description": "Case studies.",
+      "fields": [
+        {
+          "key": "client",
+          "label": "Client",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "key": "discipline",
+          "label": "Discipline",
+          "type": "SELECT",
+          "options": [
+            "Motion",
+            "Brand",
+            "3D",
+            "Title design"
+          ]
+        },
+        {
+          "key": "year",
+          "label": "Year",
+          "type": "NUMBER"
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "project",
+      "title": "Money, in motion",
+      "slug": "money-in-motion",
+      "excerpt": "A launch film and motion system for a challenger bank's new card.",
+      "body": [
+        "A launch film and motion system for a challenger bank's new card."
+      ],
+      "fields": {
+        "client": "Monzo",
+        "discipline": "Motion",
+        "year": 2026
+      },
+      "image": "p-1"
+    },
+    {
+      "type": "project",
+      "title": "Sound of the City",
+      "slug": "sound-of-the-city",
+      "excerpt": "Identity, posters and stage visuals for a three-day festival.",
+      "body": [
+        "Identity, posters and stage visuals for a three-day festival."
+      ],
+      "fields": {
+        "client": "Primavera",
+        "discipline": "Brand",
+        "year": 2026
+      },
+      "image": "p-2"
+    },
+    {
+      "type": "project",
+      "title": "Quiet Machines",
+      "slug": "quiet-machines",
+      "excerpt": "Photoreal 3D renders and loops for a headphone launch.",
+      "body": [
+        "Photoreal 3D renders and loops for a headphone launch."
+      ],
+      "fields": {
+        "client": "Sonos",
+        "discipline": "3D",
+        "year": 2025
+      },
+      "image": "p-3"
+    },
+    {
+      "type": "project",
+      "title": "The Long Night",
+      "slug": "the-long-night",
+      "excerpt": "Main titles for a feature documentary.",
+      "body": [
+        "Main titles for a feature documentary."
+      ],
+      "fields": {
+        "client": "A24",
+        "discipline": "Title design",
+        "year": 2025
+      },
+      "image": "p-4"
+    }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Motion, brand and 3D",
+        "description": "A design and motion studio making brand systems, launch films and 3D."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "minimal",
+          "eyebrow": "Design & motion studio",
+          "title": "We make brands move",
+          "text": "Brand systems, launch films and 3D for companies that want to be remembered.",
+          "actions": [
+            {
+              "label": "See the work",
+              "href": "/work"
+            },
+            {
+              "label": "Start a project",
+              "href": "/contact"
+            }
+          ]
+        },
+        {
+          "kind": "gallery",
+          "images": [
+            "reel",
+            "p-2"
+          ],
+          "columns": 2
+        },
+        {
+          "kind": "logos",
+          "title": "Selected clients",
+          "items": [
+            "Spotify",
+            "Monzo",
+            "Nike SB",
+            "A24",
+            "Figma",
+            "Sonos"
+          ]
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Selected work",
+          "title": "Recent projects",
+          "postType": "project",
+          "limit": 4,
+          "card": "media",
+          "columns": 2,
+          "fields": [
+            "discipline",
+            "client"
+          ],
+          "linkLabel": "View case study",
+          "action": {
+            "label": "All work",
+            "href": "/work"
+          }
+        },
+        {
+          "kind": "steps",
+          "tone": "alt",
+          "eyebrow": "How we work",
+          "title": "Fast, focused, senior",
+          "items": [
+            {
+              "title": "Sprint",
+              "text": "A one-week sprint to find the idea."
+            },
+            {
+              "title": "Make",
+              "text": "Design and animation by the people you met."
+            },
+            {
+              "title": "Ship",
+              "text": "Every format, every cut, ready to post."
+            }
+          ]
+        },
+        {
+          "kind": "cta",
+          "tone": "primary",
+          "title": "Got a launch coming up?",
+          "text": "We take on six projects a quarter. Tell us about yours.",
+          "actions": [
+            {
+              "label": "Start a project",
+              "href": "/contact"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Work",
+      "slug": "work",
+      "seo": {
+        "title": "Work",
+        "description": "Brand, motion and 3D projects."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "Work",
+          "title": "Everything we're proud of",
+          "postType": "project",
+          "limit": 12,
+          "card": "media",
+          "columns": 2,
+          "fields": [
+            "discipline",
+            "client",
+            "year"
+          ],
+          "linkLabel": "View case study"
+        }
+      ]
+    },
+    {
+      "title": "Studio",
+      "slug": "studio",
+      "seo": {
+        "title": "Studio",
+        "description": "Who we are."
+      },
+      "sections": [
+        {
+          "kind": "split",
+          "eyebrow": "Studio",
+          "title": "Twelve people, two cities, no account managers",
+          "text": "Designers, animators and 3D artists who talk to clients directly, from first call to final export.",
+          "image": "team",
+          "bullets": [
+            "Founded 2017",
+            "Lisbon and New York",
+            "Emmy-nominated title design"
+          ]
+        },
+        {
+          "kind": "stats",
+          "items": [
+            {
+              "value": "140+",
+              "label": "Projects shipped"
+            },
+            {
+              "value": "12",
+              "label": "People"
+            },
+            {
+              "value": "9",
+              "label": "Awards this year"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Contact",
+      "slug": "contact",
+      "seo": {
+        "title": "Contact",
+        "description": "Start a project with us."
+      },
+      "sections": [
+        {
+          "kind": "contact",
+          "eyebrow": "Contact",
+          "title": "Tell us what you're making",
+          "text": "Send a few lines about the project, timeline and budget. We reply within two working days.",
+          "items": [
+            {
+              "label": "New projects",
+              "value": "hello@example.com",
+              "href": "mailto:hello@example.com"
+            },
+            {
+              "label": "Lisbon",
+              "value": "Rua da Boavista 72"
+            },
+            {
+              "label": "New York",
+              "value": "61 Greenpoint Ave, Brooklyn"
+            },
+            {
+              "label": "Careers",
+              "value": "jobs@example.com",
+              "href": "mailto:jobs@example.com"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

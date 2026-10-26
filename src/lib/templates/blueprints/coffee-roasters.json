@@ -1,0 +1,582 @@
+{
+  "key": "coffee-roasters",
+  "name": "Artisan Coffee & Foods",
+  "sector": "ecommerce",
+  "description": "Warm roastery shop with grind and size variants, a subscription explainer, café menu and opening hours.",
+  "highlights": [
+    "Grind and size variants",
+    "Subscription steps",
+    "Café menu",
+    "Opening hours"
+  ],
+  "site": {
+    "name": "Ember & Oak",
+    "tagline": "Small-batch coffee, roasted on Tuesdays",
+    "logoText": "Ember & Oak",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Ember & Oak roasts single-origin coffee in small batches and ships it within 48 hours."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#FBF6EE",
+      "surface-low": "#F4EBDD",
+      "surface-mid": "#EADCC6",
+      "surface-high": "#FFFDF9",
+      "primary": "#6B3E26",
+      "on-primary": "#FFF8EE",
+      "accent": "#C2702F",
+      "heading": "#2A1A10",
+      "text": "#4B3628",
+      "muted": "#8A7362",
+      "border": "rgba(42, 26, 16, 0.12)"
+    },
+    "fonts": {
+      "heading": "var(--font-fraunces), Georgia, serif",
+      "display": "var(--font-fraunces), Georgia, serif",
+      "body": "var(--font-geist-sans), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.2,
+      "maxRatio": 1.28,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.05",
+      "snug": "1.3",
+      "body": "1.7"
+    },
+    "letterSpacing": {
+      "tight": "-0.02em",
+      "snug": "-0.005em",
+      "wide": "0.14em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "6px",
+      "md": "12px",
+      "lg": "20px",
+      "pill": "999px",
+      "button": "999px",
+      "card": "16px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "regular",
+    "cards": "flat",
+    "headerBorder": false
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Shop",
+        "href": "/shop"
+      },
+      {
+        "label": "Café",
+        "href": "/cafe"
+      },
+      {
+        "label": "Subscribe",
+        "href": "/subscribe"
+      }
+    ],
+    "action": {
+      "label": "Shop coffee",
+      "href": "/shop"
+    }
+  },
+  "footer": {
+    "text": "Roasted every Tuesday in a converted mill in Asheville.",
+    "columns": [
+      {
+        "title": "Shop",
+        "links": [
+          {
+            "label": "Coffee",
+            "href": "/shop"
+          },
+          {
+            "label": "Subscriptions",
+            "href": "/subscribe"
+          }
+        ]
+      },
+      {
+        "title": "Visit",
+        "links": [
+          {
+            "label": "Café",
+            "href": "/cafe"
+          },
+          {
+            "label": "Wholesale",
+            "href": "mailto:wholesale@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} Coffee Roasters"
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Coffee bag and cup on a wooden counter",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#EADCC6",
+        "#F4EBDD",
+        "#6B3E26",
+        "#C2702F"
+      ]
+    },
+    {
+      "key": "ethiopia",
+      "alt": "Bag of Ethiopian coffee",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#F1E1C9",
+        "#FBF6EE",
+        "#C2702F",
+        "#6B3E26"
+      ]
+    },
+    {
+      "key": "colombia",
+      "alt": "Bag of Colombian coffee",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#E8D5BD",
+        "#FBF6EE",
+        "#8A4B2A",
+        "#2A1A10"
+      ]
+    },
+    {
+      "key": "house",
+      "alt": "House espresso blend",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#E4D3BE",
+        "#FBF6EE",
+        "#2A1A10",
+        "#C2702F"
+      ]
+    },
+    {
+      "key": "decaf",
+      "alt": "Swiss water decaf",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#EADCC6",
+        "#FBF6EE",
+        "#5F7F5A",
+        "#6B3E26"
+      ]
+    },
+    {
+      "key": "granola",
+      "alt": "Maple pecan granola",
+      "motif": "plate",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#F4EBDD",
+        "#EADCC6",
+        "#C2702F",
+        "#6B3E26"
+      ]
+    },
+    {
+      "key": "cafe",
+      "alt": "Sunlit café interior",
+      "motif": "arch",
+      "width": 1200,
+      "height": 960,
+      "palette": [
+        "#F4EBDD",
+        "#EADCC6",
+        "#6B3E26",
+        "#C2702F"
+      ]
+    }
+  ],
+  "postTypes": [],
+  "entries": [],
+  "products": [
+    {
+      "title": "Ethiopia Guji",
+      "slug": "ethiopia-guji",
+      "description": "Peach, jasmine and black tea. Washed process, light roast.",
+      "images": [
+        "ethiopia"
+      ],
+      "price": 19,
+      "sku": "EO-ETH",
+      "inventory": 30,
+      "options": [
+        {
+          "name": "Size",
+          "values": [
+            "250 g",
+            "1 kg"
+          ]
+        },
+        {
+          "name": "Grind",
+          "values": [
+            "Whole bean",
+            "Filter",
+            "Espresso"
+          ]
+        }
+      ],
+      "valuePrices": {
+        "1 kg": 62
+      }
+    },
+    {
+      "title": "Colombia Huila",
+      "slug": "colombia-huila",
+      "description": "Red apple, caramel and cocoa. Medium roast.",
+      "images": [
+        "colombia"
+      ],
+      "price": 17,
+      "sku": "EO-COL",
+      "inventory": 30,
+      "options": [
+        {
+          "name": "Size",
+          "values": [
+            "250 g",
+            "1 kg"
+          ]
+        },
+        {
+          "name": "Grind",
+          "values": [
+            "Whole bean",
+            "Filter",
+            "Espresso"
+          ]
+        }
+      ],
+      "valuePrices": {
+        "1 kg": 56
+      }
+    },
+    {
+      "title": "House Espresso",
+      "slug": "house-espresso",
+      "description": "Chocolate, hazelnut and brown sugar. Built for milk.",
+      "images": [
+        "house"
+      ],
+      "price": 15,
+      "sku": "EO-HSE",
+      "inventory": 40,
+      "options": [
+        {
+          "name": "Size",
+          "values": [
+            "250 g",
+            "1 kg"
+          ]
+        },
+        {
+          "name": "Grind",
+          "values": [
+            "Whole bean",
+            "Espresso"
+          ]
+        }
+      ],
+      "valuePrices": {
+        "1 kg": 48
+      }
+    },
+    {
+      "title": "Swiss Water Decaf",
+      "slug": "swiss-water-decaf",
+      "description": "Milk chocolate and dried fig, without the caffeine.",
+      "images": [
+        "decaf"
+      ],
+      "price": 18,
+      "sku": "EO-DEC",
+      "inventory": 12,
+      "options": [
+        {
+          "name": "Grind",
+          "values": [
+            "Whole bean",
+            "Filter"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Maple Pecan Granola",
+      "slug": "maple-pecan-granola",
+      "description": "Baked in small batches next door. 400 g jar.",
+      "images": [
+        "granola"
+      ],
+      "price": 12,
+      "sku": "EO-GRA",
+      "inventory": 18
+    }
+  ],
+  "store": {
+    "currency": "USD",
+    "shippingCountries": [
+      "US"
+    ]
+  },
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Small-batch coffee",
+        "description": "Single-origin coffee roasted in small batches and shipped within 48 hours."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "split",
+          "eyebrow": "Fresh this week",
+          "title": "Coffee worth waking up for",
+          "text": "Single-origin beans, roasted on Tuesdays and on your doorstep by Friday.",
+          "actions": [
+            {
+              "label": "Shop coffee",
+              "href": "/shop"
+            },
+            {
+              "label": "Start a subscription",
+              "href": "/subscribe"
+            }
+          ],
+          "image": "hero"
+        },
+        {
+          "kind": "products",
+          "eyebrow": "Our coffee",
+          "title": "This month's roasts",
+          "limit": 4,
+          "columns": 4,
+          "buttonLabel": "Add to cart"
+        },
+        {
+          "kind": "steps",
+          "tone": "alt",
+          "eyebrow": "Subscriptions",
+          "title": "Never run out",
+          "items": [
+            {
+              "title": "Pick your coffee",
+              "text": "Choose a roast or let us surprise you."
+            },
+            {
+              "title": "Set the rhythm",
+              "text": "Every one, two or four weeks."
+            },
+            {
+              "title": "Skip any time",
+              "text": "Pause or change from your account."
+            }
+          ]
+        },
+        {
+          "kind": "split",
+          "eyebrow": "The café",
+          "title": "Come say hello",
+          "text": "Our café shares a wall with the roaster, so the espresso is never more than a week old.",
+          "image": "cafe",
+          "action": {
+            "label": "Menu and hours",
+            "href": "/cafe"
+          }
+        },
+        {
+          "kind": "testimonials",
+          "items": [
+            {
+              "quote": "The Ethiopian is the best coffee I've had outside Addis.",
+              "name": "Selam",
+              "role": "Subscriber since 2023"
+            },
+            {
+              "quote": "Arrives two days after roasting, every time.",
+              "name": "Mike",
+              "role": "Subscriber"
+            },
+            {
+              "quote": "Our office switched and nobody wants to go back.",
+              "name": "Laura",
+              "role": "Office manager"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Shop",
+      "slug": "shop",
+      "seo": {
+        "title": "Shop coffee",
+        "description": "Whole bean and ground coffee, plus a few things to go with it."
+      },
+      "sections": [
+        {
+          "kind": "products",
+          "eyebrow": "Shop",
+          "title": "Coffee and pantry",
+          "limit": 24,
+          "columns": 3,
+          "showSort": true
+        }
+      ]
+    },
+    {
+      "title": "Café",
+      "slug": "cafe",
+      "seo": {
+        "title": "Café",
+        "description": "Menu and opening hours."
+      },
+      "sections": [
+        {
+          "kind": "list",
+          "eyebrow": "Café menu",
+          "title": "Espresso bar",
+          "columns": 2,
+          "items": [
+            {
+              "title": "Espresso",
+              "text": "House blend or guest single origin.",
+              "price": "$3.25"
+            },
+            {
+              "title": "Cortado",
+              "text": "Equal parts espresso and steamed milk.",
+              "price": "$4.25"
+            },
+            {
+              "title": "Oat flat white",
+              "text": "With local oat milk.",
+              "price": "$5.00"
+            },
+            {
+              "title": "Pour-over",
+              "text": "Any single origin, brewed to order.",
+              "price": "$5.50"
+            },
+            {
+              "title": "Cold brew",
+              "text": "Steeped for 18 hours.",
+              "price": "$4.75"
+            },
+            {
+              "title": "Cardamom bun",
+              "text": "Baked every morning.",
+              "price": "$4.00"
+            }
+          ]
+        },
+        {
+          "kind": "contact",
+          "tone": "alt",
+          "title": "Visit us",
+          "items": [
+            {
+              "label": "Address",
+              "value": "12 Mill Street, Asheville, NC"
+            },
+            {
+              "label": "Hours",
+              "value": "Mon–Fri 7–4 · Sat–Sun 8–3"
+            },
+            {
+              "label": "Phone",
+              "value": "(828) 555-0142",
+              "href": "tel:+18285550142"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Subscribe",
+      "slug": "subscribe",
+      "seo": {
+        "title": "Subscriptions",
+        "description": "Fresh coffee on your schedule."
+      },
+      "sections": [
+        {
+          "kind": "pricing",
+          "eyebrow": "Subscriptions",
+          "title": "Fresh coffee, on repeat",
+          "tiers": [
+            {
+              "name": "Explorer",
+              "price": "$18",
+              "period": "per bag",
+              "description": "A different single origin each delivery.",
+              "features": [
+                "250 g bags",
+                "Tasting notes card",
+                "Free shipping"
+              ],
+              "action": {
+                "label": "Subscribe",
+                "href": "mailto:hello@example.com"
+              }
+            },
+            {
+              "name": "House",
+              "price": "$15",
+              "period": "per bag",
+              "description": "Our espresso blend, always.",
+              "features": [
+                "250 g or 1 kg",
+                "Whole bean or ground",
+                "Free shipping"
+              ],
+              "action": {
+                "label": "Subscribe",
+                "href": "mailto:hello@example.com"
+              },
+              "featured": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,440 @@
+{
+  "key": "digital-products",
+  "name": "Digital Products & E-Book Store",
+  "sector": "ecommerce",
+  "description": "Bookish storefront for e-books, templates and courses: digital delivery, format variants, testimonials and a free-sample CTA.",
+  "highlights": [
+    "Digital delivery",
+    "Format variants",
+    "Author bio",
+    "Free sample CTA"
+  ],
+  "site": {
+    "name": "Margin Press",
+    "tagline": "Practical books for independent makers",
+    "logoText": "Margin Press",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Margin Press publishes practical e-books and templates for freelancers and small studios."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#FAF7F0",
+      "surface-low": "#F2EDE1",
+      "surface-mid": "#E8E0CE",
+      "surface-high": "#FFFFFF",
+      "primary": "#1E3A5F",
+      "on-primary": "#FFFFFF",
+      "accent": "#D9572B",
+      "heading": "#14202E",
+      "text": "#3B4450",
+      "muted": "#7A7F87",
+      "border": "rgba(20, 32, 46, 0.12)"
+    },
+    "fonts": {
+      "heading": "var(--font-fraunces), Georgia, serif",
+      "display": "var(--font-fraunces), Georgia, serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.2,
+      "maxRatio": 1.28,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.06",
+      "snug": "1.3",
+      "body": "1.7"
+    },
+    "letterSpacing": {
+      "tight": "-0.02em",
+      "snug": "-0.005em",
+      "wide": "0.12em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "4px",
+      "md": "6px",
+      "lg": "10px",
+      "pill": "999px",
+      "button": "6px",
+      "card": "8px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "regular",
+    "cards": "bordered",
+    "headerBorder": true
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Books",
+        "href": "/books"
+      },
+      {
+        "label": "About",
+        "href": "/about"
+      }
+    ],
+    "action": {
+      "label": "Free sample",
+      "href": "/about"
+    }
+  },
+  "footer": {
+    "text": "Practical books for people who work for themselves.",
+    "columns": [
+      {
+        "title": "Store",
+        "links": [
+          {
+            "label": "All books",
+            "href": "/books"
+          },
+          {
+            "label": "About",
+            "href": "/about"
+          }
+        ]
+      },
+      {
+        "title": "Help",
+        "links": [
+          {
+            "label": "Download help",
+            "href": "mailto:help@example.com"
+          },
+          {
+            "label": "Licensing",
+            "href": "mailto:help@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}}"
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Stack of book covers",
+      "motif": "pattern",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#F2EDE1",
+        "#E8E0CE",
+        "#1E3A5F",
+        "#D9572B"
+      ]
+    },
+    {
+      "key": "book-pricing",
+      "alt": "Cover of Pricing Your Work",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#1E3A5F",
+        "#2A4B75",
+        "#FAF7F0",
+        "#D9572B"
+      ]
+    },
+    {
+      "key": "book-clients",
+      "alt": "Cover of Clients Without Chasing",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#D9572B",
+        "#E8744C",
+        "#FAF7F0",
+        "#14202E"
+      ]
+    },
+    {
+      "key": "book-studio",
+      "alt": "Cover of The Two-Person Studio",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#3B5F4B",
+        "#4E7A61",
+        "#FAF7F0",
+        "#D9572B"
+      ]
+    },
+    {
+      "key": "kit",
+      "alt": "Proposal template kit",
+      "motif": "interface",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#F2EDE1",
+        "#FFFFFF",
+        "#1E3A5F",
+        "#D9572B"
+      ]
+    },
+    {
+      "key": "author",
+      "alt": "Portrait of the author",
+      "motif": "portrait",
+      "width": 1000,
+      "height": 1000,
+      "palette": [
+        "#E8E0CE",
+        "#F2EDE1",
+        "#14202E",
+        "#D9572B"
+      ]
+    }
+  ],
+  "postTypes": [],
+  "entries": [],
+  "products": [
+    {
+      "title": "Pricing Your Work",
+      "slug": "pricing-your-work",
+      "description": "How to set rates, write estimates and raise prices without losing clients. 180 pages plus worksheets.",
+      "images": [
+        "book-pricing"
+      ],
+      "price": 29,
+      "sku": "MP-PYW",
+      "inventory": 0,
+      "options": [
+        {
+          "name": "Format",
+          "values": [
+            "PDF",
+            "EPUB"
+          ]
+        }
+      ],
+      "digital": true
+    },
+    {
+      "title": "Clients Without Chasing",
+      "slug": "clients-without-chasing",
+      "description": "A calm system for finding and keeping good clients. 150 pages.",
+      "images": [
+        "book-clients"
+      ],
+      "price": 24,
+      "sku": "MP-CWC",
+      "inventory": 0,
+      "options": [
+        {
+          "name": "Format",
+          "values": [
+            "PDF",
+            "EPUB"
+          ]
+        }
+      ],
+      "digital": true
+    },
+    {
+      "title": "The Two-Person Studio",
+      "slug": "the-two-person-studio",
+      "description": "Operations, money and sanity for tiny teams. 210 pages.",
+      "images": [
+        "book-studio"
+      ],
+      "price": 32,
+      "sku": "MP-TPS",
+      "inventory": 0,
+      "compareAt": 39,
+      "options": [
+        {
+          "name": "Format",
+          "values": [
+            "PDF",
+            "EPUB"
+          ]
+        }
+      ],
+      "digital": true
+    },
+    {
+      "title": "Proposal Template Kit",
+      "slug": "proposal-template-kit",
+      "description": "Twelve proposal, contract and invoice templates for Docs, Word and Pages.",
+      "images": [
+        "kit"
+      ],
+      "price": 49,
+      "sku": "MP-PTK",
+      "inventory": 0,
+      "digital": true
+    }
+  ],
+  "store": {
+    "currency": "USD",
+    "shippingCountries": []
+  },
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Practical books for makers",
+        "description": "E-books and templates for freelancers and small studios."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "split",
+          "eyebrow": "New edition",
+          "title": "Run your studio like a business, not a hobby",
+          "text": "Short, practical books on pricing, clients and growth, written by people who've done it. Read on any device.",
+          "actions": [
+            {
+              "label": "Browse books",
+              "href": "/books"
+            },
+            {
+              "label": "Read a free chapter",
+              "href": "/about"
+            }
+          ],
+          "note": "Instant download · PDF and EPUB",
+          "image": "hero"
+        },
+        {
+          "kind": "products",
+          "eyebrow": "The library",
+          "title": "Books and kits",
+          "limit": 4,
+          "columns": 4,
+          "buttonLabel": "Add to cart"
+        },
+        {
+          "kind": "features",
+          "tone": "alt",
+          "columns": 3,
+          "title": "Made to be used, not just read",
+          "items": [
+            {
+              "icon": "⤓",
+              "title": "Instant download",
+              "text": "A link in your inbox the moment you pay."
+            },
+            {
+              "icon": "✎",
+              "title": "Worksheets included",
+              "text": "Every book comes with fill-in templates."
+            },
+            {
+              "icon": "↻",
+              "title": "Free updates",
+              "text": "New editions are free for life."
+            }
+          ]
+        },
+        {
+          "kind": "testimonials",
+          "items": [
+            {
+              "quote": "I raised my day rate by 40% the week after reading Pricing Your Work.",
+              "name": "Rosa Delgado",
+              "role": "Illustrator"
+            },
+            {
+              "quote": "The proposal kit paid for itself on the first project.",
+              "name": "Ben Adeyemi",
+              "role": "Web developer"
+            }
+          ]
+        },
+        {
+          "kind": "cta",
+          "tone": "primary",
+          "title": "Read the first chapter free",
+          "text": "Get chapter one of Pricing Your Work by email.",
+          "actions": [
+            {
+              "label": "Send me the chapter",
+              "href": "mailto:sample@example.com"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Books",
+      "slug": "books",
+      "seo": {
+        "title": "All books",
+        "description": "E-books and templates for independent makers."
+      },
+      "sections": [
+        {
+          "kind": "products",
+          "eyebrow": "Store",
+          "title": "All books and kits",
+          "limit": 24,
+          "columns": 3,
+          "showSort": true
+        }
+      ]
+    },
+    {
+      "title": "About",
+      "slug": "about",
+      "seo": {
+        "title": "About",
+        "description": "Who writes the books, and how to get a free chapter."
+      },
+      "sections": [
+        {
+          "kind": "split",
+          "eyebrow": "The author",
+          "title": "Written by a designer who ran a studio for 15 years",
+          "text": "Before starting {{site}}, Nadia Park ran a ten-person design studio in Portland and taught business for creatives at night.",
+          "image": "author",
+          "action": {
+            "label": "Email Nadia",
+            "href": "mailto:nadia@example.com"
+          }
+        },
+        {
+          "kind": "faq",
+          "tone": "alt",
+          "title": "Questions",
+          "items": [
+            {
+              "q": "What formats do I get?",
+              "a": "Pick PDF or EPUB at checkout. Email us if you'd like the other format too."
+            },
+            {
+              "q": "Can I share with my team?",
+              "a": "Team licences for up to 10 people are available on every book."
+            },
+            {
+              "q": "Do you offer refunds?",
+              "a": "Yes. If a book doesn't help, email us within 30 days for a full refund."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

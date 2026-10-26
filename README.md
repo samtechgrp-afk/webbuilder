@@ -2,7 +2,7 @@
 
 A visual website builder and multi-tenant CMS with a client portal. Designers build premium sites with full control; clients sign in to their own portal and edit words, images, links and prices directly on the live page, inside guardrails the designer sets.
 
-**Status: phase 7.** Phase 1 laid the multi-tenant foundation, full Prisma schema, RBAC, Client Mode editor with locked containers, revisions and rollback, and media ingest (WebP). Phase 2 added Design mode: drag widgets from a palette, rearrange in Layers, and style every element per breakpoint. Phase 3 added the CMS:
+**Status: phase 10** (starter templates; see [Starter templates](#starter-templates)). Phase 1 laid the multi-tenant foundation, full Prisma schema, RBAC, Client Mode editor with locked containers, revisions and rollback, and media ingest (WebP). Phase 2 added Design mode: drag widgets from a palette, rearrange in Layers, and style every element per breakpoint. Phase 3 added the CMS:
 
 - **Content dashboard** (`/admin/sites/:id/content`): per post type tables with search, sort, pagination and Published / Draft / Scheduled / Trash tabs; bulk publish, draft, trash, restore, delete and duplicate; a revision drawer with rollback; scheduled publishing through `/api/cron/scheduled`.
 - **Post types** (`/cpts`): labels, slug rules, URL prefix, archive, hierarchy, REST API toggle, icons, page templates, a taxonomy manager, and a single template designed on the canvas.
@@ -80,6 +80,7 @@ STRIPE_API_BASE=http://127.0.0.1:4242 npm start   # for the shop suite, start th
 npm run e2e:ecommerce            # Playwright + Stripe mock: payments lockout, catalog, grid, variants, cart drawer, checkout, signed webhook, stock, orders
 npm run e2e:i18n                 # Playwright: languages, prefixed routing, Accept-Language, locale domain, translation drawer, structural lockout, hreflang, sitemap, GraphQL
 CRON_SECRET=… npm run e2e:cms    # Playwright: CPT + fields → client entry → loop grid binding → live site, media, trash, restore, schedule
+npm run e2e:templates            # Playwright: client lockout, gallery filters, device previews, one-click create → canvas, all 30 templates → entity counts, live = preview, tenant isolation
 ```
 
 Reseed with the server stopped (or restart it after seeding): resolved sites are cached by subdomain. For scheduled publishing in production, set `CRON_SECRET`; `vercel.json` calls the cron route every minute. The proxy fetches the rendered 404 page from `INTERNAL_URL` (defaults to `https://$VERCEL_URL`, else `http://127.0.0.1:$PORT`); with Vercel Deployment Protection on, point `INTERNAL_URL` at a reachable origin.
@@ -112,6 +113,20 @@ A native catalog with Stripe Checkout, separate from content post types.
 Stripe is called over its REST API (`src/server/commerce/stripe.ts`); `STRIPE_API_BASE` points it at another host, which is how `e2e:ecommerce` runs against `scripts/stripe-mock.mjs` without real keys. The seeded Aurelia shop uses placeholder keys, so real payments need a designer to enter real ones.
 
 Limits in this version: product content isn't translated; no taxes, shipping rates, discounts or customer accounts (Stripe Checkout can add tax and shipping later); refunds don't restock automatically.
+
+## Starter templates
+
+New sites start from one of 30 blueprints across six sectors: SaaS & Tech, E-Commerce, Agency & Services, Portfolio, Education & Health, and Hospitality & Events.
+
+- **Onboarding** (`/admin/sites/new`, linked from **Your sites**): a gallery filtered by sector, with a live preview of every page at desktop (1440), tablet (820) and mobile (390) widths. "Use this template" takes a name and an address and opens the new site's home page in the builder canvas. Platform admins and anyone who is a Designer somewhere can create sites; the creator becomes the new site's Designer. New sites start as drafts.
+- **Blueprints** (`src/lib/templates/blueprints/*.json`) are data, not code: site settings and SEO, a full design-token preset, a few "look" switches (heading case, density, card style), header and footer, artwork specs, custom post types with fields and taxonomies, sample entries, products with options and variant prices, and pages made of sections (hero, features, pricing, loop grids bound to a post type, product grids, FAQ, contact and so on). `src/lib/templates/types.ts` is the schema; `schema.ts` validates it with zod and cross-checks links, slugs, route prefixes, field values and image references.
+- **Compiler** (`compile.ts`): turns a blueprint into ordinary builder documents (one per page, plus the 404 page and, for shops, the product page template) with deterministic node ids and token-based styles, so everything stays editable on the canvas. The gallery preview and real sites use the same compiler and renderer; only the data source differs.
+- **Seeder** (`seeder.ts`): renders the artwork through the normal media pipeline, then writes the site, membership, post types, field groups, fields, taxonomies, terms, media, entries, pages with published revisions, field values, store, products and variants in one Prisma transaction. If any step fails, nothing is kept: the transaction rolls back and the files written for it are deleted. A site takes about two seconds.
+- **Artwork** (`artwork.ts`): images are generated SVG illustrations in each template's palette (no stock photos to license), stored as real media assets that clients can replace.
+
+To add a blueprint, drop a JSON file named after its `key` into `blueprints/`, add it to `blueprints/index.ts`, and run `npm test`; the catalog tests check that it parses, compiles to valid documents and has valid sample values.
+
+Uploads now go through a route handler (`src/app/uploads/[...path]`), because `next start` only serves files that were in `public/` when it booted. Without it, images uploaded or seeded after start-up returned 404 until a restart.
 
 ## Where things live
 
@@ -157,3 +172,8 @@ Limits in this version: product content isn't translated; no taxes, shipping rat
 | `src/components/commerce/*` | Product grid, product details and cart drawer widgets (Client Components) |
 | `src/app/admin/sites/[siteId]/products`, `orders`, `settings/payments` | Product manager, orders dashboard, payment settings |
 | `src/app/api/v1/sites/[site]/checkout`, `src/app/api/webhooks/stripe` | Checkout session API and Stripe webhook |
+| `src/lib/templates/*` | Blueprint schema and validation, compiler to builder documents, artwork, preview data, transactional seeder |
+| `src/lib/templates/blueprints/*.json` | The 30 starter template manifests |
+| `src/server/template-service.ts`, `src/server/template-actions.ts` | Who can create sites, and the create-from-template action |
+| `src/app/admin/sites/new` | Template gallery, preview modal and preview routes |
+| `src/app/uploads/[...path]` | Serves uploaded files added after the server started |

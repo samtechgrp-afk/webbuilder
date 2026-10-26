@@ -20,7 +20,8 @@
     "e2e:export": "node scripts/e2e-export.mjs",
     "e2e:graphql": "node scripts/e2e-graphql.mjs",
     "e2e:i18n": "node scripts/e2e-i18n.mjs",
-    "e2e:ecommerce": "node scripts/e2e-ecommerce.mjs"
+    "e2e:ecommerce": "node scripts/e2e-ecommerce.mjs",
+    "e2e:templates": "node scripts/e2e-templates.mjs"
   },
   "dependencies": {
     "@graphiql/toolkit": "^0.12.1",

@@ -1,0 +1,502 @@
+{
+  "key": "electronics-retail",
+  "name": "Electronics & Gadgets Retail",
+  "sector": "ecommerce",
+  "description": "Crisp, electric-blue gadget store with a compact layout, price sorting, colour variants and trust-building service features.",
+  "highlights": [
+    "Price sorting",
+    "Colour variants",
+    "Compare-at prices",
+    "Warranty features"
+  ],
+  "site": {
+    "name": "Voltline",
+    "tagline": "Tech you'll actually use",
+    "logoText": "Voltline",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Voltline sells hand-picked audio, charging and smart home gear with two-year warranties and free returns."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#FFFFFF",
+      "surface-low": "#F4F7FB",
+      "surface-mid": "#E9EEF6",
+      "surface-high": "#FFFFFF",
+      "primary": "#2563EB",
+      "on-primary": "#FFFFFF",
+      "accent": "#F59E0B",
+      "heading": "#0A1020",
+      "text": "#2E3648",
+      "muted": "#6B7489",
+      "border": "#E3E8F0"
+    },
+    "fonts": {
+      "heading": "var(--font-inter), system-ui, sans-serif",
+      "display": "var(--font-inter), system-ui, sans-serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 0.9375,
+      "maxBase": 1,
+      "minRatio": 1.18,
+      "maxRatio": 1.24,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.08",
+      "snug": "1.3",
+      "body": "1.65"
+    },
+    "letterSpacing": {
+      "tight": "-0.03em",
+      "snug": "-0.01em",
+      "wide": "0.1em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "6px",
+      "md": "10px",
+      "lg": "16px",
+      "pill": "999px",
+      "button": "10px",
+      "card": "14px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "compact",
+    "cards": "elevated",
+    "headerBorder": true
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Shop",
+        "href": "/shop"
+      },
+      {
+        "label": "Support",
+        "href": "/support"
+      }
+    ],
+    "action": {
+      "label": "Deals",
+      "href": "/shop"
+    }
+  },
+  "footer": {
+    "text": "Hand-picked gear, tested by us. Two-year warranty on everything.",
+    "columns": [
+      {
+        "title": "Shop",
+        "links": [
+          {
+            "label": "All products",
+            "href": "/shop"
+          },
+          {
+            "label": "Support",
+            "href": "/support"
+          }
+        ]
+      },
+      {
+        "title": "Company",
+        "links": [
+          {
+            "label": "Contact",
+            "href": "mailto:help@example.com"
+          },
+          {
+            "label": "Careers",
+            "href": "mailto:jobs@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} Retail Ltd."
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Wireless headphones on a blue backdrop",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#DCE6FB",
+        "#F4F7FB",
+        "#0A1020",
+        "#2563EB"
+      ]
+    },
+    {
+      "key": "buds",
+      "alt": "Noise-cancelling earbuds",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#E9EEF6",
+        "#FFFFFF",
+        "#0A1020",
+        "#2563EB"
+      ]
+    },
+    {
+      "key": "speaker",
+      "alt": "Portable speaker",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#E9EEF6",
+        "#FFFFFF",
+        "#2E3648",
+        "#F59E0B"
+      ]
+    },
+    {
+      "key": "charger",
+      "alt": "Three-in-one charging stand",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#E9EEF6",
+        "#FFFFFF",
+        "#6B7489",
+        "#2563EB"
+      ]
+    },
+    {
+      "key": "lamp",
+      "alt": "Smart desk lamp",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#FDF3DD",
+        "#FFFFFF",
+        "#2E3648",
+        "#F59E0B"
+      ]
+    },
+    {
+      "key": "cam",
+      "alt": "Indoor security camera",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#E9EEF6",
+        "#FFFFFF",
+        "#0A1020",
+        "#6B7489"
+      ]
+    },
+    {
+      "key": "hub",
+      "alt": "Smart home hub",
+      "motif": "device",
+      "width": 1000,
+      "height": 1250
+    }
+  ],
+  "postTypes": [],
+  "entries": [],
+  "products": [
+    {
+      "title": "Aria Pro Headphones",
+      "slug": "aria-pro-headphones",
+      "description": "Adaptive noise cancelling, 40-hour battery and memory-foam ear cushions.",
+      "images": [
+        "hero"
+      ],
+      "price": 279,
+      "sku": "VL-APH",
+      "inventory": 8,
+      "compareAt": 349,
+      "options": [
+        {
+          "name": "Colour",
+          "values": [
+            "Midnight",
+            "Silver",
+            "Sky"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Pulse Earbuds",
+      "slug": "pulse-earbuds",
+      "description": "Pocket-sized buds with spatial audio and a wireless charging case.",
+      "images": [
+        "buds"
+      ],
+      "price": 149,
+      "sku": "VL-PE",
+      "inventory": 15,
+      "options": [
+        {
+          "name": "Colour",
+          "values": [
+            "Black",
+            "White"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Boom Go Speaker",
+      "slug": "boom-go-speaker",
+      "description": "Waterproof, drop-proof and loud enough for the beach.",
+      "images": [
+        "speaker"
+      ],
+      "price": 99,
+      "sku": "VL-BG",
+      "inventory": 20,
+      "options": [
+        {
+          "name": "Colour",
+          "values": [
+            "Graphite",
+            "Orange"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Trio Charging Stand",
+      "slug": "trio-charging-stand",
+      "description": "Charges a phone, watch and earbuds at once.",
+      "images": [
+        "charger"
+      ],
+      "price": 89,
+      "sku": "VL-TC",
+      "inventory": 0
+    },
+    {
+      "title": "Halo Desk Lamp",
+      "slug": "halo-desk-lamp",
+      "description": "Tunable white light that follows your circadian rhythm.",
+      "images": [
+        "lamp"
+      ],
+      "price": 129,
+      "sku": "VL-HL",
+      "inventory": 9
+    },
+    {
+      "title": "Sentry Indoor Camera",
+      "slug": "sentry-indoor-camera",
+      "description": "2K video, privacy shutter and on-device person detection.",
+      "images": [
+        "cam"
+      ],
+      "price": 79,
+      "sku": "VL-SC",
+      "inventory": 14,
+      "compareAt": 99
+    },
+    {
+      "title": "Nexus Home Hub",
+      "slug": "nexus-home-hub",
+      "description": "One hub for every light, lock and sensor in your home.",
+      "images": [
+        "hub"
+      ],
+      "price": 199,
+      "sku": "VL-NH",
+      "inventory": 6
+    }
+  ],
+  "store": {
+    "currency": "USD",
+    "shippingCountries": [
+      "US",
+      "CA"
+    ]
+  },
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Tech you'll actually use",
+        "description": "Hand-picked audio, charging and smart home gear with two-year warranties."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "split",
+          "eyebrow": "Spring sale · up to 25% off",
+          "title": "Sound that keeps up with your day",
+          "text": "Studio-grade noise cancelling, 40-hour battery and a fit you forget you're wearing.",
+          "actions": [
+            {
+              "label": "Shop audio",
+              "href": "/shop"
+            },
+            {
+              "label": "Compare models",
+              "href": "/shop"
+            }
+          ],
+          "note": "Free next-day delivery on orders over $50.",
+          "image": "hero"
+        },
+        {
+          "kind": "features",
+          "columns": 4,
+          "title": "Why shop with {{site}}",
+          "items": [
+            {
+              "icon": "⇢",
+              "title": "Next-day delivery",
+              "text": "Order by 8 pm for free delivery tomorrow."
+            },
+            {
+              "icon": "↺",
+              "title": "60-day returns",
+              "text": "Changed your mind? Send it back free."
+            },
+            {
+              "icon": "⛨",
+              "title": "Two-year warranty",
+              "text": "On every product, no forms."
+            },
+            {
+              "icon": "☎",
+              "title": "Real experts",
+              "text": "Chat with people who use the gear."
+            }
+          ]
+        },
+        {
+          "kind": "products",
+          "tone": "alt",
+          "eyebrow": "Best sellers",
+          "title": "Popular this week",
+          "limit": 8,
+          "columns": 4,
+          "sort": "newest"
+        },
+        {
+          "kind": "stats",
+          "items": [
+            {
+              "value": "4.8★",
+              "label": "Average review"
+            },
+            {
+              "value": "320k",
+              "label": "Orders shipped"
+            },
+            {
+              "value": "24 h",
+              "label": "Average delivery"
+            }
+          ]
+        },
+        {
+          "kind": "cta",
+          "tone": "primary",
+          "title": "Trade in your old headphones",
+          "text": "Get up to $80 off when you upgrade.",
+          "actions": [
+            {
+              "label": "See trade-in values",
+              "href": "/support"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Shop",
+      "slug": "shop",
+      "seo": {
+        "title": "Shop all",
+        "description": "Audio, charging and smart home."
+      },
+      "sections": [
+        {
+          "kind": "products",
+          "eyebrow": "Shop",
+          "title": "All products",
+          "limit": 24,
+          "columns": 4,
+          "showSort": true,
+          "sort": "price-asc"
+        }
+      ]
+    },
+    {
+      "title": "Support",
+      "slug": "support",
+      "seo": {
+        "title": "Support",
+        "description": "Delivery, returns, warranty and trade-ins."
+      },
+      "sections": [
+        {
+          "kind": "faq",
+          "title": "Shipping and returns",
+          "items": [
+            {
+              "q": "Where do you ship?",
+              "a": "The United States and Canada."
+            },
+            {
+              "q": "How long does delivery take?",
+              "a": "Next day in most of the US when you order by 8 pm."
+            },
+            {
+              "q": "What's your returns policy?",
+              "a": "60 days, free, from the date it arrives."
+            },
+            {
+              "q": "Can I change my order?",
+              "a": "Email us within two hours of ordering and we'll update it before it ships."
+            }
+          ]
+        },
+        {
+          "kind": "contact",
+          "tone": "alt",
+          "title": "Talk to an expert",
+          "items": [
+            {
+              "label": "Chat",
+              "value": "8 am – 10 pm, every day"
+            },
+            {
+              "label": "Email",
+              "value": "help@example.com",
+              "href": "mailto:help@example.com"
+            },
+            {
+              "label": "Phone",
+              "value": "1-800-555-0199",
+              "href": "tel:+18005550199"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
