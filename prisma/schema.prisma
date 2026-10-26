@@ -38,6 +38,7 @@ model User {
   posts       Post[]         @relation("PostAuthor")
   revisions   PostRevision[]
   designTokenRevisions DesignTokenRevision[]
+  exports     SiteExport[]
   editLocks   EditLock[]
   uploads     MediaAsset[]
   auditLogs   AuditLog[]
@@ -142,6 +143,7 @@ model Site {
   mediaFolders MediaFolder[]
   mediaAssets  MediaAsset[]
   designTokenRevisions DesignTokenRevision[]
+  exports      SiteExport[]
   editLocks    EditLock[]
   auditLogs    AuditLog[]
 }
@@ -558,4 +560,38 @@ model DesignTokenRevision {
   author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
   @@unique([siteId, version])
+}
+
+enum ExportStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+/// A static export of a site: every live page compiled to HTML with its CSS,
+/// fonts and media, zipped. The zip lives in private storage (`fileKey`)
+/// and is downloaded through an authenticated route.
+model SiteExport {
+  id          String       @id @default(cuid())
+  siteId      String
+  status      ExportStatus @default(QUEUED)
+  /// Absolute URL the bundle will be hosted at; used for canonical links and the sitemap.
+  baseUrl     String
+  total       Int          @default(0)
+  progress    Int          @default(0)
+  pageCount   Int          @default(0)
+  sizeBytes   Int          @default(0)
+  fileKey     String?
+  /// Files in the bundle with their sizes, and any pages that were skipped.
+  manifest    Json         @default("{}")
+  error       String?
+  createdById String?
+  createdAt   DateTime     @default(now())
+  finishedAt  DateTime?
+
+  site      Site  @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([siteId, createdAt])
 }
