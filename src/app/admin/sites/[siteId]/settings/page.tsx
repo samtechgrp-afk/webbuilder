@@ -48,6 +48,15 @@ export default async function SiteSettingsPage({ params }: PageProps<"/admin/sit
           Manage languages
         </Link>
       </section>
+      <section className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-zinc-200 bg-white px-5 py-4">
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-900">Payments</h2>
+          <p className="text-xs text-zinc-500">Connect Stripe Checkout, choose where the shop ships and the product page template.</p>
+        </div>
+        <Link href={`/admin/sites/${t.site.id}/settings/payments`} className="rounded-lg border border-zinc-300 bg-white px-3.5 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50" data-payments-link="">
+          Payment settings
+        </Link>
+      </section>
     </main>
   );
 }

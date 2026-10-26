@@ -69,8 +69,13 @@ try {
   await designer.waitForURL(/\/developer$/);
   await designer.locator('[data-api-status="on"]').waitFor();
   await designer.locator("[data-playground] .graphiql-execute-button").waitFor({ timeout: 30_000 });
-  await designer.locator("[data-playground] .graphiql-execute-button").click();
-  await designer.locator("[data-playground] .result-window").getByText("Alabaster Table Lamp").first().waitFor({ timeout: 15_000 });
+  // On a cold server the editor can still be booting when the button appears, and an early click is dropped.
+  const result = designer.locator("[data-playground] .result-window").getByText("Alabaster Table Lamp").first();
+  for (let attempt = 0; attempt < 5 && !(await result.isVisible()); attempt++) {
+    await designer.locator("[data-playground] .graphiql-execute-button").click();
+    await result.waitFor({ timeout: 6_000 }).catch(() => {});
+  }
+  await result.waitFor({ timeout: 5_000 });
   step("Designer opens Developer; the embedded GraphiQL playground runs a query against this site");
 
   const createKey = async (name, scope) => {

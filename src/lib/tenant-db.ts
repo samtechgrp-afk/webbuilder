@@ -37,6 +37,11 @@ export const TENANT_MODELS = new Set<Prisma.ModelName>([
   "ApiKey",
   "SiteLocale",
   "PostTranslation",
+  "Store",
+  "Product",
+  "ProductVariant",
+  "Order",
+  "OrderItem",
 ]);
 
 const WHERE_OPS = new Set([

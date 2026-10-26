@@ -58,6 +58,70 @@ const primaryBtn = { background: "var(--color-deep)", color: "var(--color-invers
 const ghostBtn = { color: "var(--color-text)", padding: ".95rem 1.4rem", borderRadius: "var(--radius-pill)", border: "1px solid rgba(31,27,22,.22)", fontSize: ".9375rem", fontWeight: "500" };
 const shell = { maxWidth: "1240px", margin: "0 auto", width: "100%" };
 
+/** The shared site header: logo, navigation, language switcher, cart and consultation button. */
+function addAureliaHeader(b: DocBuilder) {
+  b.add("brand", "heading", { name: "Logo", tag: "h4", locks: { content: true }, props: { text: "Aurelia" }, style: { desktop: { ...display, fontSize: "1.65rem" } } });
+  b.add("nav-1", "button", { name: "Nav link", props: { link: { label: "Work", href: "/work" } }, style: { desktop: { color: "var(--color-text)", fontSize: ".9375rem" } } });
+  b.add("nav-2", "button", { name: "Nav link", props: { link: { label: "Studio", href: "/studio" } }, style: { desktop: { color: "var(--color-text)", fontSize: ".9375rem" } } });
+  b.add("nav-3", "button", { name: "Nav link", props: { link: { label: "Journal", href: "/journal" } }, style: { desktop: { color: "var(--color-text)", fontSize: ".9375rem" } } });
+  b.add("nav", "container", { name: "Navigation", tag: "nav", children: ["nav-1", "nav-2", "nav-3"], style: { desktop: { display: "flex", gap: "2.25rem" }, mobile: { display: "none" } } });
+  b.add("header-cta", "button", { name: "Header button", props: { link: { label: "Book a consultation", href: "/contact" } }, style: { desktop: { ...primaryBtn, padding: ".7rem 1.2rem", fontSize: ".875rem" } } });
+  b.add("lang", "langswitch", { name: "Language switcher", props: { display: "code", variant: "inline" }, style: { desktop: { display: "flex", gap: ".75rem", fontSize: ".8125rem", letterSpacing: ".08em" }, mobile: { display: "none" } } });
+  b.add("cart", "cart", { name: "Cart", props: { label: "Cart" }, style: { desktop: { fontSize: ".875rem" } } });
+  b.add("header-inner", "container", { name: "Header row", children: ["brand", "nav", "lang", "cart", "header-cta"], style: { desktop: { ...shell, display: "flex", alignItems: "center", justifyContent: "space-between" } } });
+  b.add("header", "section", { name: "Header", tag: "header", locks: { layout: true, style: true }, children: ["header-inner"], style: { desktop: { padding: "1.4rem 2rem" }, mobile: { padding: "1rem 1.25rem" } } });
+
+}
+
+const pageShell = (b: DocBuilder, main: string[]) => {
+  b.add("footer-brand", "heading", { name: "Footer logo", tag: "h4", props: { text: "Aurelia" }, style: { desktop: { ...display, fontSize: "1.4rem" } } });
+  b.add("footer-legal", "text", { name: "Legal", props: { text: "© 2026 Aurelia Interiors LLC · Licensed in MA, NH and ME" }, style: { desktop: { fontSize: "var(--text-small)", color: "var(--color-muted)" } } });
+  b.add("footer-inner", "container", { name: "Footer row", children: ["footer-brand", "footer-legal"], style: { desktop: { ...shell, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }, mobile: { flexDirection: "column", alignItems: "flex-start" } } });
+  b.add("footer", "section", { name: "Footer", tag: "footer", locks: { layout: true, style: true, content: true }, children: ["footer-inner"], style: { desktop: { padding: "2.5rem 2rem" } } });
+  b.add("main", "container", { name: "Main content", tag: "main", children: main });
+  b.add("root", "container", { name: "Page", locks: { layout: true }, children: ["header", "main", "footer"] });
+  const doc: BuilderDocument = { version: 1, rootId: "root", nodes: b.nodes };
+  return JSON.parse(JSON.stringify(doc)) as BuilderDocument;
+};
+
+/** The studio shop: a heading and a sortable product grid. */
+export function buildAureliaStore(): BuilderDocument {
+  const b = new DocBuilder();
+  addAureliaHeader(b);
+  b.add("store-eyebrow", "text", { name: "Eyebrow", props: { text: "The studio shop" }, style: { desktop: eyebrow } });
+  b.add("store-title", "heading", { name: "Shop headline", tag: "h1", props: { text: "Small things for calm rooms." }, style: { desktop: { ...display, fontSize: "var(--text-h2)" } } });
+  b.add("store-copy", "text", { name: "Shop intro", props: { text: "Pieces we keep specifying for clients, made in small batches by the makers we work with." }, style: { desktop: { fontSize: "var(--text-lead)", color: "var(--color-muted)", maxWidth: "36rem" } } });
+  b.add("store-grid", "productgrid", {
+    name: "Product grid",
+    props: { limit: 12, sort: "newest", inStockOnly: false, showSort: true, buttonLabel: "Add to cart" },
+    style: { desktop: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "var(--space-lg) var(--space-md)" }, tablet: { gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }, mobile: { gridTemplateColumns: "minmax(0, 1fr)" } },
+  });
+  b.add("store-inner", "container", { name: "Shop content", children: ["store-eyebrow", "store-title", "store-copy", "store-grid"], style: { desktop: { ...shell, display: "flex", flexDirection: "column", gap: "var(--space-md)" } } });
+  b.add("store", "section", { name: "Shop", locks: { layout: true }, children: ["store-inner"], style: { desktop: { padding: "var(--space-lg) 2rem var(--space-xl)" }, mobile: { padding: "2.5rem 1.25rem 4rem" } } });
+  return pageShell(b, ["store"]);
+}
+
+/** Lays out every /products/<slug> page: the product, then more from the shop. */
+export function buildAureliaProductTemplate(): BuilderDocument {
+  const b = new DocBuilder();
+  addAureliaHeader(b);
+  b.add("pdp", "product", {
+    name: "Product details",
+    props: { productId: null, buttonLabel: "Add to cart" },
+    style: { desktop: { ...shell, display: "grid", gridTemplateColumns: "1.1fr .9fr", gap: "clamp(2rem, 5cqi, 4.5rem)", alignItems: "start" }, tablet: { gridTemplateColumns: "minmax(0, 1fr)" } },
+  });
+  b.add("pdp-section", "section", { name: "Product", locks: { layout: true }, children: ["pdp"], style: { desktop: { padding: "var(--space-lg) 2rem" }, mobile: { padding: "2rem 1.25rem" } } });
+  b.add("more-title", "heading", { name: "More headline", tag: "h2", props: { text: "More from the shop" }, style: { desktop: { ...display, fontSize: "var(--text-h3)" } } });
+  b.add("more-grid", "productgrid", {
+    name: "More products",
+    props: { limit: 3, sort: "newest", inStockOnly: true, showSort: false, buttonLabel: "Add to cart" },
+    style: { desktop: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "var(--space-md)" }, mobile: { gridTemplateColumns: "minmax(0, 1fr)" } },
+  });
+  b.add("more-inner", "container", { name: "More content", children: ["more-title", "more-grid"], style: { desktop: { ...shell, display: "flex", flexDirection: "column", gap: "var(--space-md)" } } });
+  b.add("more", "section", { name: "More from the shop", locks: { layout: true }, children: ["more-inner"], style: { desktop: { padding: "var(--space-lg) 2rem var(--space-xl)", background: "var(--color-surface)" }, mobile: { padding: "3rem 1.25rem" } } });
+  return pageShell(b, ["pdp-section", "more"]);
+}
+
 export function buildAureliaHome(img: SampleImages): BuilderDocument {
   const b = new DocBuilder();
 
@@ -70,16 +134,7 @@ export function buildAureliaHome(img: SampleImages): BuilderDocument {
     style: { desktop: { display: "flex", justifyContent: "center", padding: ".7rem 1rem", background: "var(--color-deep)", color: "var(--color-inverse)", textAlign: "center" } },
   });
 
-  // Header
-  b.add("brand", "heading", { name: "Logo", tag: "h4", locks: { content: true }, props: { text: "Aurelia" }, style: { desktop: { ...display, fontSize: "1.65rem" } } });
-  b.add("nav-1", "button", { name: "Nav link", props: { link: { label: "Work", href: "/work" } }, style: { desktop: { color: "var(--color-text)", fontSize: ".9375rem" } } });
-  b.add("nav-2", "button", { name: "Nav link", props: { link: { label: "Studio", href: "/studio" } }, style: { desktop: { color: "var(--color-text)", fontSize: ".9375rem" } } });
-  b.add("nav-3", "button", { name: "Nav link", props: { link: { label: "Journal", href: "/journal" } }, style: { desktop: { color: "var(--color-text)", fontSize: ".9375rem" } } });
-  b.add("nav", "container", { name: "Navigation", tag: "nav", children: ["nav-1", "nav-2", "nav-3"], style: { desktop: { display: "flex", gap: "2.25rem" }, mobile: { display: "none" } } });
-  b.add("header-cta", "button", { name: "Header button", props: { link: { label: "Book a consultation", href: "/contact" } }, style: { desktop: { ...primaryBtn, padding: ".7rem 1.2rem", fontSize: ".875rem" } } });
-  b.add("lang", "langswitch", { name: "Language switcher", props: { display: "code", variant: "inline" }, style: { desktop: { display: "flex", gap: ".75rem", fontSize: ".8125rem", letterSpacing: ".08em" }, mobile: { display: "none" } } });
-  b.add("header-inner", "container", { name: "Header row", children: ["brand", "nav", "lang", "header-cta"], style: { desktop: { ...shell, display: "flex", alignItems: "center", justifyContent: "space-between" } } });
-  b.add("header", "section", { name: "Header", tag: "header", locks: { layout: true, style: true }, children: ["header-inner"], style: { desktop: { padding: "1.4rem 2rem" }, mobile: { padding: "1rem 1.25rem" } } });
+  addAureliaHeader(b);
 
   // Hero
   b.add("hero-eyebrow", "text", { name: "Eyebrow", props: { text: "Interior architecture · Since 2011" }, style: { desktop: eyebrow } });

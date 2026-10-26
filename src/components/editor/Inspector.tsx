@@ -8,6 +8,7 @@ import { isBoundField, isDesigner, nodeCapabilities } from "@/lib/builder/policy
 import { enclosingLoop, MAX_LOOP_ITEMS } from "@/lib/builder/tree";
 import { contrastRatio, resolveColor, type DesignTokens } from "@/lib/builder/styles";
 import type { Binding, BuilderDocument, ImageValue, LinkValue, LoopQuery, PriceValue, StyleKey } from "@/lib/builder/types";
+import { MAX_GRID_PRODUCTS, type CartProps, type ProductDetailsProps, type ProductGridProps } from "@/lib/commerce/types";
 import { BINDABLE, WIDGETS, type BindTarget, type ContentField, type LanguageSwitcherProps } from "@/lib/builder/widgets";
 import { DesignPanel } from "./DesignPanel";
 import { MediaPicker, type PickerAsset } from "./MediaPicker";
@@ -83,8 +84,9 @@ export function Inspector(props: InspectorProps) {
 function DesignerInspector({ nodeId, ...props }: { nodeId: string } & InspectorProps) {
   const node = useEditor((s) => s.doc.nodes[nodeId]);
   const def = WIDGETS[node.type];
-  const dynamicTab = node.type === "loop" || node.type === "langswitch" || BINDABLE[node.type].length > 0;
-  const [tab, setTab] = useState<"style" | "content" | "dynamic" | "guardrails">(node.type === "loop" || node.type === "langswitch" ? "dynamic" : def.contentFields.length ? "content" : "style");
+  const settingsFirst = SETTINGS_WIDGETS.has(node.type);
+  const dynamicTab = settingsFirst || BINDABLE[node.type].length > 0;
+  const [tab, setTab] = useState<"style" | "content" | "dynamic" | "guardrails">(settingsFirst ? "dynamic" : def.contentFields.length ? "content" : "style");
   const tabs = [...(def.contentFields.length ? (["content"] as const) : []), ...(dynamicTab ? (["dynamic"] as const) : []), "style" as const, "guardrails" as const];
   const doc = useEditor((s) => s.doc);
   return (
@@ -120,7 +122,20 @@ function DesignerInspector({ nodeId, ...props }: { nodeId: string } & InspectorP
               <ContentEditor nodeId={node.id} field={field} value={node.props[field.key]} {...props} />
             </div>
           ))}
-        {tab === "dynamic" && (node.type === "loop" ? <LoopQueryEditor nodeId={node.id} /> : node.type === "langswitch" ? <LanguageSwitcherEditor nodeId={node.id} /> : <BindingEditor nodeId={node.id} />)}
+        {tab === "dynamic" &&
+          (node.type === "loop" ? (
+            <LoopQueryEditor nodeId={node.id} />
+          ) : node.type === "langswitch" ? (
+            <LanguageSwitcherEditor nodeId={node.id} />
+          ) : node.type === "productgrid" ? (
+            <ProductGridEditor nodeId={node.id} />
+          ) : node.type === "product" ? (
+            <ProductDetailsEditor nodeId={node.id} />
+          ) : node.type === "cart" ? (
+            <CartEditor nodeId={node.id} />
+          ) : (
+            <BindingEditor nodeId={node.id} />
+          ))}
         {tab === "style" && <DesignPanel node={node} tokens={props.tokens} />}
         {tab === "guardrails" && (
           <div className="py-2">
@@ -460,6 +475,92 @@ function BindingRow({ nodeId, target, binding }: { nodeId: string; target: BindT
         </label>
       )}
       {binding && !known && <p className="text-[11px] text-amber-700">This source isn&apos;t available in this spot, so the fallback shows.</p>}
+    </div>
+  );
+}
+
+/** Widgets whose "dynamic" tab holds their settings and opens first. */
+const SETTINGS_WIDGETS = new Set<string>(["loop", "langswitch", "productgrid", "product", "cart"]);
+
+function ProductGridEditor({ nodeId }: { nodeId: string }) {
+  const props = useEditor((s) => s.doc.nodes[nodeId].props) as unknown as ProductGridProps;
+  const count = useEditor((s) => s.commerce?.products.length ?? 0);
+  const setDesignProp = useEditor((s) => s.setDesignProp);
+  return (
+    <div className="space-y-3 py-2 text-xs text-zinc-700">
+      <p className="text-[11px] leading-relaxed text-zinc-500">
+        Shows the shop&apos;s active products with their price and an Add to cart button (products with options link to their page). {count ? `${count} product${count === 1 ? "" : "s"} available.` : "Add products under Products first."}
+      </p>
+      <label className="block space-y-1">
+        <span className="font-medium">Order</span>
+        <select aria-label="Product grid order" className={inputCls} value={props.sort} onChange={(e) => setDesignProp(nodeId, "sort", e.target.value)} data-grid-order="">
+          <option value="newest">Newest first</option>
+          <option value="price-asc">Price, low to high</option>
+          <option value="price-desc">Price, high to low</option>
+          <option value="title">Name</option>
+        </select>
+      </label>
+      <label className="block space-y-1">
+        <span className="font-medium">How many</span>
+        <input type="number" aria-label="Product grid limit" className={inputCls} min={1} max={MAX_GRID_PRODUCTS} value={props.limit} onChange={(e) => setDesignProp(nodeId, "limit", Math.max(1, Math.min(MAX_GRID_PRODUCTS, Number(e.target.value) || 1)))} />
+      </label>
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={props.inStockOnly} onChange={(e) => setDesignProp(nodeId, "inStockOnly", e.target.checked)} />
+        Hide sold-out products
+      </label>
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={props.showSort} onChange={(e) => setDesignProp(nodeId, "showSort", e.target.checked)} />
+        Let visitors change the order
+      </label>
+      <label className="block space-y-1">
+        <span className="font-medium">Button label</span>
+        <CommitInput aria-label="Product grid button label" value={props.buttonLabel} maxLength={40} onCommit={(v) => setDesignProp(nodeId, "buttonLabel", v || "Add to cart")} />
+      </label>
+    </div>
+  );
+}
+
+function ProductDetailsEditor({ nodeId }: { nodeId: string }) {
+  const props = useEditor((s) => s.doc.nodes[nodeId].props) as unknown as ProductDetailsProps;
+  const products = useEditor((s) => s.commerce?.products ?? []);
+  const setDesignProp = useEditor((s) => s.setDesignProp);
+  return (
+    <div className="space-y-3 py-2 text-xs text-zinc-700">
+      <p className="text-[11px] leading-relaxed text-zinc-500">
+        Gallery, price, option pickers and Add to cart. &ldquo;The page&apos;s product&rdquo; is for the product page template (Settings → Payments); pick a product to feature it anywhere else.
+      </p>
+      <label className="block space-y-1">
+        <span className="font-medium">Product</span>
+        <select aria-label="Product details product" className={inputCls} value={props.productId ?? ""} onChange={(e) => setDesignProp(nodeId, "productId", e.target.value || null)} data-product-pick="">
+          <option value="">The page&apos;s product</option>
+          {props.productId && !products.some((p) => p.id === props.productId) && <option value={props.productId}>(missing product)</option>}
+          {products.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.title}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block space-y-1">
+        <span className="font-medium">Button label</span>
+        <CommitInput aria-label="Product details button label" value={props.buttonLabel} maxLength={40} onCommit={(v) => setDesignProp(nodeId, "buttonLabel", v || "Add to cart")} />
+      </label>
+    </div>
+  );
+}
+
+function CartEditor({ nodeId }: { nodeId: string }) {
+  const props = useEditor((s) => s.doc.nodes[nodeId].props) as unknown as CartProps;
+  const setDesignProp = useEditor((s) => s.setDesignProp);
+  return (
+    <div className="space-y-3 py-2 text-xs text-zinc-700">
+      <p className="text-[11px] leading-relaxed text-zinc-500">
+        A cart button with the item count. It opens a slide-out drawer where visitors change quantities and go to Stripe checkout. The cart is kept in their browser between visits. Hidden on sites without products.
+      </p>
+      <label className="block space-y-1">
+        <span className="font-medium">Label</span>
+        <CommitInput aria-label="Cart label" value={props.label} maxLength={40} onCommit={(v) => setDesignProp(nodeId, "label", v || "Cart")} />
+      </label>
     </div>
   );
 }

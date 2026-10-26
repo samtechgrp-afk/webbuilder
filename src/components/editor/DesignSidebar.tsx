@@ -43,6 +43,9 @@ const ICONS: Record<WidgetType, string> = {
   richtext: "≡",
   loop: "↻",
   langswitch: "文",
+  productgrid: "▣",
+  product: "◫",
+  cart: "⊡",
 };
 
 /** Where a clicked palette item lands: inside the selected container, after a selected leaf, else at the end of the page. */

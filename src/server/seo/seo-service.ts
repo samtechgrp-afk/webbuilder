@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { prisma } from "@/lib/db";
+import { PRODUCT_BASE } from "@/lib/commerce/types";
 import { canonicalPointsElsewhere, resolveSeo, seoIssues, type EntrySeo, type ResolvedSeo, type SeoIssue } from "@/lib/seo/meta";
 import { readSiteSeo, siteSeoSchema, type SiteSeo, type SiteSeoInput } from "@/lib/seo/settings";
 import type { SitemapUrl } from "@/lib/seo/sitemap";
@@ -127,6 +128,13 @@ export async function getSitemapUrls(siteId: string, base: string): Promise<Site
     const path = `/${a.routePrefix ?? a.key}`;
     const alternates = locales.length > 1 ? groupAlternates(locales.map((l) => ({ localeCode: l.code, path })), locales, base) : undefined;
     for (const l of locales.length ? locales : [null]) urls.push({ loc: `${localeBase(base, l)}${path}`, changefreq: "weekly", priority: 0.7, alternates });
+  }
+  // Shop products: one address per language, same slug everywhere.
+  const products = await prisma.product.findMany({ where: { siteId, status: "ACTIVE" }, select: { slug: true, updatedAt: true }, orderBy: { slug: "asc" } });
+  for (const p of products) {
+    const path = `/${PRODUCT_BASE}/${p.slug}`;
+    const alternates = locales.length > 1 ? groupAlternates(locales.map((l) => ({ localeCode: l.code, path })), locales, base) : undefined;
+    for (const l of locales.length ? locales : [null]) urls.push({ loc: `${localeBase(base, l)}${path}`, lastmod: p.updatedAt, priority: 0.6, alternates });
   }
   // Home first, then pages and archives, then entries (stable within each).
   return urls.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));

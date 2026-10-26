@@ -4,12 +4,17 @@ import { formatPrice } from "./content";
 import { buildCss, nodeClass, type DesignTokens } from "./styles";
 import type { BuilderDocument, BuilderNode, ImageValue, LinkValue, PriceValue } from "./types";
 import { WIDGETS, type LanguageSwitcherProps } from "./widgets";
+import { CartWidget } from "@/components/commerce/CartWidget";
+import { ProductDetails } from "@/components/commerce/ProductDetails";
+import { ProductGrid } from "@/components/commerce/ProductGrid";
+import type { CartProps, CommerceData, ProductDetailsProps, ProductGridProps } from "@/lib/commerce/types";
 
 /**
  * One renderer for the live site and the editor canvas, so what clients edit
  * is pixel-identical to what visitors see. It has no hooks and no client-only
  * code, so the public site renders it as a Server Component (zero JS shipped
- * for static sections). The editor passes `hooks` to add selection and inline
+ * for static sections). Only the shop widgets (product grid, product details,
+ * cart) are Client Components, so only pages that use them ship their JS. The editor passes `hooks` to add selection and inline
  * editing on top.
  */
 export interface RenderHooks {
@@ -36,6 +41,8 @@ interface RenderOptions {
   lang?: string;
   /** The current page in each of the site's languages, for language switchers. */
   languages?: LanguageLink[];
+  /** Products and shop settings for the commerce widgets. */
+  commerce?: CommerceData;
 }
 
 /** One entry of a language switcher. `href` is final (prefix or domain already applied). */
@@ -48,10 +55,10 @@ export interface LanguageLink {
   translated: boolean;
 }
 
-export function SiteDocument({ doc, tokens = {}, hooks, data, editor, linkBase = "", lang, languages }: RenderOptions) {
+export function SiteDocument({ doc, tokens = {}, hooks, data, editor, linkBase = "", lang, languages, commerce }: RenderOptions) {
   // Styles come from the template document; loop copies reuse the original's class.
   const view = data ? applyDynamic(doc, data, { editor }) : doc;
-  const ctx: Ctx = { doc: view, hooks, linkBase, languages, editor, lang };
+  const ctx: Ctx = { doc: view, hooks, linkBase, languages, editor, lang, commerce };
   return (
     <div className="site-root" lang={lang || undefined}>
       <style dangerouslySetInnerHTML={{ __html: buildCss(doc, tokens) }} />
@@ -68,6 +75,7 @@ interface Ctx {
   editor?: boolean;
   /** Formats prices the way readers of this language expect. */
   lang?: string;
+  commerce?: CommerceData;
 }
 
 const withBase = (href: string, base: string) => (base && /^\/(?!\/)/.test(href) ? `${base}${href === "/" ? "" : href}` || "/" : href);
@@ -166,6 +174,16 @@ function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
         </a>
       );
     }
+    case "productgrid":
+      return <ProductGrid {...common} props={node.props as unknown as ProductGridProps} data={ctx.commerce} lang={ctx.lang} editor={ctx.editor} />;
+    case "product":
+      return <ProductDetails {...common} props={node.props as unknown as ProductDetailsProps} data={productData(ctx.commerce, node.props.productId)} lang={ctx.lang} editor={ctx.editor} />;
+    case "cart": {
+      const c = ctx.commerce;
+      // Hidden on sites without a shop; only what the cart needs crosses to the browser.
+      const shop = c && (c.products.length || c.checkout) ? { siteKey: c.siteKey, currency: c.currency, checkout: c.checkout, linkBase: c.linkBase } : undefined;
+      return <CartWidget {...common} props={node.props as unknown as CartProps} shop={shop} lang={ctx.lang} editor={ctx.editor} />;
+    }
     case "price": {
       const price = node.props.price as PriceValue | undefined;
       if (!price) return null;
@@ -177,6 +195,13 @@ function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
       );
     }
   }
+}
+
+/** A product widget only needs its own product, not the whole catalog. */
+function productData(c: CommerceData | undefined, productId: unknown): CommerceData | undefined {
+  if (!c) return undefined;
+  const product = typeof productId === "string" ? c.products.find((p) => p.id === productId) : c.current;
+  return { ...c, products: product && typeof productId === "string" ? [product] : [], current: typeof productId === "string" ? null : (c.current ?? null) };
 }
 
 function LanguageSwitcher({ common, Tag, props, languages, editor }: { common: Record<string, unknown>; Tag: keyof React.JSX.IntrinsicElements; props: Partial<LanguageSwitcherProps>; languages?: LanguageLink[]; editor?: boolean }) {

@@ -25,6 +25,7 @@ export function Canvas({ tokens, languages }: { tokens: DesignTokens; languages?
   const setEditingText = useEditor((s) => s.setEditingText);
   const drag = useEditor((s) => s.drag);
   const dynamic = useEditor((s) => s.dynamic);
+  const commerce = useEditor((s) => s.commerce);
   const frameRef = useRef<HTMLDivElement>(null);
   const [drop, setDrop] = useState<DropTarget | null>(null);
 
@@ -133,7 +134,7 @@ export function Canvas({ tokens, languages }: { tokens: DesignTokens; languages?
         }}
         onDrop={onDrop}
       >
-        <SiteDocument doc={doc} tokens={tokens} hooks={hooks} data={dynamic ?? undefined} editor languages={languages} />
+        <SiteDocument doc={doc} tokens={tokens} hooks={hooks} data={dynamic ?? undefined} editor languages={languages} commerce={commerce ?? undefined} />
         {drop && (
           <div
             aria-hidden
