@@ -5,6 +5,7 @@ import { localeInputSchema, type LocaleInput, type SiteLocaleInfo } from "@/lib/
 import type { TenantContext } from "@/lib/tenant";
 import { EditError } from "../content-service";
 import { siteCacheTag } from "../public-site";
+import { platformDomain } from "@/lib/env.mjs";
 
 /**
  * A site's languages. The first language added becomes the default and
@@ -54,7 +55,7 @@ async function assertPrefixFree(t: TenantContext, prefix: string) {
 
 async function assertDomainFree(domain: string | null | undefined, exceptId?: string) {
   if (!domain) return;
-  const root = (process.env.ROOT_DOMAIN ?? "localhost:3000").toLowerCase();
+  const root = platformDomain();
   if (domain === root || domain.endsWith(`.${root}`)) throw new EditError("Use a domain you own, not a platform address", "invalid");
   const [site, locale] = await Promise.all([
     prisma.site.findFirst({ where: { customDomain: domain }, select: { id: true } }),

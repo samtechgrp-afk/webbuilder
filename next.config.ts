@@ -1,8 +1,16 @@
 import type { NextConfig } from "next";
+import { assertEnv } from "./src/lib/env.mjs";
+
+// Stop `next dev` / `next build` on a broken configuration (SKIP_ENV_VALIDATION=1 skips it for image builds).
+assertEnv({ quiet: true });
 
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
+  // The Docker image runs the self-contained server from .next/standalone.
+  output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
+  // The health page compares applied migrations with the ones this build ships.
+  outputFileTracingIncludes: { "/admin/system/health": ["./prisma/migrations/**/*"] },
   // DOMPurify needs a real DOM on the server.
   serverExternalPackages: ["jsdom"],
   async headers() {

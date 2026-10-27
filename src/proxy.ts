@@ -4,6 +4,8 @@ import { SITE_ROOT_HEADER } from "@/lib/site-url";
 import { internalOrigin } from "@/lib/internal-origin";
 import { LOCALE_COOKIE, LOCALE_HEADER, groupAlternates, linkHeader, localeHref, matchAcceptLanguage } from "@/lib/i18n/locales";
 import { checkPublicRoute, type RouteCheck } from "@/server/route-check";
+import { platformDomain } from "@/lib/env.mjs";
+import { verifyOrderStatusToken } from "@/lib/order-status-token";
 
 /**
  * Edge of the platform (Next.js 16 "proxy", formerly middleware).
@@ -28,13 +30,21 @@ import { checkPublicRoute, type RouteCheck } from "@/server/route-check";
  *    of a clean URL to their language once (then a cookie remembers the
  *    choice), and every page announces its translations in a Link header.
  */
-const PORTAL_PATHS = /^\/(admin|login|logout|api|_next|uploads|favicon\.ico)(\/|$)/;
+const PORTAL_PATHS = /^\/(admin|login|logout|signup|order-status|api|_next|uploads|favicon\.ico)(\/|$)/;
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const host = (request.headers.get("host") ?? "").toLowerCase();
-  const root = (process.env.ROOT_DOMAIN ?? "localhost:3000").toLowerCase();
+  const root = platformDomain();
   const isPlatformHost = host === root || host.startsWith("127.0.0.1") || host === `www.${root}`;
+
+  const orderStatus = /^\/order-status\/([^/]+)$/.exec(pathname);
+  if (orderStatus && !verifyOrderStatusToken(decodeURIComponent(orderStatus[1]), request.nextUrl.searchParams.get("t"))) {
+    return new NextResponse("<!doctype html><title>Not found</title><p style=\"font:16px system-ui;margin:3rem auto;max-width:32rem\">This order link isn’t valid. Use the link in your receipt email.</p>", {
+      status: 404,
+      headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" },
+    });
+  }
 
   if (pathname.startsWith("/admin")) {
     const sid = await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
@@ -118,7 +128,7 @@ function mainBase(request: NextRequest, key: string, check: Extract<RouteCheck, 
   const origin = request.nextUrl.origin;
   if (!onOwnHost) return `${origin}/sites/${key}`;
   if (!check.hostLocale) return origin;
-  const root = (process.env.ROOT_DOMAIN ?? "localhost:3000").toLowerCase();
+  const root = platformDomain();
   return `${request.nextUrl.protocol}//${check.subdomain}.${root}`;
 }
 

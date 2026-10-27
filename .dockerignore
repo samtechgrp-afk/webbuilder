@@ -1,0 +1,13 @@
+.git
+.next
+node_modules
+npm-debug.log*
+.env
+.env.*
+!.env.example
+public/uploads
+storage
+e2e-screenshots
+coverage
+*.tsbuildinfo
+Dockerfile

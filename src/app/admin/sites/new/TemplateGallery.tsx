@@ -21,10 +21,17 @@ export interface TemplateSummary {
   counts: { pages: number; entries: number; products: number };
 }
 
+/** Choices from the welcome wizard, carried into the create form. */
+export interface SiteSetupChoice {
+  name: string;
+  locale: { code: string; label: string; currency: string } | null;
+  preset: string | null;
+}
+
 const DEVICES = { desktop: { label: "Desktop", width: 1440 }, tablet: { label: "Tablet", width: 820 }, mobile: { label: "Mobile", width: 390 } } as const;
 type Device = keyof typeof DEVICES;
 
-export function TemplateGallery({ templates, sectors }: { templates: TemplateSummary[]; sectors: Record<string, string> }) {
+export function TemplateGallery({ templates, sectors, setup }: { templates: TemplateSummary[]; sectors: Record<string, string>; setup?: SiteSetupChoice }) {
   const [sector, setSector] = useState<string>("all");
   const [open, setOpen] = useState<TemplateSummary | null>(null);
   const shown = sector === "all" ? templates : templates.filter((t) => t.sector === sector);
@@ -68,7 +75,7 @@ export function TemplateGallery({ templates, sectors }: { templates: TemplateSum
           </li>
         ))}
       </ul>
-      {open && <PreviewModal key={open.key} t={open} sectorLabel={sectors[open.sector]} onClose={() => setOpen(null)} />}
+      {open && <PreviewModal key={open.key} t={open} sectorLabel={sectors[open.sector]} setup={setup} onClose={() => setOpen(null)} />}
     </>
   );
 }
@@ -99,14 +106,14 @@ function Thumbnail({ t }: { t: TemplateSummary }) {
   );
 }
 
-function PreviewModal({ t, sectorLabel, onClose }: { t: TemplateSummary; sectorLabel: string; onClose: () => void }) {
+function PreviewModal({ t, sectorLabel, setup, onClose }: { t: TemplateSummary; sectorLabel: string; setup?: SiteSetupChoice; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const [device, setDevice] = useState<Device>("desktop");
   const [page, setPage] = useState(t.pages[0].slug);
   const [size, setSize] = useState({ w: 0, h: 0 });
-  const [name, setName] = useState("");
-  const [subdomain, setSubdomain] = useState("");
+  const [name, setName] = useState(setup?.name ?? "");
+  const [subdomain, setSubdomain] = useState(setup?.name ? suggestSubdomain(setup.name) : "");
   const [touched, setTouched] = useState(false);
   const [state, action, pending] = useActionState<CreateSiteState, FormData>(createSiteFromTemplateAction, null);
 
@@ -181,6 +188,14 @@ function PreviewModal({ t, sectorLabel, onClose }: { t: TemplateSummary; sectorL
             </ul>
             <form action={action} className="mt-6 space-y-4" data-create-form="">
               <input type="hidden" name="template" value={t.key} />
+              {setup?.locale && (
+                <>
+                  <input type="hidden" name="localeCode" value={setup.locale.code} />
+                  <input type="hidden" name="localeLabel" value={setup.locale.label} />
+                  <input type="hidden" name="currency" value={setup.locale.currency} />
+                </>
+              )}
+              {setup?.preset && <input type="hidden" name="preset" value={setup.preset} />}
               <div>
                 <label htmlFor="site-name" className="mb-1 block text-sm font-medium text-zinc-800">Site name</label>
                 <input

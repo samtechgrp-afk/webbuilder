@@ -11,6 +11,8 @@ export type SessionUser = {
   email: string;
   name: string | null;
   isPlatformAdmin: boolean;
+  /** Null until the first-time welcome wizard is finished or skipped. */
+  onboardedAt: Date | null;
 };
 
 const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
@@ -21,17 +23,22 @@ export async function signIn(email: string, password: string): Promise<SessionUs
   // Compare against a dummy hash when the user doesn't exist so timing doesn't reveal accounts.
   const ok = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH);
   if (!user || !ok) return null;
+  await openSession(user.id);
+  return { id: user.id, email: user.email, name: user.name, isPlatformAdmin: user.isPlatformAdmin, onboardedAt: user.onboardedAt };
+}
 
+/** Creates a Session row and sets the signed cookie. */
+export async function openSession(userId: string) {
   const h = await headers();
   const session = await prisma.session.create({
     data: {
-      userId: user.id,
+      userId,
       expiresAt: new Date(Date.now() + SESSION_TTL_SECONDS * 1000),
       userAgent: h.get("user-agent")?.slice(0, 300),
       ip: h.get("x-forwarded-for")?.split(",")[0]?.trim(),
     },
   });
-  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+  await prisma.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
 
   (await cookies()).set(SESSION_COOKIE, await signSessionToken(session.id), {
     httpOnly: true,
@@ -40,7 +47,6 @@ export async function signIn(email: string, password: string): Promise<SessionUs
     path: "/",
     maxAge: SESSION_TTL_SECONDS,
   });
-  return { id: user.id, email: user.email, name: user.name, isPlatformAdmin: user.isPlatformAdmin };
 }
 
 export async function signOut() {
@@ -56,7 +62,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   if (!sid) return null;
   const session = await prisma.session.findUnique({
     where: { id: sid },
-    include: { user: { select: { id: true, email: true, name: true, isPlatformAdmin: true } } },
+    include: { user: { select: { id: true, email: true, name: true, isPlatformAdmin: true, onboardedAt: true } } },
   });
   if (!session || session.expiresAt < new Date()) return null;
   return session.user;

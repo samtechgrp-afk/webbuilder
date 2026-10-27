@@ -1,6 +1,7 @@
 import "server-only";
 import { headers } from "next/headers";
 import { SITE_ROOT_HEADER } from "@/lib/site-url";
+import { platformDomain } from "@/lib/env.mjs";
 
 /**
  * The public base URL of a site, for canonical links, Open Graph URLs and
@@ -25,5 +26,5 @@ export async function mainBaseUrl(site: { subdomain: string; customDomain: strin
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? (/^(localhost|127\.|\[::1\])|\.localhost(:|$)/.test(host) ? "http" : "https");
-  return `${proto}://${site.subdomain}.${(process.env.ROOT_DOMAIN ?? "localhost:3000").toLowerCase()}`;
+  return `${proto}://${site.subdomain}.${platformDomain()}`;
 }

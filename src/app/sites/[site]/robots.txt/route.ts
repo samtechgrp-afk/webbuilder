@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { absoluteUrl } from "@/lib/seo/meta";
 import { readSiteSeo } from "@/lib/seo/settings";
 import { robotsTxt } from "@/lib/seo/sitemap";
@@ -9,6 +10,8 @@ import { publicBaseUrl } from "@/server/seo/public-url";
  * be indexed, disallow everything; others point crawlers at the sitemap.
  */
 export async function GET(_req: Request, ctx: RouteContext<"/sites/[site]/robots.txt">) {
+  // Rendered per request (the CDN caches it), so builds never need the database.
+  await connection();
   const { site: key } = await ctx.params;
   const site = await resolveSite(key);
   if (!site) return new Response("Not found", { status: 404 });

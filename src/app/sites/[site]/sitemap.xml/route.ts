@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { sitemapXml } from "@/lib/seo/sitemap";
 import { resolveSite } from "@/server/public-site";
 import { publicBaseUrl } from "@/server/seo/public-url";
@@ -5,6 +6,8 @@ import { getSitemapUrls } from "@/server/seo/seo-service";
 
 /** /sitemap.xml for one site (the proxy maps the site's own host here). Live, indexable URLs only. */
 export async function GET(_req: Request, ctx: RouteContext<"/sites/[site]/sitemap.xml">) {
+  // Rendered per request (the CDN caches it), so builds never need the database.
+  await connection();
   const { site: key } = await ctx.params;
   const site = await resolveSite(key);
   if (!site) return new Response("Not found", { status: 404 });

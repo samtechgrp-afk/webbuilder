@@ -3,7 +3,9 @@ import type { Prisma } from "@prisma/client";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/db";
 import { verifySignature } from "@/lib/commerce/stripe-signature";
+import { dispatchLater } from "@/lib/email/dispatcher";
 import { decryptSecret } from "../crypto";
+import { sendOrderEmails } from "../email/order-emails";
 import { siteCacheTag } from "../public-site";
 
 /**
@@ -38,6 +40,8 @@ interface SessionObject {
   customer_details?: { email?: string | null; name?: string | null } | null;
   shipping_details?: unknown;
   collected_information?: { shipping_details?: unknown } | null;
+  total_details?: { amount_tax?: number | null; amount_shipping?: number | null } | null;
+  shipping_cost?: { amount_total?: number | null } | null;
 }
 
 export async function handleStripeWebhook(raw: string, signature: string | null): Promise<WebhookResult> {
@@ -83,8 +87,13 @@ export async function handleStripeWebhook(raw: string, signature: string | null)
         ...customer,
         stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : (session.payment_intent?.id ?? null),
         amount: typeof session.amount_total === "number" ? session.amount_total : null,
+        taxAmount: session.total_details?.amount_tax ?? 0,
+        shippingAmount: session.total_details?.amount_shipping ?? session.shipping_cost?.amount_total ?? 0,
       });
       if (paid) revalidateTag(siteCacheTag(siteId), { expire: 0 });
+      // Receipt and store alert go out after Stripe has its 200. Redeliveries call it again:
+      // the dispatcher's idempotency keys make that a no-op unless the first attempt failed.
+      dispatchLater(() => sendOrderEmails(order.id));
       return { status: 200, body: { received: true, order: order.number, status: paid ? "PAID" : order.status } };
     }
     case "checkout.session.async_payment_failed":
@@ -101,7 +110,7 @@ type OrderWithItems = Prisma.OrderGetPayload<{ include: { items: true } }>;
 /** PENDING → PAID and stock out, once. Returns false when another delivery already did it. */
 async function markPaid(
   order: OrderWithItems,
-  data: { customerEmail: string | null; customerName: string | null; shippingAddr: Prisma.InputJsonValue | undefined; stripeSessionId: string | null; stripePaymentIntentId: string | null; amount: number | null },
+  data: { customerEmail: string | null; customerName: string | null; shippingAddr: Prisma.InputJsonValue | undefined; stripeSessionId: string | null; stripePaymentIntentId: string | null; amount: number | null; taxAmount: number; shippingAmount: number },
 ) {
   const { amount, ...fields } = data;
   if (amount !== null && amount !== order.totalAmount) console.warn(`order ${order.id}: Stripe charged ${amount}, order total ${order.totalAmount}`);
