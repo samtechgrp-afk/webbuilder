@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import type { TenantContext } from "@/lib/tenant";
 import { EditError } from "../content-service";
-import { localStorage } from "../media-processing";
+import { mediaStorage } from "../media-processing";
 import { siteCacheTag } from "../public-site";
 
 const metaSchema = z.object({
@@ -85,7 +85,7 @@ export async function deleteAssets(t: TenantContext, input: { ids: string[]; for
   for (const a of assets) {
     await t.db.mediaAsset.delete({ where: { id: a.id } });
     const keys = [a.storageKey, ...Object.values((a.variants ?? {}) as Record<string, string>).map((url) => url.replace(/^\/uploads\//, ""))];
-    await Promise.all(keys.map((k) => localStorage.remove(k)));
+    await Promise.all(keys.map((k) => mediaStorage().remove(k)));
     await t.db.auditLog.create({ data: { siteId: t.site.id, userId: t.user.id, action: "media.delete", targetId: a.id, data: { name: a.originalName } } });
   }
   if (used.size) updateTag(siteCacheTag(t.site.id));

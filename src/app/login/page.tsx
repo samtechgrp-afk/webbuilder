@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { LoginForm } from "./LoginForm";
@@ -15,6 +16,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <p className="text-xs font-semibold uppercase tracking-[.2em] text-zinc-400">Client portal</p>
         <h1 className="mb-6 mt-1 text-2xl font-semibold text-zinc-900">Sign in to your website</h1>
         <LoginForm next={typeof next === "string" ? next : undefined} />
+        <p className="mt-6 text-center text-sm text-zinc-500">
+          New here? <Link href="/signup" className="font-medium text-zinc-900 underline">Create a free account</Link>
+        </p>
       </div>
     </main>
   );

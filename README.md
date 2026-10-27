@@ -1,8 +1,10 @@
 # Website Builder
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsamtechgrp-afk%2Fwebbuilder&env=DATABASE_URL,SESSION_SECRET,ROOT_DOMAIN,RESEND_API_KEY,CRON_SECRET&envDescription=Postgres%20URL%2C%20a%2032%2B%20character%20session%20secret%2C%20the%20platform%20domain%2C%20and%20optional%20Resend%20and%20cron%20keys&envLink=https%3A%2F%2Fgithub.com%2Fsamtechgrp-afk%2Fwebbuilder%2Fblob%2Fmain%2F.env.example)
+
 A visual website builder and multi-tenant CMS with a client portal. Designers build premium sites with full control; clients sign in to their own portal and edit words, images, links and prices directly on the live page, inside guardrails the designer sets.
 
-**Status: phase 10** (starter templates; see [Starter templates](#starter-templates)). Phase 1 laid the multi-tenant foundation, full Prisma schema, RBAC, Client Mode editor with locked containers, revisions and rollback, and media ingest (WebP). Phase 2 added Design mode: drag widgets from a palette, rearrange in Layers, and style every element per breakpoint. Phase 3 added the CMS:
+**Status: phase 11** (launch readiness and self-hosting; see [Launch and self-hosting](#launch-and-self-hosting) and [Deploy](#deploy)). Phase 10 added [starter templates](#starter-templates). Phase 1 laid the multi-tenant foundation, full Prisma schema, RBAC, Client Mode editor with locked containers, revisions and rollback, and media ingest (WebP). Phase 2 added Design mode: drag widgets from a palette, rearrange in Layers, and style every element per breakpoint. Phase 3 added the CMS:
 
 - **Content dashboard** (`/admin/sites/:id/content`): per post type tables with search, sort, pagination and Published / Draft / Scheduled / Trash tabs; bulk publish, draft, trash, restore, delete and duplicate; a revision drawer with rollback; scheduled publishing through `/api/cron/scheduled`.
 - **Post types** (`/cpts`): labels, slug rules, URL prefix, archive, hierarchy, REST API toggle, icons, page templates, a taxonomy manager, and a single template designed on the canvas.
@@ -46,6 +48,7 @@ Phase 7 adds a headless GraphQL API:
 ```bash
 cp .env.example .env            # set DATABASE_URL and SESSION_SECRET
 npm install
+npm run env:check               # validates .env the way the server does at boot
 npm run db:migrate              # creates the schema
 npm run db:seed                 # two demo tenants, users, media, published pages
 npm run dev                     # http://localhost:3000
@@ -61,7 +64,7 @@ Demo logins (password `demo-password-2026`):
 | `client@northwind.test` | Client Admin | Northwind only |
 | `admin@platform.test` | Super Admin | Everything |
 
-Live sites: `/sites/aurelia`, `/sites/northwind`, or `aurelia.localhost:3000` once your hosts resolve subdomains.
+Live sites: `/sites/aurelia`, `/sites/northwind`, or `aurelia.localhost:3000` once your hosts resolve subdomains. New accounts sign up at `/signup` and land in the welcome wizard; the seeded accounts above skip it.
 
 ## Checks
 
@@ -81,6 +84,8 @@ npm run e2e:ecommerce            # Playwright + Stripe mock: payments lockout, c
 npm run e2e:i18n                 # Playwright: languages, prefixed routing, Accept-Language, locale domain, translation drawer, structural lockout, hreflang, sitemap, GraphQL
 CRON_SECRET=… npm run e2e:cms    # Playwright: CPT + fields → client entry → loop grid binding → live site, media, trash, restore, schedule
 npm run e2e:templates            # Playwright: client lockout, gallery filters, device previews, one-click create → canvas, all 30 templates → entity counts, live = preview, tenant isolation
+RESEND_API_KEY=re_e2e_test_key RESEND_API_BASE=http://127.0.0.1:4243 STRIPE_API_BASE=http://127.0.0.1:4242 npm start   # for the launch suite
+npm run e2e:launch-prep          # Playwright + Stripe and Resend mocks: env validation at boot, sign-up → wizard → site, welcome email, order receipt and store alert, replay safety, order status link, Client Mode badges, help drawer, system health
 ```
 
 Reseed with the server stopped (or restart it after seeding): resolved sites are cached by subdomain. For scheduled publishing in production, set `CRON_SECRET`; `vercel.json` calls the cron route every minute. The proxy fetches the rendered 404 page from `INTERNAL_URL` (defaults to `https://$VERCEL_URL`, else `http://127.0.0.1:$PORT`); with Vercel Deployment Protection on, point `INTERNAL_URL` at a reachable origin.
@@ -127,6 +132,50 @@ New sites start from one of 30 blueprints across six sectors: SaaS & Tech, E-Com
 To add a blueprint, drop a JSON file named after its `key` into `blueprints/`, add it to `blueprints/index.ts`, and run `npm test`; the catalog tests check that it parses, compiles to valid documents and has valid sample values.
 
 Uploads now go through a route handler (`src/app/uploads/[...path]`), because `next start` only serves files that were in `public/` when it booted. Without it, images uploaded or seeded after start-up returned 404 until a restart.
+
+## Launch and self-hosting
+
+- **Welcome wizard** (`/admin/onboarding`): anyone who signs up at `/signup` (or a new platform admin) gets a four-step modal: site title, default language and currency, an optional theme preset (Linear Dark, Stripe Clean, Vercel Monochrome, or the template's own design), then the template gallery. The choices ride along in the create form and are applied to the new site in the same request. "Skip for now" goes to the dashboard. Set `SIGNUPS=closed` to make the platform invite-only.
+- **Builder help**: a **?** button in the editor header (or the <kbd>?</kbd> key) opens a drawer with keyboard shortcuts (⌘ on Apple devices, Ctrl elsewhere; Designer-only ones hidden from clients) and how bound content, loop grids and custom fields work. In Client Mode, hovering a layout container shows a "Layout locked" badge whose tooltip reads: *Text, links, and media are editable here. Structural layouts and grid columns are locked by your Designer.*
+- **Email** (`src/lib/email/*`): one dispatcher sends everything through Resend's REST API. Each email is recorded in `EmailLog` under an idempotency key first, so a redelivered Stripe webhook can't send it twice (a failed attempt is retried on the next delivery). Without `RESEND_API_KEY`, emails are written to the server log. Templates are table-based HTML with inline styles plus a plain-text part, in the site's accent colour:
+  - **Order receipt** to the customer on `checkout.session.completed`: items, subtotal, shipping, tax, total in the order's currency and language, shipping address, and a link to `/order-status/<order>?t=…` (an HMAC token, since there are no customer accounts).
+  - **Store alert** to everyone with `commerce.manage` on the site: customer, items with SKUs, address, an urgency badge ("Ship within 2 business days" or "Digital: nothing to ship") and a link to the order. Replying goes to the customer.
+  - **Site welcome** to whoever created a site from a template: editor, live site and design-system links.
+- **Environment validation** (`src/lib/env.mjs`): a zod schema for every setting. `next dev`, `next build` and `next start` stop with a plain list of what's missing or malformed (never echoing secret values); `npm run env:check` runs the same check. `ROOT_DOMAIN` is the platform host (`NEXT_PUBLIC_PLATFORM_DOMAIN` works too). `STRIPE_SECRET_KEY` is optional because each shop connects its own Stripe keys.
+- **Storage**: `STORAGE_DRIVER=s3` stores uploads in any S3-compatible bucket (AWS S3, Cloudflare R2, SeaweedFS, Garage, MinIO) through a small SigV4 client (`src/lib/storage/s3.mjs`). Media URLs stay `/uploads/<key>`: the uploads route streams from the bucket, or redirects to `S3_PUBLIC_URL` when you put a CDN or public bucket in front.
+- **Built-in roles** are created (and kept in sync with `src/lib/rbac.ts`) when the server starts, so a fresh database works without the demo seed.
+- **System health** (`/admin/system/health`, platform admins only; linked from **Your sites**): database round trip and version, applied vs shipped migrations, a write/read/delete storage probe, the Resend key and sending domain plus the last 24 hours of email, wildcard DNS and every custom or language domain, and configuration warnings. It refreshes every 15 seconds. `/api/health` is a bare `{ ok }` for load balancers and the Docker healthcheck.
+
+## Deploy
+
+All settings are listed, with comments, in [`.env.example`](.env.example).
+
+### Vercel
+
+Use the **Deploy with Vercel** button above (or import the repository), add a Postgres database (below), and set `DATABASE_URL`, `SESSION_SECRET`, `ROOT_DOMAIN`, `CRON_SECRET` and `RESEND_API_KEY`. The `vercel-build` script applies migrations before building. Then:
+
+- Add `ROOT_DOMAIN` and `*.ROOT_DOMAIN` as domains on the project (a wildcard needs Vercel's nameservers), plus each client's custom domain.
+- Set `STORAGE_DRIVER=s3` with an R2 or S3 bucket: Vercel's disk is temporary, so local uploads would vanish on the next deploy.
+- `vercel.json` runs the scheduled-publishing cron every minute, which needs a Pro plan; on Hobby, change the schedule to daily or call `/api/cron/scheduled` from another scheduler with `Authorization: Bearer $CRON_SECRET`.
+
+### Docker
+
+```bash
+cp .env.example .env     # set SESSION_SECRET, ROOT_DOMAIN, ADMIN_EMAIL and ADMIN_PASSWORD
+docker compose up --build
+```
+
+`docker-compose.yml` runs four services: **db** (Postgres 16), **storage** (SeaweedFS, an S3-compatible store for uploads), **init** (a one-shot job from the image's `migrate` stage: creates the bucket, runs `prisma migrate deploy`, and on an empty database creates the first platform admin from `ADMIN_EMAIL`/`ADMIN_PASSWORD`, or loads the demo data with `SEED_DEMO=true`), and **app** (the Next.js standalone server as a non-root user, started once init succeeds). Open http://localhost:3000 and sign in; the welcome wizard starts your first site.
+
+The `Dockerfile` is multi-stage (deps → builder → migrate / runner); the runner image holds only the standalone output, static assets and `public/`. To use AWS S3 or R2 instead of SeaweedFS, set the `S3_*` variables and remove the storage service. Redis isn't included because nothing in the app uses it yet. Put a reverse proxy (Caddy, nginx, Traefik) in front for TLS, forwarding both `ROOT_DOMAIN` and `*.ROOT_DOMAIN`.
+
+### Postgres
+
+Any Postgres 14+ works. Apply migrations with `npx prisma migrate deploy` (the Vercel build and the Docker init job do this for you).
+
+- **Neon**: create a project and copy the **pooled** connection string (host contains `-pooler`), adding `&pgbouncer=true&connect_timeout=15`. Serverless functions open many short connections, which the pooler absorbs.
+- **Supabase**: Project settings → Database → Connection string. Use the transaction pooler (port 6543) with `?pgbouncer=true` for `DATABASE_URL` on Vercel. Run migrations against the direct connection (port 5432), e.g. `DATABASE_URL=<direct url> npx prisma migrate deploy`.
+- **Self-managed** (a VM, RDS, Cloud SQL, or the compose `db` service): create a database and a user that owns it, then use `postgresql://user:password@host:5432/builder?schema=public` (add `&sslmode=require` when the server requires TLS). Back it up: everything except uploads lives there.
 
 ## Where things live
 
@@ -176,4 +225,13 @@ Uploads now go through a route handler (`src/app/uploads/[...path]`), because `n
 | `src/lib/templates/blueprints/*.json` | The 30 starter template manifests |
 | `src/server/template-service.ts`, `src/server/template-actions.ts` | Who can create sites, and the create-from-template action |
 | `src/app/admin/sites/new` | Template gallery, preview modal and preview routes |
-| `src/app/uploads/[...path]` | Serves uploaded files added after the server started |
+| `src/app/uploads/[...path]` | Serves uploads: local files added after the server started, or streamed from the S3 bucket |
+| `src/lib/env.mjs`, `scripts/env-check.mjs`, `src/instrumentation.ts` | Environment schema and readable errors; the CLI check; boot-time validation and system-role sync |
+| `src/lib/email/*`, `src/server/email/*` | Email dispatcher (Resend REST, EmailLog idempotency, log fallback), HTML/text templates, order and welcome senders, absolute links |
+| `src/app/order-status/[orderId]` | Customer order status page (HMAC link from the receipt) |
+| `src/app/signup`, `src/app/admin/onboarding` | Sign-up and the welcome wizard |
+| `src/components/editor/HelpDrawer.tsx` | Builder help: shortcuts and dynamic-content tips |
+| `src/lib/storage/s3.mjs` | S3-compatible client (SigV4 over fetch) behind `STORAGE_DRIVER=s3` |
+| `src/server/system/health.ts`, `src/app/admin/system/health`, `src/app/api/health` | Health checks, the platform admin dashboard and the liveness endpoint |
+| `Dockerfile`, `docker-compose.yml`, `scripts/docker-init.mjs`, `deploy/` | Self-hosting image, stack and init job |
+| `scripts/stripe-mock.mjs`, `scripts/resend-mock.mjs` | Local stand-ins for Stripe and Resend used by the e2e suites |

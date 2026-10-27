@@ -30,6 +30,8 @@ model User {
   isPlatformAdmin Boolean   @default(false)
   avatarUrl       String?
   lastLoginAt     DateTime?
+  /// Set when the first-time welcome wizard is finished or skipped. Null sends the user to /admin/onboarding.
+  onboardedAt     DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -162,6 +164,7 @@ model Site {
   orderItems   OrderItem[]
   editLocks    EditLock[]
   auditLogs    AuditLog[]
+  emailLogs    EmailLog[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -798,6 +801,9 @@ model Order {
   customerEmail         String?
   customerName          String?
   totalAmount           Int
+  /// From the paid Stripe session's totals, minor units (0 when Stripe added none).
+  taxAmount             Int         @default(0)
+  shippingAmount        Int         @default(0)
   currency              String
   status                OrderStatus @default(PENDING)
   shippingAddr          Json?
@@ -834,4 +840,34 @@ model OrderItem {
   variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
   @@index([siteId, orderId])
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  /// No RESEND_API_KEY: written to the server log instead.
+  LOGGED
+  FAILED
+}
+
+/// One row per transactional email. The idempotency key stops a replayed
+/// webhook or a double submit from sending the same email twice.
+model EmailLog {
+  id             String      @id @default(cuid())
+  /// Null for platform emails that belong to no site.
+  siteId         String?
+  tag            String
+  to             String
+  subject        String
+  status         EmailStatus @default(QUEUED)
+  idempotencyKey String      @unique
+  providerId     String?
+  error          String?
+  createdAt      DateTime    @default(now())
+  sentAt         DateTime?
+
+  site Site? @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, createdAt])
+  @@index([status, createdAt])
 }

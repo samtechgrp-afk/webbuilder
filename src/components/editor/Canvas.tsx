@@ -28,6 +28,8 @@ export function Canvas({ tokens, languages }: { tokens: DesignTokens; languages?
   const commerce = useEditor((s) => s.commerce);
   const frameRef = useRef<HTMLDivElement>(null);
   const [drop, setDrop] = useState<DropTarget | null>(null);
+  const [hover, setHover] = useState<{ id: string; x: number; y: number } | null>(null);
+  const isDesigner = useMemo(() => nodeCapabilities(doc, doc.rootId, ctx).isDesigner, [doc, ctx]);
 
   const hooks = useMemo<RenderHooks>(() => {
     const parents = parentMap(doc);
@@ -55,6 +57,7 @@ export function Canvas({ tokens, languages }: { tokens: DesignTokens; languages?
           "data-selected": selectedId === node.id ? "true" : undefined,
           "data-editable": caps.canEditContent && !(bound && WIDGETS[node.type].contentFields.every((f) => isBoundField(doc, node.id, f.key))) ? "true" : undefined,
           "data-bound": bound ? "true" : undefined,
+          "data-container": WIDGETS[node.type].isContainer && node.id !== doc.rootId ? "true" : undefined,
           "data-lock": caps.locks.layout && WIDGETS[node.type].isContainer && node.locks?.layout ? "layout" : undefined,
           "data-content-lock": caps.locks.content && WIDGETS[node.type].contentFields.length ? "true" : undefined,
           onClick: (e: MouseEvent) => {
@@ -133,8 +136,23 @@ export function Canvas({ tokens, languages }: { tokens: DesignTokens; languages?
           if (!frameRef.current?.contains(e.relatedTarget as Node)) setDrop(null);
         }}
         onDrop={onDrop}
+        onMouseOver={
+          isDesigner
+            ? undefined
+            : (e) => {
+                const el = (e.target as HTMLElement).closest<HTMLElement>("[data-container='true']");
+                const id = el?.dataset.nodeId ?? null;
+                if (id === (hover?.id ?? null)) return;
+                if (!el || !id || !frameRef.current) return setHover(null);
+                const r = el.getBoundingClientRect();
+                const f = frameRef.current.getBoundingClientRect();
+                setHover({ id, x: Math.max(8, r.right - f.left - 8), y: Math.max(8, r.top - f.top + 8) });
+              }
+        }
+        onMouseLeave={isDesigner ? undefined : (e) => !frameRef.current?.contains(e.relatedTarget as Node) && setHover(null)}
       >
         <SiteDocument doc={doc} tokens={tokens} hooks={hooks} data={dynamic ?? undefined} editor languages={languages} commerce={commerce ?? undefined} />
+        {!isDesigner && hover && <StructureBadge {...hover} />}
         {drop && (
           <div
             aria-hidden
@@ -146,6 +164,36 @@ export function Canvas({ tokens, languages }: { tokens: DesignTokens; languages?
           />
         )}
       </div>
+    </div>
+  );
+}
+
+export const STRUCTURE_TIP = "Text, links, and media are editable here. Structural layouts and grid columns are locked by your Designer.";
+
+/**
+ * Client Mode: a small badge on the container under the pointer explaining
+ * what can and can't change there. The tooltip shows on hover and on focus.
+ */
+function StructureBadge({ id, x, y }: { id: string; x: number; y: number }) {
+  return (
+    <div className="group absolute z-30 -translate-x-full" style={{ left: x, top: y }} data-structure-badge={id}>
+      <button
+        type="button"
+        aria-describedby="structure-tip"
+        onClick={(e) => e.stopPropagation()}
+        className="flex items-center gap-1 whitespace-nowrap rounded-full bg-zinc-900/85 px-2 py-0.5 text-[11px] font-medium text-white shadow backdrop-blur focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+      >
+        <svg aria-hidden viewBox="0 0 16 16" className="h-3 w-3 shrink-0 fill-current"><path d="M5 7V5a3 3 0 1 1 6 0v2h.5A1.5 1.5 0 0 1 13 8.5v5a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 13.5v-5A1.5 1.5 0 0 1 4.5 7H5Zm1.5 0h3V5a1.5 1.5 0 0 0-3 0v2Z" /></svg>
+        Layout locked
+      </button>
+      <p
+        id="structure-tip"
+        role="tooltip"
+        className="pointer-events-none absolute top-full right-0 mt-1.5 w-64 rounded-lg bg-zinc-900 px-3 py-2 text-xs leading-relaxed text-zinc-100 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        data-structure-tip=""
+      >
+        {STRUCTURE_TIP}
+      </p>
     </div>
   );
 }

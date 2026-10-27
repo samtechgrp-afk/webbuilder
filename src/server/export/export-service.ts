@@ -16,6 +16,7 @@ import type { RevisionMeta } from "../cms/dynamic";
 import { entryPath, getSitemapUrls } from "../seo/seo-service";
 import { localePath } from "@/lib/i18n/locales";
 import { readSiteLocales } from "../i18n/locale-service";
+import { platformDomain } from "@/lib/env.mjs";
 
 /**
  * The export engine. A Designer starts an export; it runs in the background
@@ -44,7 +45,7 @@ export interface ExportManifest {
 
 export function defaultBaseUrl(site: { subdomain: string; customDomain: string | null }) {
   if (site.customDomain) return `https://${site.customDomain}`;
-  const root = process.env.ROOT_DOMAIN ?? "localhost:3000";
+  const root = platformDomain();
   return `${/^localhost|^127\./.test(root) ? "http" : "https"}://${site.subdomain}.${root}`;
 }
 

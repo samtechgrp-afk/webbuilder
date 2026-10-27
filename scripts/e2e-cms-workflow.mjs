@@ -10,8 +10,8 @@
 //   5. Media upload with SVG sanitising and alt text, bulk trash, revision
 //      restore, and scheduled publishing through the cron endpoint.
 //
-// Usage: npm run db:seed && npm run build && CRON_SECRET=e2e-cron-secret npm start   (in another shell)
-//        CRON_SECRET=e2e-cron-secret npm run e2e:cms
+// Usage: npm run db:seed && npm run build && CRON_SECRET=e2e-cron-secret-2026 npm start   (in another shell)
+//        CRON_SECRET=e2e-cron-secret-2026 npm run e2e:cms
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "playwright";

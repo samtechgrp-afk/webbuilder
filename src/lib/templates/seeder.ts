@@ -3,7 +3,8 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import type { ImageValue } from "@/lib/builder/types";
 import { prisma as defaultDb } from "@/lib/db";
 import { readSiteSeo } from "@/lib/seo/settings";
-import { localStorage, processImage, type StorageAdapter } from "@/server/media-processing";
+import { ensureSystemRoles } from "@/server/system-roles";
+import { mediaStorage, processImage, type StorageAdapter } from "@/server/media-processing";
 import { toImage } from "@/server/cms/dynamic";
 import { artworkFileName, artworkSvg, blueprintPalette } from "./artwork";
 import { compileBlueprint } from "./compile";
@@ -68,12 +69,15 @@ export async function instantiateBlueprint(input: InstantiateInput, opts: { db?:
   const problem = subdomainProblem(subdomain);
   if (problem) throw new TemplateError(problem, "subdomain");
   if (await db.site.findUnique({ where: { subdomain }, select: { id: true } })) throw new TemplateError("That address is taken", "subdomain");
-  const designerRole = await db.role.findFirst({ where: { siteId: null, key: "designer" }, select: { id: true } });
-  if (!designerRole) throw new Error("The Designer system role is missing");
+  let designerRole = await db.role.findFirst({ where: { siteId: null, key: "designer" }, select: { id: true } });
+  if (!designerRole) {
+    await ensureSystemRoles(db);
+    designerRole = await db.role.findFirstOrThrow({ where: { siteId: null, key: "designer" }, select: { id: true } });
+  }
 
   const siteId = newId();
   const currency = blueprintCurrency(bp);
-  const { adapter, cleanup } = trackingStorage(opts.storage ?? localStorage);
+  const { adapter, cleanup } = trackingStorage(opts.storage ?? mediaStorage());
 
   try {
     // ── Artwork (outside the transaction) ───────────────────────────────────

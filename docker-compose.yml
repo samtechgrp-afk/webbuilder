@@ -1,0 +1,88 @@
+# Self-hosted stack: the Next.js server, Postgres, and S3-compatible storage
+# for uploads (SeaweedFS). `init` applies migrations and creates the bucket
+# before the app starts.
+#
+#   cp .env.example .env    # set SESSION_SECRET at least
+#   docker compose up --build
+#
+# Then open http://localhost:3000. Values below fall back to local defaults;
+# anything in .env overrides them. For production, change the database and
+# storage passwords (and deploy/seaweedfs-s3.json, or point S3_* at AWS S3 or
+# Cloudflare R2 and drop the storage service).
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql://${POSTGRES_USER:-builder}:${POSTGRES_PASSWORD:-builder}@db:5432/${POSTGRES_DB:-builder}?schema=public
+  SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env (openssl rand -base64 32)}
+  ROOT_DOMAIN: ${ROOT_DOMAIN:-localhost:3000}
+  SECRETS_KEY: ${SECRETS_KEY:-}
+  CRON_SECRET: ${CRON_SECRET:-}
+  RESEND_API_KEY: ${RESEND_API_KEY:-}
+  EMAIL_FROM: ${EMAIL_FROM:-}
+  SIGNUPS: ${SIGNUPS:-open}
+  STORAGE_DRIVER: s3
+  S3_ENDPOINT: http://storage:8333
+  S3_REGION: us-east-1
+  S3_BUCKET: ${S3_BUCKET:-uploads}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-builder}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-builder-local-secret}
+  S3_PUBLIC_URL: ${S3_PUBLIC_URL:-}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-builder}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-builder}
+      POSTGRES_DB: ${POSTGRES_DB:-builder}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  storage:
+    image: chrislusf/seaweedfs:latest
+    restart: unless-stopped
+    command: server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json
+    volumes:
+      - s3data:/data
+      - ./deploy/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+
+  init:
+    build:
+      context: .
+      target: migrate
+    environment:
+      <<: *app-env
+      SEED_DEMO: ${SEED_DEMO:-false}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      storage:
+        condition: service_started
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    environment: *app-env
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - exports:/app/storage
+    depends_on:
+      init:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+  s3data:
+  exports:

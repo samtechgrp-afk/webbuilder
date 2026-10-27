@@ -149,6 +149,7 @@ async function translate(
 
 async function main() {
   console.log("Resetting demo data…");
+  await prisma.emailLog.deleteMany();
   await prisma.site.deleteMany();
   await prisma.user.deleteMany();
   await prisma.role.deleteMany();
@@ -163,7 +164,7 @@ async function main() {
 
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
   const user = (email: string, name: string, isPlatformAdmin = false) =>
-    prisma.user.create({ data: { email, name, passwordHash, isPlatformAdmin } });
+    prisma.user.create({ data: { email, name, passwordHash, isPlatformAdmin, onboardedAt: new Date() } });
 
   const [admin, designer, olivia, sam, nora] = await Promise.all([
     user("admin@platform.test", "Platform Admin", true),

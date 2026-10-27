@@ -1,12 +1,13 @@
 import "server-only";
 import { formEncode } from "@/lib/commerce/stripe-form";
+import { getEnv } from "@/lib/env.mjs";
 
 /**
  * A minimal Stripe REST client: the two calls the shop needs, over fetch.
  * STRIPE_API_BASE points it at a local mock for tests; it defaults to
  * Stripe itself.
  */
-const apiBase = () => (process.env.STRIPE_API_BASE || "https://api.stripe.com").replace(/\/$/, "");
+const apiBase = () => (getEnv().STRIPE_API_BASE || "https://api.stripe.com").replace(/\/$/, "");
 
 export class StripeError extends Error {
   constructor(message: string, readonly status: number) {

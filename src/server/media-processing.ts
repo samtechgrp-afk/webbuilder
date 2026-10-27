@@ -1,17 +1,22 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
+import { deleteObject, getObject, putObject, s3ConfigFrom, type S3Config } from "@/lib/storage/s3.mjs";
 
 /**
  * Image ingest: every upload becomes WebP, gets responsive variants and a
- * blur placeholder, and is stored under the site's own prefix. Local disk in
- * development; swap `storage` for S3/R2 in production (same key layout).
+ * blur placeholder, and is stored under the site's own prefix. Local disk by
+ * default; STORAGE_DRIVER=s3 keeps the same key layout in any S3-compatible
+ * bucket. Either way the public URL is /uploads/<key>, served by the uploads
+ * route, so stored content never changes when the driver does.
  */
 
 export interface StorageAdapter {
   put(key: string, body: Buffer, contentType: string): Promise<string>;
   remove(key: string): Promise<void>;
+  /** null when there's no such object. */
+  get?(key: string): Promise<{ body: Uint8Array; contentType: string | null } | null>;
 }
 
 const uploadsDir = () => path.join(process.cwd(), "public", "uploads");
@@ -29,7 +34,37 @@ export const localStorage: StorageAdapter = {
     if (!file.startsWith(uploadsDir() + path.sep)) return;
     await rm(file, { force: true });
   },
+  async get(key) {
+    const file = path.resolve(uploadsDir(), key);
+    if (!file.startsWith(uploadsDir() + path.sep)) return null;
+    try {
+      return { body: new Uint8Array(await readFile(file)), contentType: null };
+    } catch {
+      return null;
+    }
+  },
 };
+
+export function s3Storage(cfg: S3Config): StorageAdapter {
+  return {
+    async put(key, body, contentType) {
+      await putObject(cfg, key, body, contentType);
+      return `/uploads/${key}`;
+    },
+    remove: (key) => deleteObject(cfg, key),
+    get: (key) => getObject(cfg, key),
+  };
+}
+
+let selected: StorageAdapter | undefined;
+/** The adapter STORAGE_DRIVER picks (read once per process). */
+export function mediaStorage(): StorageAdapter {
+  if (!selected) {
+    const cfg = s3ConfigFrom(process.env);
+    selected = cfg ? s3Storage(cfg) : localStorage;
+  }
+  return selected;
+}
 
 /** Responsive widths generated for every raster image (never upscaled). */
 export const VARIANT_WIDTHS = [320, 640, 960, 1280, 1920];
@@ -65,7 +100,7 @@ export const FILE_KINDS: Record<string, { ext: string; kind: "video" | "document
  * from the allowlist above (never the uploader's), so a file can't pick how
  * it's served.
  */
-export async function processFile(siteId: string, input: Buffer, originalName: string, mimeType: string, storage: StorageAdapter = localStorage) {
+export async function processFile(siteId: string, input: Buffer, originalName: string, mimeType: string, storage: StorageAdapter = mediaStorage()) {
   const spec = FILE_KINDS[mimeType];
   if (!spec) throw new Error("Unsupported file type");
   const storageKey = `${siteId}/${randomUUID()}.${spec.ext}`;
@@ -74,7 +109,7 @@ export async function processFile(siteId: string, input: Buffer, originalName: s
 }
 
 /** Sanitised SVG, stored as SVG (vector logos and icons stay crisp). */
-export async function processSvg(siteId: string, clean: string, originalName: string, storage: StorageAdapter = localStorage) {
+export async function processSvg(siteId: string, clean: string, originalName: string, storage: StorageAdapter = mediaStorage()) {
   const body = Buffer.from(clean, "utf8");
   const storageKey = `${siteId}/${randomUUID()}.svg`;
   const url = await storage.put(storageKey, body, "image/svg+xml");
@@ -88,7 +123,7 @@ export async function processSvg(siteId: string, clean: string, originalName: st
   };
 }
 
-export async function processImage(siteId: string, input: Buffer, originalName: string, storage: StorageAdapter = localStorage) {
+export async function processImage(siteId: string, input: Buffer, originalName: string, storage: StorageAdapter = mediaStorage()) {
   const id = randomUUID();
   const image = sharp(input, { failOn: "error" }).rotate();
   const meta = await image.metadata();

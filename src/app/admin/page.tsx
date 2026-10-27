@@ -5,12 +5,14 @@ import { requireUser } from "@/lib/auth";
 import { listUserSites } from "@/lib/tenant";
 import { canCreateSites } from "@/server/template-service";
 import { logout } from "../login/actions";
+import { platformDomain } from "@/lib/env.mjs";
 
 export const metadata: Metadata = { title: "Your sites" };
 
 /** After login: a client with one site goes straight to it; designers and staff pick. */
 export default async function AdminHome() {
   const user = await requireUser();
+  if (!user.onboardedAt) redirect("/admin/onboarding");
   const sites = await listUserSites(user);
   const canCreate = await canCreateSites(user);
   if (sites.length === 1 && !user.isPlatformAdmin && !canCreate) redirect(`/admin/sites/${sites[0].site.id}`);
@@ -20,6 +22,11 @@ export default async function AdminHome() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-zinc-900">Your sites</h1>
         <div className="flex items-center gap-4">
+          {user.isPlatformAdmin && (
+            <Link href="/admin/system/health" className="text-sm text-zinc-500 hover:text-zinc-900" data-system-health-link="">
+              System health
+            </Link>
+          )}
           {canCreate && (
             <Link href="/admin/sites/new" className="rounded-lg bg-zinc-900 px-3.5 py-2 text-sm font-medium text-white hover:bg-zinc-800" data-new-site="">
               New site
@@ -36,7 +43,7 @@ export default async function AdminHome() {
             <Link href={`/admin/sites/${site.id}`} className="flex items-center justify-between px-5 py-4 hover:bg-zinc-50">
               <span>
                 <span className="block font-medium text-zinc-900">{site.name}</span>
-                <span className="text-sm text-zinc-500">{site.customDomain ?? `${site.subdomain}.${process.env.ROOT_DOMAIN}`}</span>
+                <span className="text-sm text-zinc-500">{site.customDomain ?? `${site.subdomain}.${platformDomain()}`}</span>
               </span>
               <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-600">{roleName}</span>
             </Link>

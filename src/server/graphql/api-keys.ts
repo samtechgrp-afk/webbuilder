@@ -66,7 +66,7 @@ export async function resolveViewer(request: Request, site: { id: string; graphq
   if (key) {
     if (!site.graphqlEnabled) throw new AuthError("The GraphQL API is turned off for this site", 404);
     if (!KEY_RE.test(key)) throw new AuthError("Invalid API key", 401);
-    const row = await prisma.apiKey.findUnique({ where: { keyHash: hashKey(key) }, include: { createdBy: { select: { id: true, email: true, name: true, isPlatformAdmin: true } } } });
+    const row = await prisma.apiKey.findUnique({ where: { keyHash: hashKey(key) }, include: { createdBy: { select: { id: true, email: true, name: true, isPlatformAdmin: true, onboardedAt: true } } } });
     if (!row || row.siteId !== site.id || row.revokedAt) throw new AuthError("Invalid API key", 401);
     if (!row.lastUsedAt || Date.now() - row.lastUsedAt.getTime() > 60_000) {
       await prisma.apiKey.update({ where: { id: row.id }, data: { lastUsedAt: new Date() } });

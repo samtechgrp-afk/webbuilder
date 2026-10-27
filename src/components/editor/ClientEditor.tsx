@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { DesignTokens } from "@/lib/builder/styles";
 import { BREAKPOINT_ORDER, BREAKPOINTS, type BuilderDocument } from "@/lib/builder/types";
 import type { DynamicData } from "@/lib/cms/binding";
@@ -14,6 +14,7 @@ import { Inspector } from "./Inspector";
 import type { PickerAsset } from "./MediaPicker";
 import { DesignSidebar } from "./DesignSidebar";
 import { DesignSystemDrawer } from "./DesignSystemDrawer";
+import { HelpDrawer } from "./HelpDrawer";
 import { parentOf, selectIsDirty, selectTokensDirty, useEditor, type BindingCatalog } from "./store";
 
 export interface RevisionSummary {
@@ -67,6 +68,8 @@ export function ClientEditor(props: ClientEditorProps) {
   const router = useRouter();
   const [assets, setAssets] = useState(props.assets);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const closeHelp = useCallback(() => setHelpOpen(false), []);
   const [tokensOpen, setTokensOpen] = useState(false);
   const [lockLost, setLockLost] = useState<string | null>(props.lock.ok ? null : props.lock.holder);
   const [pending, startTransition] = useTransition();
@@ -112,7 +115,10 @@ export function ClientEditor(props: ClientEditorProps) {
       const s = useEditor.getState();
       const mod = e.metaKey || e.ctrlKey;
       const key = e.key.toLowerCase();
-      if (mod && key === "z") {
+      if (key === "?" && !mod) {
+        e.preventDefault();
+        setHelpOpen((open) => !open);
+      } else if (mod && key === "z") {
         e.preventDefault();
         if (e.shiftKey) s.redo();
         else s.undo();
@@ -221,6 +227,17 @@ export function ClientEditor(props: ClientEditorProps) {
           <button type="button" onClick={() => setHistoryOpen(true)} className="rounded-md px-2.5 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800">
             History
           </button>
+          <button
+            type="button"
+            aria-label="Help and keyboard shortcuts"
+            aria-pressed={helpOpen}
+            title="Help (?)"
+            onClick={() => setHelpOpen(!helpOpen)}
+            className={`grid h-7 w-7 place-items-center rounded-full border text-xs font-semibold ${helpOpen ? "border-zinc-500 bg-zinc-700 text-white" : "border-zinc-700 text-zinc-300 hover:bg-zinc-800"}`}
+            data-open-help=""
+          >
+            ?
+          </button>
           <a href={site.liveUrl} target="_blank" rel="noreferrer" className="rounded-md px-2.5 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800">
             View live ↗
           </a>
@@ -303,6 +320,7 @@ export function ClientEditor(props: ClientEditorProps) {
         </aside>
       </div>
 
+      {helpOpen && <HelpDrawer siteId={site.id} designMode={designMode} canManageFields={can("schema.manage")} onClose={closeHelp} />}
       {canTokens && tokensOpen && <DesignSystemDrawer siteId={site.id} onClose={() => setTokensOpen(false)} />}
 
       {historyOpen && (
