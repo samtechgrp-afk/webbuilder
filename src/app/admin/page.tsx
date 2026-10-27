@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { listUserSites } from "@/lib/tenant";
+import { canCreateSites } from "@/server/template-service";
 import { logout } from "../login/actions";
 
 export const metadata: Metadata = { title: "Your sites" };
@@ -11,15 +12,23 @@ export const metadata: Metadata = { title: "Your sites" };
 export default async function AdminHome() {
   const user = await requireUser();
   const sites = await listUserSites(user);
-  if (sites.length === 1 && !user.isPlatformAdmin) redirect(`/admin/sites/${sites[0].site.id}`);
+  const canCreate = await canCreateSites(user);
+  if (sites.length === 1 && !user.isPlatformAdmin && !canCreate) redirect(`/admin/sites/${sites[0].site.id}`);
 
   return (
     <main className="mx-auto w-full max-w-3xl p-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-zinc-900">Your sites</h1>
-        <form action={logout}>
-          <button className="text-sm text-zinc-500 hover:text-zinc-900">Sign out</button>
-        </form>
+        <div className="flex items-center gap-4">
+          {canCreate && (
+            <Link href="/admin/sites/new" className="rounded-lg bg-zinc-900 px-3.5 py-2 text-sm font-medium text-white hover:bg-zinc-800" data-new-site="">
+              New site
+            </Link>
+          )}
+          <form action={logout}>
+            <button className="text-sm text-zinc-500 hover:text-zinc-900">Sign out</button>
+          </form>
+        </div>
       </div>
       <ul className="divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-white">
         {sites.map(({ site, roleName }) => (
@@ -33,7 +42,7 @@ export default async function AdminHome() {
             </Link>
           </li>
         ))}
-        {!sites.length && <li className="px-5 py-8 text-center text-sm text-zinc-500">You haven&apos;t been added to a site yet.</li>}
+        {!sites.length && <li className="px-5 py-8 text-center text-sm text-zinc-500">{canCreate ? "No sites yet. Start one from a template." : "You haven\u2019t been added to a site yet."}</li>}
       </ul>
     </main>
   );

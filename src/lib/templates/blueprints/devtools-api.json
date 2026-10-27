@@ -1,0 +1,115 @@
+{
+  "key": "devtools-api",
+  "name": "Developer Tooling & API Platform",
+  "sector": "saas",
+  "description": "A dark, code-first launch site for an API product: live code sample, pricing tiers and a changelog.",
+  "highlights": ["Code sample block", "Pricing tiers", "Changelog post type", "Docs-style FAQ"],
+  "site": {
+    "name": "Relay",
+    "tagline": "Webhooks that never drop a message",
+    "logoText": "Relay",
+    "seo": { "titleTemplate": "%s · {{site}}", "description": "Reliable webhook delivery with retries, signing and replay, in one API call." }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#07080A", "surface-low": "#0C0E12", "surface-mid": "#12151B", "surface-high": "#191D25",
+      "primary": "#3DD68C", "on-primary": "#04140B", "accent": "#7CE7B4", "heading": "#F2F5F7", "text": "#C4CCD6", "muted": "#7D8794",
+      "border": "rgba(255, 255, 255, 0.09)"
+    },
+    "fonts": {
+      "heading": "var(--font-geist-sans), system-ui, sans-serif", "display": "var(--font-geist-sans), system-ui, sans-serif",
+      "body": "var(--font-geist-sans), system-ui, sans-serif", "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": { "minBase": 0.9375, "maxBase": 1.0625, "minRatio": 1.2, "maxRatio": 1.3, "minWidth": 360, "maxWidth": 1280 },
+    "lineHeights": { "tight": "1.05", "snug": "1.3", "body": "1.65" },
+    "letterSpacing": { "tight": "-0.035em", "snug": "-0.015em", "wide": "0.12em" },
+    "spaceUnit": 8,
+    "radii": { "sm": "6px", "md": "10px", "lg": "16px", "pill": "999px", "button": "8px", "card": "14px" },
+    "shadows": {
+      "sm": "0 1px 2px rgba(0, 0, 0, 0.5)",
+      "md": "0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 24px -8px rgba(0, 0, 0, 0.7)",
+      "lg": "0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 80px -20px rgba(0, 0, 0, 0.9), 0 0 60px -20px rgba(61, 214, 140, 0.25)"
+    },
+    "ambient": { "primary": "radial-gradient(55% 45% at 50% 0%, rgba(61, 214, 140, 0.18), transparent 70%)" }
+  },
+  "look": { "headings": "normal", "density": "regular", "cards": "bordered", "headerBorder": true },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [{ "label": "Product", "href": "/" }, { "label": "Pricing", "href": "/pricing" }, { "label": "Changelog", "href": "/changelog" }],
+    "action": { "label": "Get an API key", "href": "/pricing" }
+  },
+  "footer": {
+    "text": "{{site}} delivers your webhooks with retries, signatures and replay.",
+    "columns": [
+      { "title": "Product", "links": [{ "label": "Overview", "href": "/" }, { "label": "Pricing", "href": "/pricing" }, { "label": "Changelog", "href": "/changelog" }] },
+      { "title": "Company", "links": [{ "label": "Status", "href": "https://status.example.com" }, { "label": "Contact", "href": "mailto:hello@example.com" }] }
+    ],
+    "legal": "© 2026 {{site}}, Inc. All rights reserved."
+  },
+  "images": [
+    { "key": "dashboard", "alt": "Delivery dashboard with retry graph", "motif": "interface", "width": 1600, "height": 900 },
+    { "key": "aurora", "alt": "Green light trails over a dark grid", "motif": "aurora", "width": 1200, "height": 960 }
+  ],
+  "postTypes": [
+    {
+      "key": "changelog", "singular": "Release", "plural": "Changelog", "prefix": "releases", "icon": "🚀",
+      "description": "Product releases, newest first.",
+      "fields": [
+        { "key": "version", "label": "Version", "type": "TEXT", "required": true },
+        { "key": "release_type", "label": "Type", "type": "SELECT", "options": ["Feature", "Improvement", "Fix"] }
+      ]
+    }
+  ],
+  "entries": [
+    { "type": "changelog", "title": "Replay any delivery from the dashboard", "slug": "replay-from-dashboard", "excerpt": "Pick a failed delivery, edit the payload if you need to, and send it again.", "body": ["Every delivery now has a Replay button. Replays keep the original signature headers and are marked in the event log so your endpoint can tell them apart."], "fields": { "version": "v2.8", "release_type": "Feature" } },
+    { "type": "changelog", "title": "Per-endpoint rate limits", "slug": "per-endpoint-rate-limits", "excerpt": "Cap deliveries per second for endpoints that can't keep up with bursts.", "body": ["Set a limit on any endpoint and we queue the overflow instead of hammering it. Queued messages keep their order."], "fields": { "version": "v2.7", "release_type": "Improvement" } },
+    { "type": "changelog", "title": "Faster signature checks in the Node SDK", "slug": "faster-node-signatures", "excerpt": "Verifying a signature is now four times faster and allocation-free.", "body": ["The Node SDK uses timing-safe comparison on pre-allocated buffers. Upgrade with npm install @relay/node@latest."], "fields": { "version": "v2.6.3", "release_type": "Fix" } }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home", "slug": "home",
+      "seo": { "title": "{{site}} · Webhooks that never drop a message", "description": "Send webhooks with automatic retries, signing and replay. One API call, every event delivered." },
+      "sections": [
+        { "kind": "hero", "variant": "centered", "eyebrow": "Now with replay", "title": "Webhooks that never drop a message", "text": "{{site}} queues, signs, retries and logs every event you send, so your customers' integrations just work.", "actions": [{ "label": "Start free", "href": "/pricing" }, { "label": "Read the changelog", "href": "/changelog" }], "note": "Free up to 50,000 events a month. No card needed.", "image": "dashboard" },
+        { "kind": "logos", "title": "Delivering events for", "items": ["Northbeam", "Quill", "Ledgerly", "Stackpath", "Orbital"] },
+        { "kind": "code", "eyebrow": "One call", "title": "Send an event in three lines", "text": "Post the payload once. We handle fan-out, retries with backoff and signing.", "code": "import { Relay } from \"@relay/node\";\n\nconst relay = new Relay(process.env.RELAY_KEY);\n\nawait relay.events.send({\n  type: \"invoice.paid\",\n  data: { id: \"inv_204\", amount: 4900 },\n});", "bullets": ["SDKs for Node, Python, Go and Ruby", "HMAC signatures on every request", "Idempotency keys built in"] },
+        { "kind": "features", "eyebrow": "Why {{site}}", "title": "Everything between your app and their endpoint", "columns": 3, "items": [
+          { "icon": "↻", "title": "Automatic retries", "text": "Exponential backoff for up to three days, with a dead-letter queue you can replay." },
+          { "icon": "✎", "title": "Signed payloads", "text": "Every request carries a timestamped HMAC signature your customers can verify." },
+          { "icon": "◎", "title": "Full event log", "text": "Search any delivery by event, endpoint or status and see every attempt." },
+          { "icon": "⚡", "title": "Fan-out at scale", "text": "One event to thousands of endpoints, delivered in parallel within seconds." },
+          { "icon": "⌘", "title": "Customer portal", "text": "Drop in a portal where your customers manage their own endpoints." },
+          { "icon": "⛨", "title": "SOC 2 Type II", "text": "Encrypted at rest and in transit, with audit logs on every plan." }
+        ] },
+        { "kind": "stats", "tone": "alt", "items": [{ "value": "99.99%", "label": "Delivery success" }, { "value": "4.2B", "label": "Events last month" }, { "value": "180 ms", "label": "Median latency" }] },
+        { "kind": "loop", "eyebrow": "Changelog", "title": "Shipping every week", "postType": "changelog", "limit": 3, "card": "row", "fields": ["version", "release_type"], "linkLabel": "Read more", "action": { "label": "Full changelog", "href": "/changelog" } },
+        { "kind": "cta", "tone": "primary", "title": "Ship webhooks your customers trust", "text": "Create an API key and send your first event in under five minutes.", "actions": [{ "label": "Get an API key", "href": "/pricing" }] }
+      ]
+    },
+    {
+      "title": "Pricing", "slug": "pricing",
+      "seo": { "title": "Pricing", "description": "Start free, then pay per event. Volume discounts and dedicated infrastructure on Scale." },
+      "sections": [
+        { "kind": "pricing", "eyebrow": "Pricing", "title": "Start free. Pay as you grow.", "text": "Every plan includes retries, signatures and the event log.", "tiers": [
+          { "name": "Hobby", "price": "$0", "period": "/ month", "description": "For side projects and prototypes.", "features": ["50,000 events a month", "3-day retry window", "Community support"], "action": { "label": "Start free", "href": "mailto:hello@example.com" } },
+          { "name": "Pro", "price": "$49", "period": "/ month", "description": "For products with real customers.", "features": ["2 million events a month", "Replay and dead-letter queue", "Customer portal", "Email support"], "action": { "label": "Start a trial", "href": "mailto:hello@example.com" }, "featured": true },
+          { "name": "Scale", "price": "Custom", "description": "For platforms sending billions.", "features": ["Dedicated infrastructure", "99.99% uptime SLA", "SSO and audit exports", "A named engineer"], "action": { "label": "Talk to us", "href": "mailto:sales@example.com" } }
+        ] },
+        { "kind": "faq", "title": "Questions developers ask", "items": [
+          { "q": "What counts as an event?", "a": "One call to send. Fan-out to several endpoints and retries don't count again." },
+          { "q": "What happens if an endpoint is down?", "a": "We retry with exponential backoff for up to three days, then park the message in your dead-letter queue." },
+          { "q": "Can I self-host?", "a": "Scale customers can run {{site}} in their own cloud account with the same API." },
+          { "q": "Do you store payloads?", "a": "Payloads are kept for 30 days on Pro and are encrypted at rest. You can shorten that per endpoint." }
+        ] }
+      ]
+    },
+    {
+      "title": "Changelog", "slug": "changelog",
+      "seo": { "title": "Changelog", "description": "Every {{site}} release, newest first." },
+      "sections": [
+        { "kind": "loop", "eyebrow": "Changelog", "title": "What's new in {{site}}", "text": "Features, improvements and fixes, newest first.", "postType": "changelog", "limit": 12, "card": "row", "fields": ["version", "release_type"], "linkLabel": "Details" }
+      ]
+    }
+  ]
+}

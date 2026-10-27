@@ -1,0 +1,603 @@
+{
+  "key": "fashion-store",
+  "name": "Minimalist Fashion Store",
+  "sector": "ecommerce",
+  "description": "Quiet, editorial clothing shop with a full-width campaign image, sortable product grid, size and colour variants and a slide-out cart.",
+  "highlights": [
+    "Product grid with sorting",
+    "Size and colour variants",
+    "Cart drawer",
+    "Lookbook gallery"
+  ],
+  "site": {
+    "name": "Atelier Nord",
+    "tagline": "Considered essentials, made to last",
+    "logoText": "Atelier Nord",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Atelier Nord makes small-batch wardrobe essentials in natural fibres, designed in Copenhagen."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#F7F5F1",
+      "surface-low": "#EFEBE4",
+      "surface-mid": "#E5DFD5",
+      "surface-high": "#FFFFFF",
+      "primary": "#171717",
+      "on-primary": "#F7F5F1",
+      "accent": "#8C6E4A",
+      "heading": "#171717",
+      "text": "#3A3632",
+      "muted": "#857D74",
+      "border": "rgba(23, 23, 23, 0.12)"
+    },
+    "fonts": {
+      "heading": "var(--font-instrument-serif), Georgia, serif",
+      "display": "var(--font-instrument-serif), Georgia, serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.22,
+      "maxRatio": 1.33,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1",
+      "snug": "1.25",
+      "body": "1.65"
+    },
+    "letterSpacing": {
+      "tight": "-0.02em",
+      "snug": "0em",
+      "wide": "0.18em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "0px",
+      "md": "0px",
+      "lg": "0px",
+      "pill": "999px",
+      "button": "0px",
+      "card": "0px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "airy",
+    "cards": "flat",
+    "headerBorder": true
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Shop",
+        "href": "/shop"
+      },
+      {
+        "label": "Lookbook",
+        "href": "/lookbook"
+      },
+      {
+        "label": "About",
+        "href": "/about"
+      }
+    ]
+  },
+  "footer": {
+    "text": "Small-batch essentials in natural fibres. Designed in Copenhagen, made in Portugal.",
+    "columns": [
+      {
+        "title": "Shop",
+        "links": [
+          {
+            "label": "All products",
+            "href": "/shop"
+          },
+          {
+            "label": "Lookbook",
+            "href": "/lookbook"
+          }
+        ]
+      },
+      {
+        "title": "Help",
+        "links": [
+          {
+            "label": "Shipping and returns",
+            "href": "/about"
+          },
+          {
+            "label": "Contact",
+            "href": "mailto:care@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} ApS"
+  },
+  "images": [
+    {
+      "key": "campaign",
+      "alt": "Model in an oat linen overshirt",
+      "motif": "portrait",
+      "width": 1800,
+      "height": 800,
+      "palette": [
+        "#E5DFD5",
+        "#EFEBE4",
+        "#2B2723",
+        "#8C6E4A"
+      ]
+    },
+    {
+      "key": "shirt-oat",
+      "alt": "Linen overshirt in oat",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#EFEBE4",
+        "#F7F5F1",
+        "#CDBFA8",
+        "#8C6E4A"
+      ]
+    },
+    {
+      "key": "shirt-ink",
+      "alt": "Linen overshirt in ink",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#E5DFD5",
+        "#F7F5F1",
+        "#2B3340",
+        "#8C6E4A"
+      ]
+    },
+    {
+      "key": "knit",
+      "alt": "Merino crewneck in charcoal",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#E8E4DE",
+        "#F7F5F1",
+        "#4A4744",
+        "#8C6E4A"
+      ]
+    },
+    {
+      "key": "trouser",
+      "alt": "Wide wool trousers",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#EDE7DE",
+        "#F7F5F1",
+        "#6B5A47",
+        "#2B2723"
+      ]
+    },
+    {
+      "key": "tee",
+      "alt": "Organic cotton tee in white",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#ECE9E4",
+        "#F7F5F1",
+        "#FFFFFF",
+        "#8C6E4A"
+      ]
+    },
+    {
+      "key": "coat",
+      "alt": "Boiled wool coat in camel",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#EBE2D4",
+        "#F7F5F1",
+        "#B08856",
+        "#2B2723"
+      ]
+    },
+    {
+      "key": "look-1",
+      "alt": "Look one, linen layers",
+      "motif": "portrait",
+      "width": 900,
+      "height": 1200,
+      "palette": [
+        "#E5DFD5",
+        "#EFEBE4",
+        "#3A3632",
+        "#B08856"
+      ]
+    },
+    {
+      "key": "look-2",
+      "alt": "Look two, knitwear",
+      "motif": "portrait",
+      "width": 900,
+      "height": 1200,
+      "palette": [
+        "#E8E4DE",
+        "#EFEBE4",
+        "#4A4744",
+        "#8C6E4A"
+      ]
+    },
+    {
+      "key": "look-3",
+      "alt": "Look three, outerwear",
+      "motif": "portrait",
+      "width": 900,
+      "height": 1200,
+      "palette": [
+        "#EBE2D4",
+        "#EFEBE4",
+        "#6B5A47",
+        "#2B2723"
+      ]
+    },
+    {
+      "key": "studio",
+      "alt": "Studio workroom with fabric rolls",
+      "motif": "arch",
+      "width": 1200,
+      "height": 960,
+      "palette": [
+        "#EFEBE4",
+        "#E5DFD5",
+        "#B08856",
+        "#3A3632"
+      ]
+    }
+  ],
+  "postTypes": [],
+  "entries": [],
+  "products": [
+    {
+      "title": "Linen Overshirt",
+      "slug": "linen-overshirt",
+      "description": "A boxy overshirt in heavy Portuguese linen with horn buttons and two chest pockets.",
+      "images": [
+        "shirt-oat",
+        "shirt-ink"
+      ],
+      "price": 145,
+      "sku": "AN-OS",
+      "inventory": 6,
+      "options": [
+        {
+          "name": "Colour",
+          "values": [
+            "Oat",
+            "Ink"
+          ]
+        },
+        {
+          "name": "Size",
+          "values": [
+            "XS",
+            "S",
+            "M",
+            "L",
+            "XL"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Merino Crewneck",
+      "slug": "merino-crewneck",
+      "description": "Fine-gauge extra-fine merino, knitted seamlessly so it drapes without bulk.",
+      "images": [
+        "knit"
+      ],
+      "price": 160,
+      "sku": "AN-MC",
+      "inventory": 5,
+      "options": [
+        {
+          "name": "Size",
+          "values": [
+            "S",
+            "M",
+            "L",
+            "XL"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Wide Wool Trousers",
+      "slug": "wide-wool-trousers",
+      "description": "High-waisted trousers in a dry wool twill with a pressed front crease.",
+      "images": [
+        "trouser"
+      ],
+      "price": 185,
+      "sku": "AN-WT",
+      "inventory": 4,
+      "options": [
+        {
+          "name": "Size",
+          "values": [
+            "34",
+            "36",
+            "38",
+            "40",
+            "42"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Organic Cotton Tee",
+      "slug": "organic-cotton-tee",
+      "description": "A heavyweight tee in organic cotton jersey that keeps its shape.",
+      "images": [
+        "tee"
+      ],
+      "price": 55,
+      "sku": "AN-TE",
+      "inventory": 12,
+      "compareAt": 65,
+      "options": [
+        {
+          "name": "Size",
+          "values": [
+            "XS",
+            "S",
+            "M",
+            "L",
+            "XL"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Boiled Wool Coat",
+      "slug": "boiled-wool-coat",
+      "description": "An unlined coat in dense boiled wool that's warm without weight.",
+      "images": [
+        "coat"
+      ],
+      "price": 420,
+      "sku": "AN-BC",
+      "inventory": 3,
+      "options": [
+        {
+          "name": "Size",
+          "values": [
+            "S",
+            "M",
+            "L"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Gift Card",
+      "slug": "gift-card",
+      "description": "Sent by email with a note from you. Never expires.",
+      "images": [
+        "studio"
+      ],
+      "price": 100,
+      "sku": "AN-GC",
+      "inventory": 0,
+      "digital": true
+    }
+  ],
+  "store": {
+    "currency": "EUR",
+    "shippingCountries": [
+      "DK",
+      "SE",
+      "NO",
+      "DE",
+      "NL",
+      "FR",
+      "IT",
+      "ES",
+      "PT",
+      "GB"
+    ]
+  },
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Considered essentials",
+        "description": "Small-batch wardrobe essentials in natural fibres, designed in Copenhagen."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "banner",
+          "eyebrow": "Autumn / Winter 26",
+          "title": "Fewer things, made better",
+          "text": "Linen, merino and boiled wool in a palette that works together. Made in small batches in Portugal.",
+          "actions": [
+            {
+              "label": "Shop the collection",
+              "href": "/shop"
+            },
+            {
+              "label": "View the lookbook",
+              "href": "/lookbook"
+            }
+          ],
+          "image": "campaign"
+        },
+        {
+          "kind": "products",
+          "eyebrow": "New in",
+          "title": "The autumn edit",
+          "limit": 6,
+          "columns": 3,
+          "sort": "newest"
+        },
+        {
+          "kind": "split",
+          "tone": "alt",
+          "eyebrow": "Our studio",
+          "title": "Designed slowly, made to be worn for years",
+          "text": "Every piece starts as a sample we wear for a season before it goes into production.",
+          "image": "studio",
+          "bullets": [
+            "Natural fibres only",
+            "Family-run mills in Portugal",
+            "Free repairs for life"
+          ],
+          "action": {
+            "label": "About {{site}}",
+            "href": "/about"
+          }
+        },
+        {
+          "kind": "gallery",
+          "eyebrow": "Lookbook",
+          "title": "Worn together",
+          "images": [
+            "look-1",
+            "look-2",
+            "look-3"
+          ],
+          "columns": 3
+        },
+        {
+          "kind": "cta",
+          "tone": "inverse",
+          "title": "Ten percent off your first order",
+          "text": "Join the list for new releases and studio notes. No more than twice a month.",
+          "actions": [
+            {
+              "label": "Join the list",
+              "href": "mailto:list@example.com"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Shop",
+      "slug": "shop",
+      "seo": {
+        "title": "Shop all",
+        "description": "Every piece in the current collection."
+      },
+      "sections": [
+        {
+          "kind": "products",
+          "eyebrow": "Shop",
+          "title": "All products",
+          "text": "Free shipping in the EU on orders over €150.",
+          "limit": 24,
+          "columns": 3,
+          "showSort": true
+        }
+      ]
+    },
+    {
+      "title": "Lookbook",
+      "slug": "lookbook",
+      "seo": {
+        "title": "Lookbook",
+        "description": "The autumn and winter collection, styled."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "minimal",
+          "eyebrow": "Lookbook",
+          "title": "Autumn / Winter 26",
+          "text": "Shot in the studio in Copenhagen over a grey September week."
+        },
+        {
+          "kind": "gallery",
+          "images": [
+            "look-1",
+            "look-2",
+            "look-3",
+            "shirt-oat",
+            "knit",
+            "coat"
+          ],
+          "columns": 3
+        },
+        {
+          "kind": "cta",
+          "title": "Shop the looks",
+          "actions": [
+            {
+              "label": "Shop all",
+              "href": "/shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "About",
+      "slug": "about",
+      "seo": {
+        "title": "About and shipping",
+        "description": "Our story, shipping and returns."
+      },
+      "sections": [
+        {
+          "kind": "prose",
+          "eyebrow": "About",
+          "title": "A small studio with a short collection",
+          "paragraphs": [
+            "{{site}} was started in 2019 by two pattern cutters who were tired of clothes designed to last a season.",
+            "We make one collection a year, in quantities we can sell without discounting, from mills we've visited ourselves."
+          ]
+        },
+        {
+          "kind": "faq",
+          "title": "Shipping and returns",
+          "items": [
+            {
+              "q": "Where do you ship?",
+              "a": "Across the EU, the UK and Norway."
+            },
+            {
+              "q": "How long does delivery take?",
+              "a": "2 to 4 working days in the EU, 4 to 6 elsewhere."
+            },
+            {
+              "q": "What's your returns policy?",
+              "a": "Free returns within 30 days, as long as tags are attached."
+            },
+            {
+              "q": "Can I change my order?",
+              "a": "Email us within two hours of ordering and we'll update it before it ships."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,469 @@
+{
+  "key": "medical-clinic",
+  "name": "Medical & Dental Clinic",
+  "sector": "health",
+  "description": "Calm, trustworthy clinic site with services, a doctor directory, opening hours, insurance FAQ and appointment contact.",
+  "highlights": [
+    "Doctor directory",
+    "Services",
+    "Opening hours",
+    "Appointment booking"
+  ],
+  "site": {
+    "name": "Clearwater Dental",
+    "tagline": "Gentle, modern dental care for the whole family",
+    "logoText": "Clearwater Dental",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Clearwater Dental offers general, cosmetic and emergency dentistry for families in Austin, with evening and weekend appointments."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#FFFFFF",
+      "surface-low": "#F2F8FB",
+      "surface-mid": "#E2F0F6",
+      "surface-high": "#FFFFFF",
+      "primary": "#0E7490",
+      "on-primary": "#FFFFFF",
+      "accent": "#10B981",
+      "heading": "#0B2A36",
+      "text": "#36525C",
+      "muted": "#6E8790",
+      "border": "#DCEAF0"
+    },
+    "fonts": {
+      "heading": "var(--font-inter), system-ui, sans-serif",
+      "display": "var(--font-inter), system-ui, sans-serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.18,
+      "maxRatio": 1.25,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.08",
+      "snug": "1.3",
+      "body": "1.65"
+    },
+    "letterSpacing": {
+      "tight": "-0.025em",
+      "snug": "-0.01em",
+      "wide": "0.1em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "8px",
+      "md": "14px",
+      "lg": "24px",
+      "pill": "999px",
+      "button": "999px",
+      "card": "18px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "regular",
+    "cards": "elevated",
+    "headerBorder": false
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Services",
+        "href": "/"
+      },
+      {
+        "label": "Our dentists",
+        "href": "/dentists"
+      },
+      {
+        "label": "Visit",
+        "href": "/visit"
+      }
+    ],
+    "action": {
+      "label": "Book an appointment",
+      "href": "/visit"
+    }
+  },
+  "footer": {
+    "text": "Family dentistry in Austin, Texas.",
+    "columns": [
+      {
+        "title": "Clinic",
+        "links": [
+          {
+            "label": "Services",
+            "href": "/"
+          },
+          {
+            "label": "Our dentists",
+            "href": "/dentists"
+          },
+          {
+            "label": "Visit",
+            "href": "/visit"
+          }
+        ]
+      },
+      {
+        "title": "Contact",
+        "links": [
+          {
+            "label": "(512) 555-0142",
+            "href": "tel:+15125550142"
+          },
+          {
+            "label": "hello@example.com",
+            "href": "mailto:hello@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} PLLC"
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Bright, modern treatment room",
+      "motif": "arch",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#E2F0F6",
+        "#F2F8FB",
+        "#0E7490",
+        "#10B981"
+      ]
+    },
+    {
+      "key": "d-1",
+      "alt": "Portrait of Dr. Sarah Chen",
+      "motif": "portrait",
+      "width": 900,
+      "height": 900,
+      "palette": [
+        "#E2F0F6",
+        "#F2F8FB",
+        "#0B2A36",
+        "#0E7490"
+      ]
+    },
+    {
+      "key": "d-2",
+      "alt": "Portrait of Dr. James Rivera",
+      "motif": "portrait",
+      "width": 900,
+      "height": 900,
+      "palette": [
+        "#DCEAF0",
+        "#F2F8FB",
+        "#0B2A36",
+        "#10B981"
+      ]
+    },
+    {
+      "key": "d-3",
+      "alt": "Portrait of Dr. Amara Okoye",
+      "motif": "portrait",
+      "width": 900,
+      "height": 900,
+      "palette": [
+        "#E6F4EF",
+        "#F2F8FB",
+        "#36525C",
+        "#0E7490"
+      ]
+    },
+    {
+      "key": "clinic",
+      "alt": "Reception area",
+      "motif": "arch",
+      "width": 1200,
+      "height": 960,
+      "palette": [
+        "#F2F8FB",
+        "#E2F0F6",
+        "#0E7490",
+        "#10B981"
+      ]
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "dentist",
+      "singular": "Dentist",
+      "plural": "Dentists",
+      "prefix": "team",
+      "icon": "✚",
+      "description": "Dentists and hygienists.",
+      "fields": [
+        {
+          "key": "specialty",
+          "label": "Specialty",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "key": "languages",
+          "label": "Languages",
+          "type": "TEXT"
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "dentist",
+      "title": "Dr. Sarah Chen",
+      "slug": "sarah-chen",
+      "excerpt": "Founder. Twenty years in family and cosmetic dentistry.",
+      "body": [
+        "Founder. Twenty years in family and cosmetic dentistry."
+      ],
+      "fields": {
+        "specialty": "General & cosmetic",
+        "languages": "English, Mandarin"
+      },
+      "image": "d-1"
+    },
+    {
+      "type": "dentist",
+      "title": "Dr. James Rivera",
+      "slug": "james-rivera",
+      "excerpt": "Implants and oral surgery.",
+      "body": [
+        "Implants and oral surgery."
+      ],
+      "fields": {
+        "specialty": "Implants",
+        "languages": "English, Spanish"
+      },
+      "image": "d-2"
+    },
+    {
+      "type": "dentist",
+      "title": "Dr. Amara Okoye",
+      "slug": "amara-okoye",
+      "excerpt": "Children's dentistry and orthodontics.",
+      "body": [
+        "Children's dentistry and orthodontics."
+      ],
+      "fields": {
+        "specialty": "Pediatric",
+        "languages": "English"
+      },
+      "image": "d-3"
+    }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Family dentistry in Austin",
+        "description": "General, cosmetic and emergency dentistry with evening and weekend appointments."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "split",
+          "eyebrow": "Now welcoming new patients",
+          "title": "Dental care that's actually relaxing",
+          "text": "General, cosmetic and emergency dentistry for the whole family, with evening and Saturday appointments.",
+          "actions": [
+            {
+              "label": "Book an appointment",
+              "href": "/visit"
+            },
+            {
+              "label": "Call (512) 555-0142",
+              "href": "tel:+15125550142"
+            }
+          ],
+          "image": "hero"
+        },
+        {
+          "kind": "features",
+          "eyebrow": "Services",
+          "title": "Everything under one roof",
+          "columns": 3,
+          "items": [
+            {
+              "icon": "✚",
+              "title": "Check-ups and cleaning",
+              "text": "Thorough, gentle exams every six months."
+            },
+            {
+              "icon": "✦",
+              "title": "Cosmetic dentistry",
+              "text": "Whitening, veneers and Invisalign."
+            },
+            {
+              "icon": "◐",
+              "title": "Children's dentistry",
+              "text": "Friendly first visits from age one."
+            },
+            {
+              "icon": "⚡",
+              "title": "Emergency care",
+              "text": "Same-day appointments for pain and injuries."
+            },
+            {
+              "icon": "◯",
+              "title": "Implants",
+              "text": "Permanent replacements for missing teeth."
+            },
+            {
+              "icon": "☾",
+              "title": "Sedation",
+              "text": "Options for nervous patients."
+            }
+          ]
+        },
+        {
+          "kind": "stats",
+          "tone": "alt",
+          "items": [
+            {
+              "value": "4.9★",
+              "label": "From 1,800 Google reviews"
+            },
+            {
+              "value": "Same day",
+              "label": "Emergency appointments"
+            },
+            {
+              "value": "Sat",
+              "label": "Weekend hours"
+            }
+          ]
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Our team",
+          "title": "Meet your dentists",
+          "postType": "dentist",
+          "limit": 3,
+          "card": "person",
+          "columns": 3,
+          "fields": [
+            "specialty"
+          ],
+          "action": {
+            "label": "All dentists",
+            "href": "/dentists"
+          }
+        },
+        {
+          "kind": "faq",
+          "title": "Insurance and payment",
+          "items": [
+            {
+              "q": "Do you take my insurance?",
+              "a": "We're in network with most major PPO plans, including Delta Dental, Cigna and Aetna."
+            },
+            {
+              "q": "What if I don't have insurance?",
+              "a": "Our membership plan covers two cleanings and exams a year for $299."
+            },
+            {
+              "q": "Do you offer financing?",
+              "a": "Yes, interest-free plans through CareCredit."
+            }
+          ]
+        },
+        {
+          "kind": "cta",
+          "tone": "primary",
+          "title": "New patient special: exam, X-rays and cleaning for $99",
+          "actions": [
+            {
+              "label": "Book now",
+              "href": "/visit"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Our dentists",
+      "slug": "dentists",
+      "seo": {
+        "title": "Our dentists",
+        "description": "The dental team at {{site}}."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "Team",
+          "title": "Our dentists",
+          "postType": "dentist",
+          "limit": 12,
+          "card": "person",
+          "columns": 3,
+          "fields": [
+            "specialty"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Visit",
+      "slug": "visit",
+      "seo": {
+        "title": "Visit us",
+        "description": "Hours, location and appointments."
+      },
+      "sections": [
+        {
+          "kind": "contact",
+          "eyebrow": "Visit",
+          "title": "Book an appointment",
+          "text": "Call, email or just walk in. We'll find a time that suits you.",
+          "items": [
+            {
+              "label": "Phone",
+              "value": "(512) 555-0142",
+              "href": "tel:+15125550142"
+            },
+            {
+              "label": "Email",
+              "value": "hello@example.com",
+              "href": "mailto:hello@example.com"
+            },
+            {
+              "label": "Address",
+              "value": "1200 South Lamar Blvd, Austin, TX"
+            },
+            {
+              "label": "Hours",
+              "value": "Mon–Thu 8–7 · Fri 8–4 · Sat 9–2"
+            }
+          ]
+        },
+        {
+          "kind": "split",
+          "tone": "alt",
+          "eyebrow": "Parking",
+          "title": "Free parking on site",
+          "text": "Step-free access and a children's corner in reception.",
+          "image": "clinic"
+        }
+      ]
+    }
+  ]
+}

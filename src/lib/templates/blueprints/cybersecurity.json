@@ -1,0 +1,435 @@
+{
+  "key": "cybersecurity",
+  "name": "Cybersecurity Infrastructure",
+  "sector": "saas",
+  "description": "Serious, navy-and-cyan site for a security platform: uppercase headings, policy-as-code sample and a security advisories feed.",
+  "highlights": [
+    "Security advisories",
+    "Policy-as-code sample",
+    "Compliance stats",
+    "Enterprise CTA"
+  ],
+  "site": {
+    "name": "Bastion",
+    "tagline": "Zero-trust access for every server and service",
+    "logoText": "Bastion",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Bastion replaces VPNs and shared keys with identity-aware access to servers, databases and Kubernetes."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#050B16",
+      "surface-low": "#0A1322",
+      "surface-mid": "#0F1B2E",
+      "surface-high": "#15243B",
+      "primary": "#22D3EE",
+      "on-primary": "#03141A",
+      "accent": "#38BDF8",
+      "heading": "#E6F1FF",
+      "text": "#B5C4D8",
+      "muted": "#7B8BA3",
+      "border": "rgba(56, 189, 248, 0.14)"
+    },
+    "fonts": {
+      "heading": "var(--font-geist-sans), system-ui, sans-serif",
+      "display": "var(--font-geist-sans), system-ui, sans-serif",
+      "body": "var(--font-geist-sans), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 0.9375,
+      "maxBase": 1.0625,
+      "minRatio": 1.18,
+      "maxRatio": 1.26,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.08",
+      "snug": "1.3",
+      "body": "1.65"
+    },
+    "letterSpacing": {
+      "tight": "-0.02em",
+      "snug": "-0.005em",
+      "wide": "0.18em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "2px",
+      "md": "4px",
+      "lg": "8px",
+      "pill": "999px",
+      "button": "4px",
+      "card": "6px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(0, 0, 0, 0.5)",
+      "md": "0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 24px -8px rgba(0, 0, 0, 0.7)",
+      "lg": "0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 80px -20px rgba(0, 0, 0, 0.85)"
+    },
+    "ambient": {
+      "primary": "radial-gradient(70% 60% at 50% -10%, rgba(34, 211, 238, 0.16), transparent 70%)"
+    }
+  },
+  "look": {
+    "headings": "uppercase",
+    "density": "regular",
+    "cards": "bordered",
+    "headerBorder": true
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Platform",
+        "href": "/"
+      },
+      {
+        "label": "Advisories",
+        "href": "/advisories"
+      },
+      {
+        "label": "Company",
+        "href": "/company"
+      }
+    ],
+    "action": {
+      "label": "Request access",
+      "href": "/company"
+    }
+  },
+  "footer": {
+    "text": "{{site}} secures access for regulated infrastructure teams.",
+    "columns": [
+      {
+        "title": "Platform",
+        "links": [
+          {
+            "label": "Overview",
+            "href": "/"
+          },
+          {
+            "label": "Advisories",
+            "href": "/advisories"
+          }
+        ]
+      },
+      {
+        "title": "Company",
+        "links": [
+          {
+            "label": "About",
+            "href": "/company"
+          },
+          {
+            "label": "Security",
+            "href": "mailto:security@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} Security, Inc. SOC 2 · ISO 27001 · FedRAMP Moderate."
+  },
+  "images": [
+    {
+      "key": "grid",
+      "alt": "Network topology over a dark grid",
+      "motif": "pattern",
+      "width": 1600,
+      "height": 700,
+      "palette": [
+        "#0A1322",
+        "#0F1B2E",
+        "#22D3EE",
+        "#38BDF8"
+      ]
+    },
+    {
+      "key": "console",
+      "alt": "Access policy console",
+      "motif": "interface",
+      "width": 1400,
+      "height": 1000
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "advisory",
+      "singular": "Advisory",
+      "plural": "Advisories",
+      "prefix": "research",
+      "icon": "⚠",
+      "description": "Published security research.",
+      "fields": [
+        {
+          "key": "severity",
+          "label": "Severity",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            "Critical",
+            "High",
+            "Medium",
+            "Low"
+          ]
+        },
+        {
+          "key": "cve",
+          "label": "CVE",
+          "type": "TEXT"
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "advisory",
+      "title": "Authentication bypass in a popular SSH gateway",
+      "slug": "ssh-gateway-auth-bypass",
+      "excerpt": "Crafted certificate extensions let an attacker skip second-factor checks.",
+      "body": [
+        "Crafted certificate extensions let an attacker skip second-factor checks."
+      ],
+      "fields": {
+        "severity": "Critical",
+        "cve": "CVE-2026-31337"
+      }
+    },
+    {
+      "type": "advisory",
+      "title": "Token leakage through Kubernetes audit logs",
+      "slug": "k8s-audit-token-leak",
+      "excerpt": "Bearer tokens were written to logs in a widely used admission controller.",
+      "body": [
+        "Bearer tokens were written to logs in a widely used admission controller."
+      ],
+      "fields": {
+        "severity": "High",
+        "cve": "CVE-2026-28810"
+      }
+    },
+    {
+      "type": "advisory",
+      "title": "Timing side channel in a database proxy",
+      "slug": "db-proxy-timing",
+      "excerpt": "Response timing revealed whether a username existed.",
+      "body": [
+        "Response timing revealed whether a username existed."
+      ],
+      "fields": {
+        "severity": "Medium",
+        "cve": "CVE-2026-19022"
+      }
+    }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Zero-trust access for infrastructure",
+        "description": "Bastion replaces VPNs and shared keys with identity-aware access to servers, databases and Kubernetes."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "banner",
+          "eyebrow": "Zero trust, finally practical",
+          "title": "Kill the VPN. Keep the audit trail.",
+          "text": "{{site}} gives engineers short-lived, identity-based access to every server and database, and records every session.",
+          "actions": [
+            {
+              "label": "Request access",
+              "href": "/company"
+            },
+            {
+              "label": "Read advisories",
+              "href": "/advisories"
+            }
+          ],
+          "image": "grid"
+        },
+        {
+          "kind": "logos",
+          "title": "Protecting infrastructure at",
+          "items": [
+            "Halcyon Bank",
+            "Vireo",
+            "Atlas Grid",
+            "Sentinel Health",
+            "Corvid"
+          ]
+        },
+        {
+          "kind": "features",
+          "eyebrow": "Platform",
+          "title": "Access without standing privileges",
+          "columns": 3,
+          "items": [
+            {
+              "icon": "⌖",
+              "title": "Just-in-time access",
+              "text": "Engineers request access, approvers grant it for minutes, and it expires on its own."
+            },
+            {
+              "icon": "◉",
+              "title": "Session recording",
+              "text": "Every SSH, RDP and database session is recorded and searchable."
+            },
+            {
+              "icon": "⚿",
+              "title": "No shared keys",
+              "text": "Certificates issued per session replace long-lived SSH keys and passwords."
+            },
+            {
+              "icon": "⧉",
+              "title": "Kubernetes native",
+              "text": "Role-based access to clusters, namespaces and pods from one policy."
+            },
+            {
+              "icon": "≣",
+              "title": "Audit-ready logs",
+              "text": "Stream structured events to your SIEM with tamper-evident hashing."
+            },
+            {
+              "icon": "⛨",
+              "title": "Device trust",
+              "text": "Only managed, patched laptops can open a session."
+            }
+          ]
+        },
+        {
+          "kind": "code",
+          "tone": "alt",
+          "eyebrow": "Policy as code",
+          "title": "Review access like you review code",
+          "text": "Policies live in Git, go through pull requests and deploy with your pipeline.",
+          "code": "role \"db-oncall\" {\n  allow    = [\"postgres:prod-*\"]\n  max_ttl  = \"30m\"\n  approve  = [\"team:sre-leads\"]\n  require  = [\"device:managed\", \"mfa:hardware\"]\n  record   = true\n}",
+          "bullets": [
+            "Versioned and peer-reviewed",
+            "Dry-run before deploy",
+            "Drift detection"
+          ]
+        },
+        {
+          "kind": "stats",
+          "items": [
+            {
+              "value": "0",
+              "label": "Standing admin credentials"
+            },
+            {
+              "value": "11 min",
+              "label": "Median time to grant access"
+            },
+            {
+              "value": "100%",
+              "label": "Sessions recorded"
+            }
+          ]
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Research",
+          "title": "Latest security advisories",
+          "postType": "advisory",
+          "limit": 3,
+          "card": "row",
+          "fields": [
+            "severity",
+            "cve"
+          ],
+          "linkLabel": "Read advisory",
+          "action": {
+            "label": "All advisories",
+            "href": "/advisories"
+          }
+        },
+        {
+          "kind": "cta",
+          "tone": "primary",
+          "title": "See your infrastructure without the VPN",
+          "text": "A 45-minute technical walkthrough with our engineers.",
+          "actions": [
+            {
+              "label": "Request access",
+              "href": "/company"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Advisories",
+      "slug": "advisories",
+      "seo": {
+        "title": "Security advisories",
+        "description": "Vulnerabilities our research team found and disclosed responsibly."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "Research",
+          "title": "Security advisories",
+          "text": "Findings from the {{site}} research team, published after coordinated disclosure.",
+          "postType": "advisory",
+          "limit": 12,
+          "card": "row",
+          "fields": [
+            "severity",
+            "cve"
+          ],
+          "linkLabel": "Read advisory"
+        }
+      ]
+    },
+    {
+      "title": "Company",
+      "slug": "company",
+      "seo": {
+        "title": "Company",
+        "description": "Who we are and how to reach us."
+      },
+      "sections": [
+        {
+          "kind": "split",
+          "eyebrow": "Company",
+          "title": "Built by people who ran production at scale",
+          "text": "Our founders ran infrastructure security at two of the world's largest payment networks. {{site}} is the tool they wished they had.",
+          "image": "console",
+          "bullets": [
+            "Founded 2021, 120 people",
+            "Backed by security-focused investors",
+            "Offices in Austin, London and Singapore"
+          ]
+        },
+        {
+          "kind": "contact",
+          "tone": "alt",
+          "title": "Request access",
+          "text": "Tell us about your environment and we'll set up a technical walkthrough.",
+          "items": [
+            {
+              "label": "Sales",
+              "value": "sales@example.com",
+              "href": "mailto:sales@example.com"
+            },
+            {
+              "label": "Security reports",
+              "value": "security@example.com",
+              "href": "mailto:security@example.com"
+            },
+            {
+              "label": "Headquarters",
+              "value": "Austin, Texas"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

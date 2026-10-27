@@ -1,0 +1,479 @@
+{
+  "key": "photographer",
+  "name": "Photographer Portfolio",
+  "sector": "portfolio",
+  "description": "Dark, image-first photography portfolio with a full-bleed hero, series galleries, print shop link and booking rates.",
+  "highlights": [
+    "Series post type",
+    "Full-bleed galleries",
+    "Rates",
+    "Booking contact"
+  ],
+  "site": {
+    "name": "Noa Lind",
+    "tagline": "Landscape and editorial photography",
+    "logoText": "Noa Lind",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Noa Lind is a landscape and editorial photographer based in Oslo, shooting for travel and outdoor brands."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#0E0E0E",
+      "surface-low": "#151515",
+      "surface-mid": "#1C1C1C",
+      "surface-high": "#222222",
+      "primary": "#F2F0EB",
+      "on-primary": "#0E0E0E",
+      "accent": "#D9B88C",
+      "heading": "#F2F0EB",
+      "text": "#C4C1BA",
+      "muted": "#86837C",
+      "border": "rgba(255, 255, 255, 0.1)"
+    },
+    "fonts": {
+      "heading": "var(--font-instrument-serif), Georgia, serif",
+      "display": "var(--font-instrument-serif), Georgia, serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.22,
+      "maxRatio": 1.32,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.0",
+      "snug": "1.25",
+      "body": "1.65"
+    },
+    "letterSpacing": {
+      "tight": "-0.01em",
+      "snug": "0em",
+      "wide": "0.24em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "0px",
+      "md": "0px",
+      "lg": "0px",
+      "pill": "999px",
+      "button": "0px",
+      "card": "0px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(0, 0, 0, 0.5)",
+      "md": "0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 24px -8px rgba(0, 0, 0, 0.7)",
+      "lg": "0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 80px -20px rgba(0, 0, 0, 0.85)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "airy",
+    "cards": "flat",
+    "headerBorder": false
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Series",
+        "href": "/series"
+      },
+      {
+        "label": "Info",
+        "href": "/info"
+      }
+    ],
+    "action": {
+      "label": "Book a shoot",
+      "href": "/info"
+    }
+  },
+  "footer": {
+    "text": "Landscape and editorial photography from Oslo.",
+    "columns": [
+      {
+        "title": "Noa",
+        "links": [
+          {
+            "label": "Series",
+            "href": "/series"
+          },
+          {
+            "label": "Info",
+            "href": "/info"
+          }
+        ]
+      },
+      {
+        "title": "Follow",
+        "links": [
+          {
+            "label": "Instagram",
+            "href": "https://instagram.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}}. All images copyright."
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Fjord at blue hour",
+      "motif": "landscape",
+      "width": 1800,
+      "height": 900,
+      "palette": [
+        "#0E1622",
+        "#1C2A3A",
+        "#D9B88C",
+        "#5B7088"
+      ]
+    },
+    {
+      "key": "s-1",
+      "alt": "Arctic coastline in winter",
+      "motif": "landscape",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#1A2230",
+        "#2F3D50",
+        "#E9EEF2",
+        "#8FA6BB"
+      ]
+    },
+    {
+      "key": "s-2",
+      "alt": "Desert dunes at dawn",
+      "motif": "landscape",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#3A2418",
+        "#7A4A2C",
+        "#F2C38C",
+        "#D98B5A"
+      ]
+    },
+    {
+      "key": "s-3",
+      "alt": "Portrait of a fisherman",
+      "motif": "portrait",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#151515",
+        "#2A2A2A",
+        "#D9B88C",
+        "#86837C"
+      ]
+    },
+    {
+      "key": "s-4",
+      "alt": "Misty pine forest",
+      "motif": "landscape",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#121A16",
+        "#24332B",
+        "#B7C4B9",
+        "#5E7566"
+      ]
+    },
+    {
+      "key": "noa",
+      "alt": "Noa with a camera on a ridge",
+      "motif": "portrait",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#1C1C1C",
+        "#2A2A2A",
+        "#D9B88C",
+        "#86837C"
+      ]
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "series",
+      "singular": "Series",
+      "plural": "Series",
+      "prefix": "work",
+      "icon": "▣",
+      "description": "Photographic series.",
+      "fields": [
+        {
+          "key": "location",
+          "label": "Location",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "key": "year",
+          "label": "Year",
+          "type": "NUMBER"
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "series",
+      "title": "Polar Night",
+      "slug": "polar-night",
+      "excerpt": "Two winters on the Lofoten coast.",
+      "body": [
+        "Two winters on the Lofoten coast."
+      ],
+      "fields": {
+        "location": "Lofoten, Norway",
+        "year": 2026
+      },
+      "image": "s-1"
+    },
+    {
+      "type": "series",
+      "title": "Erg Chebbi",
+      "slug": "erg-chebbi",
+      "excerpt": "Dunes before the sun is up.",
+      "body": [
+        "Dunes before the sun is up."
+      ],
+      "fields": {
+        "location": "Merzouga, Morocco",
+        "year": 2025
+      },
+      "image": "s-2"
+    },
+    {
+      "type": "series",
+      "title": "Harbour People",
+      "slug": "harbour-people",
+      "excerpt": "Portraits from fishing villages along the Norwegian coast.",
+      "body": [
+        "Portraits from fishing villages along the Norwegian coast."
+      ],
+      "fields": {
+        "location": "Northern Norway",
+        "year": 2025
+      },
+      "image": "s-3"
+    },
+    {
+      "type": "series",
+      "title": "Taiga",
+      "slug": "taiga",
+      "excerpt": "Fog and pine in central Finland.",
+      "body": [
+        "Fog and pine in central Finland."
+      ],
+      "fields": {
+        "location": "Kainuu, Finland",
+        "year": 2024
+      },
+      "image": "s-4"
+    }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Landscape and editorial photography",
+        "description": "Landscape and editorial photography for travel and outdoor brands."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "banner",
+          "eyebrow": "Photography",
+          "title": "Quiet places, early light",
+          "text": "Landscape and editorial work for travel and outdoor brands, from the Arctic to the Sahara.",
+          "actions": [
+            {
+              "label": "View series",
+              "href": "/series"
+            },
+            {
+              "label": "Book a shoot",
+              "href": "/info"
+            }
+          ],
+          "image": "hero"
+        },
+        {
+          "kind": "gallery",
+          "images": [
+            "s-1",
+            "s-2",
+            "s-4"
+          ],
+          "columns": 3
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Series",
+          "title": "Recent series",
+          "postType": "series",
+          "limit": 4,
+          "card": "media",
+          "columns": 2,
+          "fields": [
+            "location",
+            "year"
+          ],
+          "linkLabel": "View series",
+          "action": {
+            "label": "All series",
+            "href": "/series"
+          }
+        },
+        {
+          "kind": "logos",
+          "title": "Clients",
+          "items": [
+            "Norrøna",
+            "Condé Nast Traveler",
+            "Patagonia",
+            "Monocle",
+            "Visit Norway"
+          ]
+        },
+        {
+          "kind": "cta",
+          "tone": "alt",
+          "title": "Commissions open for spring 2027",
+          "actions": [
+            {
+              "label": "Book a shoot",
+              "href": "/info"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Series",
+      "slug": "series",
+      "seo": {
+        "title": "Series",
+        "description": "Photographic series."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "Series",
+          "title": "All series",
+          "postType": "series",
+          "limit": 12,
+          "card": "media",
+          "columns": 2,
+          "fields": [
+            "location",
+            "year"
+          ],
+          "linkLabel": "View series"
+        }
+      ]
+    },
+    {
+      "title": "Info",
+      "slug": "info",
+      "seo": {
+        "title": "Info",
+        "description": "About, rates and booking."
+      },
+      "sections": [
+        {
+          "kind": "split",
+          "eyebrow": "About",
+          "title": "Hi, I'm Noa",
+          "text": "I've photographed for outdoor and travel brands for twelve years, usually somewhere cold and usually before sunrise.",
+          "image": "noa",
+          "bullets": [
+            "Based in Oslo, available worldwide",
+            "Medium format and drone",
+            "Licensed for commercial use"
+          ]
+        },
+        {
+          "kind": "pricing",
+          "tone": "alt",
+          "eyebrow": "Rates",
+          "title": "Commission rates",
+          "tiers": [
+            {
+              "name": "Editorial",
+              "price": "€1,200",
+              "period": "/ day",
+              "description": "Magazine and online features.",
+              "features": [
+                "Up to 40 edited images",
+                "Editorial licence"
+              ],
+              "action": {
+                "label": "Enquire",
+                "href": "mailto:studio@example.com"
+              }
+            },
+            {
+              "name": "Commercial",
+              "price": "€2,800",
+              "period": "/ day",
+              "description": "Campaigns and brand libraries.",
+              "features": [
+                "Up to 80 edited images",
+                "Two-year licence",
+                "Pre-production"
+              ],
+              "action": {
+                "label": "Enquire",
+                "href": "mailto:studio@example.com"
+              },
+              "featured": true
+            },
+            {
+              "name": "Prints",
+              "price": "€180",
+              "period": "and up",
+              "description": "Archival prints of any series.",
+              "features": [
+                "Signed and numbered",
+                "Ships worldwide"
+              ],
+              "action": {
+                "label": "Ask about prints",
+                "href": "mailto:prints@example.com"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "contact",
+          "title": "Book a shoot",
+          "items": [
+            {
+              "label": "Email",
+              "value": "studio@example.com",
+              "href": "mailto:studio@example.com"
+            },
+            {
+              "label": "Based in",
+              "value": "Oslo, Norway"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

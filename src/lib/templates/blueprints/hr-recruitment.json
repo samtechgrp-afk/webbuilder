@@ -1,0 +1,474 @@
+{
+  "key": "hr-recruitment",
+  "name": "HR & Recruitment Consulting",
+  "sector": "agency",
+  "description": "Friendly teal recruitment firm with a live job board, employer services, placement stats and candidate testimonials.",
+  "highlights": [
+    "Job board post type",
+    "Employer pricing",
+    "Placement stats",
+    "Candidate testimonials"
+  ],
+  "site": {
+    "name": "Brightpath Talent",
+    "tagline": "Hiring partners for fast-growing teams",
+    "logoText": "Brightpath Talent",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Brightpath Talent recruits engineers, designers and operators for fast-growing companies, and helps candidates find the right next role."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#FFFFFF",
+      "surface-low": "#F2FAF8",
+      "surface-mid": "#E3F4F0",
+      "surface-high": "#FFFFFF",
+      "primary": "#0F766E",
+      "on-primary": "#FFFFFF",
+      "accent": "#F97316",
+      "heading": "#0B2925",
+      "text": "#33504B",
+      "muted": "#6D8783",
+      "border": "#DCEDE9"
+    },
+    "fonts": {
+      "heading": "var(--font-inter), system-ui, sans-serif",
+      "display": "var(--font-inter), system-ui, sans-serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.2,
+      "maxRatio": 1.27,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.08",
+      "snug": "1.3",
+      "body": "1.65"
+    },
+    "letterSpacing": {
+      "tight": "-0.03em",
+      "snug": "-0.01em",
+      "wide": "0.1em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "8px",
+      "md": "12px",
+      "lg": "20px",
+      "pill": "999px",
+      "button": "999px",
+      "card": "16px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "regular",
+    "cards": "bordered",
+    "headerBorder": false
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Jobs",
+        "href": "/jobs"
+      },
+      {
+        "label": "For employers",
+        "href": "/employers"
+      }
+    ],
+    "action": {
+      "label": "Post a role",
+      "href": "/employers"
+    }
+  },
+  "footer": {
+    "text": "Recruiting for fast-growing teams across North America and Europe.",
+    "columns": [
+      {
+        "title": "Candidates",
+        "links": [
+          {
+            "label": "Open jobs",
+            "href": "/jobs"
+          },
+          {
+            "label": "Send your CV",
+            "href": "mailto:talent@example.com"
+          }
+        ]
+      },
+      {
+        "title": "Employers",
+        "links": [
+          {
+            "label": "Services",
+            "href": "/employers"
+          },
+          {
+            "label": "Contact",
+            "href": "mailto:hire@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} Inc."
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Candidate and recruiter in conversation",
+      "motif": "portrait",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#E3F4F0",
+        "#F2FAF8",
+        "#0F766E",
+        "#F97316"
+      ]
+    },
+    {
+      "key": "office",
+      "alt": "Bright open-plan office",
+      "motif": "arch",
+      "width": 1200,
+      "height": 960,
+      "palette": [
+        "#F2FAF8",
+        "#E3F4F0",
+        "#0F766E",
+        "#F97316"
+      ]
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "job",
+      "singular": "Job",
+      "plural": "Jobs",
+      "prefix": "roles",
+      "icon": "◉",
+      "description": "Open roles.",
+      "fields": [
+        {
+          "key": "location",
+          "label": "Location",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "key": "employment",
+          "label": "Type",
+          "type": "SELECT",
+          "options": [
+            "Full-time",
+            "Contract",
+            "Part-time"
+          ]
+        },
+        {
+          "key": "salary",
+          "label": "Salary range",
+          "type": "TEXT"
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "job",
+      "title": "Senior Backend Engineer",
+      "slug": "senior-backend-engineer",
+      "excerpt": "Scale a payments platform processing $2B a year. Go and Postgres.",
+      "body": [
+        "Scale a payments platform processing $2B a year. Go and Postgres."
+      ],
+      "fields": {
+        "location": "Remote, US",
+        "employment": "Full-time",
+        "salary": "$170k–$200k"
+      }
+    },
+    {
+      "type": "job",
+      "title": "Product Designer",
+      "slug": "product-designer",
+      "excerpt": "Own the design of a fast-growing climate analytics product.",
+      "body": [
+        "Own the design of a fast-growing climate analytics product."
+      ],
+      "fields": {
+        "location": "Berlin or remote",
+        "employment": "Full-time",
+        "salary": "€75k–€90k"
+      }
+    },
+    {
+      "type": "job",
+      "title": "Head of Operations",
+      "slug": "head-of-operations",
+      "excerpt": "Build the operations team at a Series B logistics company.",
+      "body": [
+        "Build the operations team at a Series B logistics company."
+      ],
+      "fields": {
+        "location": "Toronto",
+        "employment": "Full-time",
+        "salary": "CA$160k–$185k"
+      }
+    },
+    {
+      "type": "job",
+      "title": "Data Engineer",
+      "slug": "data-engineer",
+      "excerpt": "Six-month contract building pipelines for a healthcare startup.",
+      "body": [
+        "Six-month contract building pipelines for a healthcare startup."
+      ],
+      "fields": {
+        "location": "Remote, EU",
+        "employment": "Contract",
+        "salary": "€650 per day"
+      }
+    }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Hiring partners for growing teams",
+        "description": "We recruit engineers, designers and operators for fast-growing companies."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "split",
+          "eyebrow": "Recruitment for growing teams",
+          "title": "The right people, faster",
+          "text": "We find engineers, designers and operators who stay. Average time to offer: 23 days.",
+          "actions": [
+            {
+              "label": "Browse open jobs",
+              "href": "/jobs"
+            },
+            {
+              "label": "Hire with us",
+              "href": "/employers"
+            }
+          ],
+          "image": "hero"
+        },
+        {
+          "kind": "stats",
+          "tone": "alt",
+          "items": [
+            {
+              "value": "23 days",
+              "label": "Average time to offer"
+            },
+            {
+              "value": "1,400+",
+              "label": "Placements"
+            },
+            {
+              "value": "94%",
+              "label": "Still in role after a year"
+            }
+          ]
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Open roles",
+          "title": "Jobs we're hiring for",
+          "postType": "job",
+          "limit": 4,
+          "card": "row",
+          "fields": [
+            "location",
+            "employment",
+            "salary"
+          ],
+          "linkLabel": "View role",
+          "action": {
+            "label": "All jobs",
+            "href": "/jobs"
+          }
+        },
+        {
+          "kind": "features",
+          "eyebrow": "How we're different",
+          "title": "Recruiting that respects everyone's time",
+          "columns": 3,
+          "items": [
+            {
+              "icon": "✓",
+              "title": "Specialist recruiters",
+              "text": "Every recruiter has worked in the roles they hire for."
+            },
+            {
+              "icon": "◷",
+              "title": "Feedback in 48 hours",
+              "text": "Candidates always hear back, whatever the answer."
+            },
+            {
+              "icon": "⚖",
+              "title": "Fair process",
+              "text": "Structured interviews and salary ranges on every role."
+            }
+          ]
+        },
+        {
+          "kind": "testimonials",
+          "tone": "alt",
+          "items": [
+            {
+              "quote": "The only recruiter who actually read my portfolio before calling.",
+              "name": "Jamal",
+              "role": "Product designer, placed 2026"
+            },
+            {
+              "quote": "They filled four senior engineering roles in a month.",
+              "name": "Sofia Lin",
+              "role": "CTO, Northwind"
+            }
+          ]
+        },
+        {
+          "kind": "cta",
+          "tone": "primary",
+          "title": "Hiring this quarter?",
+          "text": "Tell us about the role and we'll send a shortlist within ten days.",
+          "actions": [
+            {
+              "label": "Post a role",
+              "href": "/employers"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Jobs",
+      "slug": "jobs",
+      "seo": {
+        "title": "Open jobs",
+        "description": "Roles we're recruiting for right now."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "Jobs",
+          "title": "Open roles",
+          "text": "New roles every week. Don't see a fit? Send us your CV anyway.",
+          "postType": "job",
+          "limit": 24,
+          "card": "row",
+          "fields": [
+            "location",
+            "employment",
+            "salary"
+          ],
+          "linkLabel": "View role"
+        },
+        {
+          "kind": "cta",
+          "tone": "alt",
+          "title": "Not seeing the right role?",
+          "actions": [
+            {
+              "label": "Send your CV",
+              "href": "mailto:talent@example.com"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "For employers",
+      "slug": "employers",
+      "seo": {
+        "title": "For employers",
+        "description": "Recruitment services and fees."
+      },
+      "sections": [
+        {
+          "kind": "pricing",
+          "eyebrow": "For employers",
+          "title": "Ways to hire with us",
+          "tiers": [
+            {
+              "name": "Contingent",
+              "price": "18%",
+              "period": "of first-year salary",
+              "description": "Pay only when you hire.",
+              "features": [
+                "Shortlist in 10 days",
+                "90-day guarantee",
+                "Unlimited interviews"
+              ],
+              "action": {
+                "label": "Get started",
+                "href": "mailto:hire@example.com"
+              }
+            },
+            {
+              "name": "Retained",
+              "price": "22%",
+              "period": "in three parts",
+              "description": "For senior and critical hires.",
+              "features": [
+                "Dedicated search team",
+                "Market mapping",
+                "Weekly reporting",
+                "6-month guarantee"
+              ],
+              "action": {
+                "label": "Talk to us",
+                "href": "mailto:hire@example.com"
+              },
+              "featured": true
+            },
+            {
+              "name": "Embedded",
+              "price": "$14k",
+              "period": "/ month",
+              "description": "A recruiter inside your team.",
+              "features": [
+                "Full-time recruiter",
+                "Employer branding",
+                "Interview training"
+              ],
+              "action": {
+                "label": "Talk to us",
+                "href": "mailto:hire@example.com"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "split",
+          "tone": "alt",
+          "eyebrow": "Our team",
+          "title": "Recruiters who've done the job",
+          "text": "Former engineers, designers and operators who know what good looks like.",
+          "image": "office"
+        }
+      ]
+    }
+  ]
+}

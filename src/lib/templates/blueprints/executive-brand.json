@@ -1,0 +1,461 @@
+{
+  "key": "executive-brand",
+  "name": "Executive Personal Brand",
+  "sector": "portfolio",
+  "description": "Editorial personal site for an executive or advisor: bio, speaking topics, talks archive, press logos and booking contact.",
+  "highlights": [
+    "Talks post type",
+    "Press logos",
+    "Speaking topics",
+    "Booking contact"
+  ],
+  "site": {
+    "name": "Elena Marsh",
+    "tagline": "Operator, board member and author",
+    "logoText": "Elena Marsh",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Elena Marsh is a former COO, board member and author of The Operating System, speaking on scaling teams and leadership."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#FAF9F6",
+      "surface-low": "#F2EFE9",
+      "surface-mid": "#E7E2D8",
+      "surface-high": "#FFFFFF",
+      "primary": "#1C1C1C",
+      "on-primary": "#FFFFFF",
+      "accent": "#B5523B",
+      "heading": "#141414",
+      "text": "#3B3B3B",
+      "muted": "#7A7670",
+      "border": "rgba(20, 20, 20, 0.12)"
+    },
+    "fonts": {
+      "heading": "var(--font-instrument-serif), Georgia, serif",
+      "display": "var(--font-instrument-serif), Georgia, serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.24,
+      "maxRatio": 1.36,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.0",
+      "snug": "1.25",
+      "body": "1.7"
+    },
+    "letterSpacing": {
+      "tight": "-0.02em",
+      "snug": "0em",
+      "wide": "0.16em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "2px",
+      "md": "4px",
+      "lg": "8px",
+      "pill": "999px",
+      "button": "999px",
+      "card": "4px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "airy",
+    "cards": "flat",
+    "headerBorder": false
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "About",
+        "href": "/about"
+      },
+      {
+        "label": "Speaking",
+        "href": "/speaking"
+      }
+    ],
+    "action": {
+      "label": "Book Elena",
+      "href": "/speaking"
+    }
+  },
+  "footer": {
+    "text": "Operator, board member and author.",
+    "columns": [
+      {
+        "title": "Elena",
+        "links": [
+          {
+            "label": "About",
+            "href": "/about"
+          },
+          {
+            "label": "Speaking",
+            "href": "/speaking"
+          }
+        ]
+      },
+      {
+        "title": "Elsewhere",
+        "links": [
+          {
+            "label": "LinkedIn",
+            "href": "https://linkedin.com"
+          },
+          {
+            "label": "Newsletter",
+            "href": "https://substack.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}}"
+  },
+  "images": [
+    {
+      "key": "portrait",
+      "alt": "Portrait of Elena Marsh",
+      "motif": "portrait",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#E7E2D8",
+        "#F2EFE9",
+        "#1C1C1C",
+        "#B5523B"
+      ]
+    },
+    {
+      "key": "t-1",
+      "alt": "Elena speaking on stage",
+      "motif": "portrait",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#1C1C1C",
+        "#2A2A2A",
+        "#B5523B",
+        "#E7E2D8"
+      ]
+    },
+    {
+      "key": "t-2",
+      "alt": "Panel discussion at a conference",
+      "motif": "portrait",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#E7E2D8",
+        "#F2EFE9",
+        "#141414",
+        "#B5523B"
+      ]
+    },
+    {
+      "key": "t-3",
+      "alt": "Podcast recording studio",
+      "motif": "device",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#F2EFE9",
+        "#E7E2D8",
+        "#1C1C1C",
+        "#B5523B"
+      ]
+    },
+    {
+      "key": "book",
+      "alt": "Cover of The Operating System",
+      "motif": "object",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#B5523B",
+        "#8E3E2B",
+        "#FAF9F6",
+        "#1C1C1C"
+      ]
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "talk",
+      "singular": "Talk",
+      "plural": "Talks",
+      "prefix": "talks",
+      "icon": "◉",
+      "description": "Keynotes and interviews.",
+      "fields": [
+        {
+          "key": "event",
+          "label": "Event",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "key": "date",
+          "label": "Date",
+          "type": "DATE"
+        },
+        {
+          "key": "video",
+          "label": "Video link",
+          "type": "URL"
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "talk",
+      "title": "Scaling without chaos",
+      "slug": "scaling-without-chaos",
+      "excerpt": "Keynote on operating cadence for growth-stage companies.",
+      "body": [
+        "Keynote on operating cadence for growth-stage companies."
+      ],
+      "fields": {
+        "event": "SaaStr Annual",
+        "date": "2026-09-10",
+        "video": "https://youtube.com"
+      },
+      "image": "t-1"
+    },
+    {
+      "type": "talk",
+      "title": "What boards get wrong",
+      "slug": "what-boards-get-wrong",
+      "excerpt": "Panel with three independent directors.",
+      "body": [
+        "Panel with three independent directors."
+      ],
+      "fields": {
+        "event": "Web Summit",
+        "date": "2026-06-04"
+      },
+      "image": "t-2"
+    },
+    {
+      "type": "talk",
+      "title": "The modern COO",
+      "slug": "the-modern-coo",
+      "excerpt": "Long-form interview on the operator's role.",
+      "body": [
+        "Long-form interview on the operator's role."
+      ],
+      "fields": {
+        "event": "Lenny's Podcast",
+        "date": "2026-03-18",
+        "video": "https://youtube.com"
+      },
+      "image": "t-3"
+    }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Operator, board member and author",
+        "description": "Former COO, board member and author speaking on scaling teams."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "split",
+          "eyebrow": "Operator · Board member · Author",
+          "title": "Helping companies grow up without slowing down",
+          "text": "I spent fifteen years scaling operations at three high-growth companies. Now I advise founders, sit on boards and speak about building teams that last.",
+          "actions": [
+            {
+              "label": "Book me to speak",
+              "href": "/speaking"
+            },
+            {
+              "label": "About me",
+              "href": "/about"
+            }
+          ],
+          "image": "portrait"
+        },
+        {
+          "kind": "logos",
+          "title": "As featured in",
+          "items": [
+            "Harvard Business Review",
+            "Fortune",
+            "The Information",
+            "Bloomberg",
+            "Lenny's Podcast"
+          ]
+        },
+        {
+          "kind": "split",
+          "tone": "alt",
+          "eyebrow": "The book",
+          "title": "The Operating System",
+          "text": "A practical guide to the rituals, metrics and org design that let companies scale from 50 to 5,000 people.",
+          "image": "book",
+          "bullets": [
+            "Wall Street Journal bestseller",
+            "Translated into 11 languages"
+          ],
+          "action": {
+            "label": "Read more",
+            "href": "/about"
+          }
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Recent talks",
+          "title": "Speaking and interviews",
+          "postType": "talk",
+          "limit": 3,
+          "card": "media",
+          "fields": [
+            "event",
+            "date"
+          ],
+          "linkLabel": "Watch",
+          "action": {
+            "label": "Speaking",
+            "href": "/speaking"
+          }
+        },
+        {
+          "kind": "testimonials",
+          "items": [
+            {
+              "quote": "Elena's keynote was the most talked-about session of our summit.",
+              "name": "Priya Raman",
+              "role": "Head of Events, SaaStr"
+            },
+            {
+              "quote": "The board member every founder hopes for: candid, generous and deeply operational.",
+              "name": "Marcus Lee",
+              "role": "CEO, Fieldwork"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "About",
+      "slug": "about",
+      "seo": {
+        "title": "About",
+        "description": "Elena's background."
+      },
+      "sections": [
+        {
+          "kind": "prose",
+          "eyebrow": "About",
+          "title": "A career built on operations",
+          "paragraphs": [
+            "I was COO at Ledgerline from Series B through IPO, and before that led operations at two marketplaces.",
+            "Today I sit on the boards of three growth-stage companies, advise a handful of founders and write a weekly newsletter for 60,000 operators."
+          ]
+        },
+        {
+          "kind": "stats",
+          "tone": "alt",
+          "items": [
+            {
+              "value": "3",
+              "label": "Company boards"
+            },
+            {
+              "value": "60k",
+              "label": "Newsletter readers"
+            },
+            {
+              "value": "120+",
+              "label": "Keynotes delivered"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Speaking",
+      "slug": "speaking",
+      "seo": {
+        "title": "Speaking",
+        "description": "Keynotes, workshops and booking."
+      },
+      "sections": [
+        {
+          "kind": "features",
+          "eyebrow": "Topics",
+          "title": "Keynotes and workshops",
+          "columns": 3,
+          "items": [
+            {
+              "icon": "◆",
+              "title": "Scaling without chaos",
+              "text": "The operating rhythm that keeps 1,000-person companies fast."
+            },
+            {
+              "icon": "◇",
+              "title": "The modern COO",
+              "text": "What the role is, and when you need one."
+            },
+            {
+              "icon": "○",
+              "title": "Boards that help",
+              "text": "For founders building their first independent board."
+            }
+          ]
+        },
+        {
+          "kind": "loop",
+          "tone": "alt",
+          "eyebrow": "Archive",
+          "title": "Past talks",
+          "postType": "talk",
+          "limit": 12,
+          "card": "row",
+          "fields": [
+            "event",
+            "date"
+          ],
+          "linkLabel": "Watch"
+        },
+        {
+          "kind": "contact",
+          "title": "Book Elena",
+          "text": "Share the event, audience and date. My team replies within three days.",
+          "items": [
+            {
+              "label": "Speaking enquiries",
+              "value": "speaking@example.com",
+              "href": "mailto:speaking@example.com"
+            },
+            {
+              "label": "Press",
+              "value": "press@example.com",
+              "href": "mailto:press@example.com"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

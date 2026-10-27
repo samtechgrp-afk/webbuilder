@@ -1,0 +1,500 @@
+{
+  "key": "nonprofit",
+  "name": "Non-Profit & Charity",
+  "sector": "health",
+  "description": "Hopeful, people-first charity site with impact stats, programmes, field stories and donation tiers.",
+  "highlights": [
+    "Impact stats",
+    "Stories post type",
+    "Donation tiers",
+    "Volunteer CTA"
+  ],
+  "site": {
+    "name": "Open Waters",
+    "tagline": "Clean water for every school",
+    "logoText": "Open Waters",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Open Waters builds and maintains clean water systems for schools in East Africa, with local engineers and communities."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#FFFFFF",
+      "surface-low": "#F1F8F7",
+      "surface-mid": "#DFF0EE",
+      "surface-high": "#FFFFFF",
+      "primary": "#0B6E69",
+      "on-primary": "#FFFFFF",
+      "accent": "#F2A541",
+      "heading": "#0F2A2A",
+      "text": "#3A5251",
+      "muted": "#708886",
+      "border": "#D8EAE8"
+    },
+    "fonts": {
+      "heading": "var(--font-fraunces), Georgia, serif",
+      "display": "var(--font-fraunces), Georgia, serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.2,
+      "maxRatio": 1.3,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.06",
+      "snug": "1.3",
+      "body": "1.7"
+    },
+    "letterSpacing": {
+      "tight": "-0.02em",
+      "snug": "-0.005em",
+      "wide": "0.12em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "6px",
+      "md": "12px",
+      "lg": "22px",
+      "pill": "999px",
+      "button": "999px",
+      "card": "16px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "regular",
+    "cards": "flat",
+    "headerBorder": false
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Our work",
+        "href": "/our-work"
+      },
+      {
+        "label": "Stories",
+        "href": "/stories"
+      }
+    ],
+    "action": {
+      "label": "Donate",
+      "href": "/donate"
+    }
+  },
+  "footer": {
+    "text": "Open Waters is a registered 501(c)(3). EIN 00-0000000.",
+    "columns": [
+      {
+        "title": "Charity",
+        "links": [
+          {
+            "label": "Our work",
+            "href": "/our-work"
+          },
+          {
+            "label": "Stories",
+            "href": "/stories"
+          },
+          {
+            "label": "Donate",
+            "href": "/donate"
+          }
+        ]
+      },
+      {
+        "title": "Get involved",
+        "links": [
+          {
+            "label": "Volunteer",
+            "href": "mailto:volunteer@example.com"
+          },
+          {
+            "label": "Fundraise",
+            "href": "mailto:fundraise@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} Foundation"
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Children at a school water tap",
+      "motif": "portrait",
+      "width": 1800,
+      "height": 800,
+      "palette": [
+        "#0B6E69",
+        "#139088",
+        "#F2A541",
+        "#DFF0EE"
+      ]
+    },
+    {
+      "key": "st-1",
+      "alt": "Engineer repairing a borehole pump",
+      "motif": "landscape",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#F6E2C0",
+        "#DFF0EE",
+        "#0B6E69",
+        "#F2A541"
+      ]
+    },
+    {
+      "key": "st-2",
+      "alt": "Students in a classroom",
+      "motif": "portrait",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#DFF0EE",
+        "#F1F8F7",
+        "#0F2A2A",
+        "#F2A541"
+      ]
+    },
+    {
+      "key": "st-3",
+      "alt": "Water tank on a hillside",
+      "motif": "landscape",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#E8F1D8",
+        "#DFF0EE",
+        "#0B6E69",
+        "#F2A541"
+      ]
+    },
+    {
+      "key": "team",
+      "alt": "Local water committee meeting",
+      "motif": "portrait",
+      "width": 1200,
+      "height": 960,
+      "palette": [
+        "#F1F8F7",
+        "#DFF0EE",
+        "#0B6E69",
+        "#F2A541"
+      ]
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "story",
+      "singular": "Story",
+      "plural": "Stories",
+      "prefix": "field",
+      "icon": "✎",
+      "description": "Field stories.",
+      "fields": [
+        {
+          "key": "country",
+          "label": "Country",
+          "type": "SELECT",
+          "options": [
+            "Kenya",
+            "Uganda",
+            "Tanzania"
+          ]
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "story",
+      "title": "The pump that fixed itself",
+      "slug": "the-pump-that-fixed-itself",
+      "excerpt": "How remote sensors cut repair times from weeks to days.",
+      "body": [
+        "How remote sensors cut repair times from weeks to days."
+      ],
+      "fields": {
+        "country": "Kenya"
+      },
+      "image": "st-1"
+    },
+    {
+      "type": "story",
+      "title": "Attendance up 30% at Kibuye Primary",
+      "slug": "kibuye-primary",
+      "excerpt": "What changed when girls no longer walked for water.",
+      "body": [
+        "What changed when girls no longer walked for water."
+      ],
+      "fields": {
+        "country": "Uganda"
+      },
+      "image": "st-2"
+    },
+    {
+      "type": "story",
+      "title": "Catching the rain",
+      "slug": "catching-the-rain",
+      "excerpt": "Storage tanks that last through the dry season.",
+      "body": [
+        "Storage tanks that last through the dry season."
+      ],
+      "fields": {
+        "country": "Tanzania"
+      },
+      "image": "st-3"
+    }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Clean water for every school",
+        "description": "We build and maintain clean water systems for schools in East Africa."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "banner",
+          "eyebrow": "Clean water for schools",
+          "title": "When schools have water, children stay in class",
+          "text": "We build and maintain clean water systems for schools in Kenya, Uganda and Tanzania, with local engineers.",
+          "actions": [
+            {
+              "label": "Donate",
+              "href": "/donate"
+            },
+            {
+              "label": "See our work",
+              "href": "/our-work"
+            }
+          ],
+          "image": "hero"
+        },
+        {
+          "kind": "stats",
+          "items": [
+            {
+              "value": "412",
+              "label": "Schools with clean water"
+            },
+            {
+              "value": "186,000",
+              "label": "Students served"
+            },
+            {
+              "value": "97%",
+              "label": "Systems still working after 5 years"
+            }
+          ]
+        },
+        {
+          "kind": "steps",
+          "tone": "alt",
+          "eyebrow": "How it works",
+          "title": "Built to last",
+          "items": [
+            {
+              "title": "Listen",
+              "text": "Communities ask, and help plan."
+            },
+            {
+              "title": "Build",
+              "text": "Local engineers drill and install."
+            },
+            {
+              "title": "Maintain",
+              "text": "Sensors and repair teams keep water flowing."
+            }
+          ]
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Stories",
+          "title": "From the field",
+          "postType": "story",
+          "limit": 3,
+          "card": "media",
+          "fields": [
+            "country"
+          ],
+          "linkLabel": "Read story",
+          "action": {
+            "label": "All stories",
+            "href": "/stories"
+          }
+        },
+        {
+          "kind": "cta",
+          "tone": "primary",
+          "title": "$40 gives one child clean water for ten years",
+          "actions": [
+            {
+              "label": "Donate now",
+              "href": "/donate"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Our work",
+      "slug": "our-work",
+      "seo": {
+        "title": "Our work",
+        "description": "How we bring water to schools."
+      },
+      "sections": [
+        {
+          "kind": "split",
+          "eyebrow": "Our work",
+          "title": "Local teams, long-term commitments",
+          "text": "Every system is owned by a community water committee and monitored by remote sensors, so problems are fixed in days, not months.",
+          "image": "team",
+          "bullets": [
+            "100% of public donations fund projects",
+            "Independent audit every year",
+            "Open data on every system"
+          ]
+        },
+        {
+          "kind": "features",
+          "tone": "alt",
+          "title": "What your support pays for",
+          "columns": 3,
+          "items": [
+            {
+              "icon": "◉",
+              "title": "Boreholes",
+              "text": "Deep wells with solar pumps."
+            },
+            {
+              "icon": "◍",
+              "title": "Rainwater tanks",
+              "text": "Storage for the dry season."
+            },
+            {
+              "icon": "◌",
+              "title": "Hygiene",
+              "text": "Handwashing stations and training."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Stories",
+      "slug": "stories",
+      "seo": {
+        "title": "Stories",
+        "description": "Stories from schools and communities."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "Stories",
+          "title": "From the field",
+          "postType": "story",
+          "limit": 12,
+          "card": "media",
+          "fields": [
+            "country"
+          ],
+          "linkLabel": "Read story"
+        }
+      ]
+    },
+    {
+      "title": "Donate",
+      "slug": "donate",
+      "seo": {
+        "title": "Donate",
+        "description": "Support clean water for schools."
+      },
+      "sections": [
+        {
+          "kind": "pricing",
+          "eyebrow": "Donate",
+          "title": "Choose your impact",
+          "text": "Monthly gifts let us plan repairs years ahead.",
+          "tiers": [
+            {
+              "name": "Supporter",
+              "price": "$15",
+              "period": "/ month",
+              "description": "Keeps a tap running.",
+              "features": [
+                "Quarterly field updates"
+              ],
+              "action": {
+                "label": "Give monthly",
+                "href": "mailto:donate@example.com"
+              }
+            },
+            {
+              "name": "Champion",
+              "price": "$40",
+              "period": "/ month",
+              "description": "Clean water for a classroom.",
+              "features": [
+                "Quarterly field updates",
+                "Annual impact report",
+                "Photos from your school"
+              ],
+              "action": {
+                "label": "Give monthly",
+                "href": "mailto:donate@example.com"
+              },
+              "featured": true
+            },
+            {
+              "name": "One-off gift",
+              "price": "Any",
+              "period": "amount",
+              "description": "Every gift helps.",
+              "features": [
+                "Tax-deductible receipt"
+              ],
+              "action": {
+                "label": "Give once",
+                "href": "mailto:donate@example.com"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "faq",
+          "tone": "alt",
+          "title": "About giving",
+          "items": [
+            {
+              "q": "Is my gift tax-deductible?",
+              "a": "Yes. Open Waters is a 501(c)(3) and you'll get a receipt by email."
+            },
+            {
+              "q": "How much goes to projects?",
+              "a": "100% of public donations. A group of founding donors covers our running costs."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

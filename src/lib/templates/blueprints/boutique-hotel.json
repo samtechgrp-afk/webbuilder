@@ -1,0 +1,525 @@
+{
+  "key": "boutique-hotel",
+  "name": "Boutique Hotel & Resort",
+  "sector": "hospitality",
+  "description": "Sun-washed Mediterranean hotel site with rooms and nightly rates, amenities, a gallery, guest reviews and reservations contact.",
+  "highlights": [
+    "Rooms with nightly rates",
+    "Amenities",
+    "Gallery",
+    "Reservations contact"
+  ],
+  "site": {
+    "name": "Casa Alba",
+    "tagline": "A twelve-room hotel above the sea",
+    "logoText": "Casa Alba",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Casa Alba is a twelve-room boutique hotel on the Amalfi Coast with a garden restaurant, pool and private beach."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#FBF7F0",
+      "surface-low": "#F4ECDF",
+      "surface-mid": "#EADFCB",
+      "surface-high": "#FFFDF9",
+      "primary": "#3E5C76",
+      "on-primary": "#FFFFFF",
+      "accent": "#C9894B",
+      "heading": "#23303B",
+      "text": "#4A5560",
+      "muted": "#88898A",
+      "border": "rgba(35, 48, 59, 0.12)"
+    },
+    "fonts": {
+      "heading": "var(--font-instrument-serif), Georgia, serif",
+      "display": "var(--font-instrument-serif), Georgia, serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.24,
+      "maxRatio": 1.36,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.0",
+      "snug": "1.25",
+      "body": "1.7"
+    },
+    "letterSpacing": {
+      "tight": "-0.015em",
+      "snug": "0em",
+      "wide": "0.22em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "2px",
+      "md": "6px",
+      "lg": "220px",
+      "pill": "999px",
+      "button": "999px",
+      "card": "6px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "airy",
+    "cards": "flat",
+    "headerBorder": false
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Rooms",
+        "href": "/rooms"
+      },
+      {
+        "label": "Experiences",
+        "href": "/experiences"
+      },
+      {
+        "label": "Contact",
+        "href": "/contact"
+      }
+    ],
+    "action": {
+      "label": "Reserve",
+      "href": "/contact"
+    }
+  },
+  "footer": {
+    "text": "Via Pasitea 140, Positano, Italy",
+    "columns": [
+      {
+        "title": "Hotel",
+        "links": [
+          {
+            "label": "Rooms",
+            "href": "/rooms"
+          },
+          {
+            "label": "Experiences",
+            "href": "/experiences"
+          },
+          {
+            "label": "Contact",
+            "href": "/contact"
+          }
+        ]
+      },
+      {
+        "title": "Reservations",
+        "links": [
+          {
+            "label": "+39 089 000 000",
+            "href": "tel:+39089000000"
+          },
+          {
+            "label": "stay@example.com",
+            "href": "mailto:stay@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} Positano"
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Terrace overlooking the sea at sunset",
+      "motif": "landscape",
+      "width": 1800,
+      "height": 850,
+      "palette": [
+        "#F2D3B0",
+        "#E8B98A",
+        "#3E5C76",
+        "#FBF7F0"
+      ]
+    },
+    {
+      "key": "r-1",
+      "alt": "Sea-view room with a balcony",
+      "motif": "arch",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#F4ECDF",
+        "#EADFCB",
+        "#3E5C76",
+        "#C9894B"
+      ]
+    },
+    {
+      "key": "r-2",
+      "alt": "Garden suite with a private terrace",
+      "motif": "arch",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#EAF0E4",
+        "#F4ECDF",
+        "#5E7A55",
+        "#C9894B"
+      ]
+    },
+    {
+      "key": "r-3",
+      "alt": "Penthouse with a plunge pool",
+      "motif": "arch",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#E2EBF2",
+        "#F4ECDF",
+        "#3E5C76",
+        "#C9894B"
+      ]
+    },
+    {
+      "key": "pool",
+      "alt": "Infinity pool above the coast",
+      "motif": "landscape",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#CFE2EC",
+        "#F4ECDF",
+        "#3E5C76",
+        "#C9894B"
+      ]
+    },
+    {
+      "key": "dining",
+      "alt": "Garden restaurant under lemon trees",
+      "motif": "plate",
+      "width": 1200,
+      "height": 960,
+      "palette": [
+        "#F4ECDF",
+        "#EADFCB",
+        "#C9894B",
+        "#5E7A55"
+      ]
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "room",
+      "singular": "Room",
+      "plural": "Rooms",
+      "prefix": "stay",
+      "icon": "⌂",
+      "description": "Rooms and suites.",
+      "fields": [
+        {
+          "key": "view",
+          "label": "View",
+          "type": "TEXT"
+        },
+        {
+          "key": "guests",
+          "label": "Sleeps",
+          "type": "TEXT"
+        },
+        {
+          "key": "rate",
+          "label": "Nightly rate",
+          "type": "PRICE",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "room",
+      "title": "Sea View Room",
+      "slug": "sea-view-room",
+      "excerpt": "A bright double with a balcony over the bay.",
+      "body": [
+        "A bright double with a balcony over the bay."
+      ],
+      "fields": {
+        "view": "Sea view",
+        "guests": "Sleeps 2",
+        "rate": 420
+      },
+      "image": "r-1"
+    },
+    {
+      "type": "room",
+      "title": "Garden Suite",
+      "slug": "garden-suite",
+      "excerpt": "A suite opening onto a private terrace among the lemon trees.",
+      "body": [
+        "A suite opening onto a private terrace among the lemon trees."
+      ],
+      "fields": {
+        "view": "Garden and sea",
+        "guests": "Sleeps 3",
+        "rate": 610
+      },
+      "image": "r-2"
+    },
+    {
+      "type": "room",
+      "title": "Penthouse",
+      "slug": "penthouse",
+      "excerpt": "The top floor, with a plunge pool and panoramic terrace.",
+      "body": [
+        "The top floor, with a plunge pool and panoramic terrace."
+      ],
+      "fields": {
+        "view": "Panoramic",
+        "guests": "Sleeps 4",
+        "rate": 1150
+      },
+      "image": "r-3"
+    }
+  ],
+  "products": [],
+  "store": {
+    "currency": "EUR",
+    "shippingCountries": [
+      "IT"
+    ]
+  },
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Boutique hotel in Positano",
+        "description": "A twelve-room hotel above the sea with a garden restaurant, pool and private beach."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "banner",
+          "eyebrow": "Positano · Amalfi Coast",
+          "title": "Twelve rooms above the sea",
+          "text": "A family-run hotel with a garden restaurant, an infinity pool and a private beach, ten minutes' walk from the village.",
+          "actions": [
+            {
+              "label": "Reserve your stay",
+              "href": "/contact"
+            },
+            {
+              "label": "See the rooms",
+              "href": "/rooms"
+            }
+          ],
+          "image": "hero"
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Rooms & suites",
+          "title": "Stay with us",
+          "postType": "room",
+          "limit": 3,
+          "card": "media",
+          "fields": [
+            "view",
+            "guests",
+            "rate"
+          ],
+          "linkLabel": "View room",
+          "action": {
+            "label": "All rooms",
+            "href": "/rooms"
+          }
+        },
+        {
+          "kind": "split",
+          "tone": "alt",
+          "eyebrow": "Dining",
+          "title": "Lunch under the lemon trees",
+          "text": "Our garden restaurant serves the coast's simplest, best food, much of it from our own terraces.",
+          "image": "dining",
+          "action": {
+            "label": "Experiences",
+            "href": "/experiences"
+          }
+        },
+        {
+          "kind": "gallery",
+          "images": [
+            "pool",
+            "r-1",
+            "r-3"
+          ],
+          "columns": 3
+        },
+        {
+          "kind": "testimonials",
+          "items": [
+            {
+              "quote": "The kind of place you plan your next trip around.",
+              "name": "Condé Nast Traveller",
+              "role": "Hot List 2026"
+            },
+            {
+              "quote": "Staff remembered our names, our coffee orders and our anniversary.",
+              "name": "Helen & Mark",
+              "role": "Guests from London"
+            }
+          ]
+        },
+        {
+          "kind": "cta",
+          "tone": "inverse",
+          "title": "Open April to October",
+          "text": "Book direct for breakfast, a boat transfer and late checkout.",
+          "actions": [
+            {
+              "label": "Reserve",
+              "href": "/contact"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Rooms",
+      "slug": "rooms",
+      "seo": {
+        "title": "Rooms & suites",
+        "description": "Rooms and suites at {{site}}."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "Rooms & suites",
+          "title": "Every room faces the sea",
+          "postType": "room",
+          "limit": 12,
+          "card": "media",
+          "fields": [
+            "view",
+            "guests",
+            "rate"
+          ],
+          "linkLabel": "View room"
+        },
+        {
+          "kind": "features",
+          "tone": "alt",
+          "title": "In every room",
+          "columns": 4,
+          "items": [
+            {
+              "icon": "☼",
+              "title": "Breakfast",
+              "text": "On your terrace or in the garden."
+            },
+            {
+              "icon": "≈",
+              "title": "Beach",
+              "text": "Loungers and towels on our private beach."
+            },
+            {
+              "icon": "✦",
+              "title": "Linen",
+              "text": "Hand-pressed Italian cotton."
+            },
+            {
+              "icon": "☏",
+              "title": "Concierge",
+              "text": "Boats, tables and tours arranged."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Experiences",
+      "slug": "experiences",
+      "seo": {
+        "title": "Experiences",
+        "description": "Things to do from {{site}}."
+      },
+      "sections": [
+        {
+          "kind": "features",
+          "eyebrow": "Experiences",
+          "title": "Days on the coast",
+          "columns": 3,
+          "items": [
+            {
+              "icon": "⛵",
+              "title": "Private boat to Capri",
+              "text": "A day on a wooden gozzo with lunch on board."
+            },
+            {
+              "icon": "❀",
+              "title": "Cooking class",
+              "text": "Pasta and lemon desserts with our chef."
+            },
+            {
+              "icon": "▲",
+              "title": "Path of the Gods",
+              "text": "A guided walk along the cliffs."
+            }
+          ]
+        },
+        {
+          "kind": "split",
+          "tone": "alt",
+          "reverse": true,
+          "eyebrow": "Wellness",
+          "title": "The pool and spa",
+          "text": "An infinity pool, a small spa and massages on the terrace.",
+          "image": "pool"
+        }
+      ]
+    },
+    {
+      "title": "Contact",
+      "slug": "contact",
+      "seo": {
+        "title": "Reservations",
+        "description": "Reservations and contact."
+      },
+      "sections": [
+        {
+          "kind": "contact",
+          "eyebrow": "Reservations",
+          "title": "Reserve your stay",
+          "text": "Book direct for our best rates and a free boat transfer from Naples.",
+          "items": [
+            {
+              "label": "Reservations",
+              "value": "stay@example.com",
+              "href": "mailto:stay@example.com"
+            },
+            {
+              "label": "Phone",
+              "value": "+39 089 000 000",
+              "href": "tel:+39089000000"
+            },
+            {
+              "label": "Address",
+              "value": "Via Pasitea 140, Positano"
+            },
+            {
+              "label": "Season",
+              "value": "April – October"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

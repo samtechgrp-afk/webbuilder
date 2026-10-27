@@ -1,0 +1,619 @@
+{
+  "key": "fitness-studio",
+  "name": "Fitness Studio & Gym",
+  "sector": "health",
+  "description": "High-energy dark fitness studio with a class schedule, trainer profiles, membership pricing and a free trial call to action.",
+  "highlights": [
+    "Class schedule",
+    "Trainer profiles",
+    "Membership pricing",
+    "Free trial CTA"
+  ],
+  "site": {
+    "name": "Forge",
+    "tagline": "Strength and conditioning for real life",
+    "logoText": "Forge",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Forge is a strength and conditioning studio in Denver with small-group classes, open gym and personal training."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#0B0B0C",
+      "surface-low": "#131315",
+      "surface-mid": "#1B1B1E",
+      "surface-high": "#222226",
+      "primary": "#D4FF3A",
+      "on-primary": "#0B0B0C",
+      "accent": "#D4FF3A",
+      "heading": "#F7F7F5",
+      "text": "#C2C2BE",
+      "muted": "#85857F",
+      "border": "rgba(255, 255, 255, 0.1)"
+    },
+    "fonts": {
+      "heading": "var(--font-geist-sans), system-ui, sans-serif",
+      "display": "var(--font-geist-sans), system-ui, sans-serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.26,
+      "maxRatio": 1.38,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "0.92",
+      "snug": "1.15",
+      "body": "1.6"
+    },
+    "letterSpacing": {
+      "tight": "-0.035em",
+      "snug": "-0.01em",
+      "wide": "0.14em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "4px",
+      "md": "6px",
+      "lg": "10px",
+      "pill": "999px",
+      "button": "4px",
+      "card": "8px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(0, 0, 0, 0.5)",
+      "md": "0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 24px -8px rgba(0, 0, 0, 0.7)",
+      "lg": "0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 80px -20px rgba(0, 0, 0, 0.85)"
+    }
+  },
+  "look": {
+    "headings": "uppercase",
+    "density": "regular",
+    "cards": "bordered",
+    "headerBorder": true
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Classes",
+        "href": "/classes"
+      },
+      {
+        "label": "Coaches",
+        "href": "/coaches"
+      },
+      {
+        "label": "Membership",
+        "href": "/membership"
+      }
+    ],
+    "action": {
+      "label": "Free trial",
+      "href": "/membership"
+    }
+  },
+  "footer": {
+    "text": "Strength and conditioning in Denver.",
+    "columns": [
+      {
+        "title": "Train",
+        "links": [
+          {
+            "label": "Classes",
+            "href": "/classes"
+          },
+          {
+            "label": "Coaches",
+            "href": "/coaches"
+          },
+          {
+            "label": "Membership",
+            "href": "/membership"
+          }
+        ]
+      },
+      {
+        "title": "Visit",
+        "links": [
+          {
+            "label": "2900 Larimer St",
+            "href": "/membership"
+          },
+          {
+            "label": "(303) 555-0190",
+            "href": "tel:+13035550190"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} Fitness LLC"
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Barbell plates on the training floor",
+      "motif": "pattern",
+      "width": 1800,
+      "height": 800,
+      "palette": [
+        "#0B0B0C",
+        "#1B1B1E",
+        "#D4FF3A",
+        "#5A5A55"
+      ]
+    },
+    {
+      "key": "t-1",
+      "alt": "Coach Marcus",
+      "motif": "portrait",
+      "width": 900,
+      "height": 900,
+      "palette": [
+        "#1B1B1E",
+        "#222226",
+        "#D4FF3A",
+        "#85857F"
+      ]
+    },
+    {
+      "key": "t-2",
+      "alt": "Coach Ava",
+      "motif": "portrait",
+      "width": 900,
+      "height": 900,
+      "palette": [
+        "#131315",
+        "#222226",
+        "#F7F7F5",
+        "#D4FF3A"
+      ]
+    },
+    {
+      "key": "t-3",
+      "alt": "Coach Diego",
+      "motif": "portrait",
+      "width": 900,
+      "height": 900,
+      "palette": [
+        "#1B1B1E",
+        "#131315",
+        "#D4FF3A",
+        "#C2C2BE"
+      ]
+    },
+    {
+      "key": "gym",
+      "alt": "The training floor",
+      "motif": "arch",
+      "width": 1200,
+      "height": 960,
+      "palette": [
+        "#131315",
+        "#1B1B1E",
+        "#D4FF3A",
+        "#3A3A3E"
+      ]
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "class",
+      "singular": "Class",
+      "plural": "Classes",
+      "prefix": "sessions",
+      "icon": "▲",
+      "description": "Weekly classes.",
+      "fields": [
+        {
+          "key": "day",
+          "label": "Day",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+          ]
+        },
+        {
+          "key": "time",
+          "label": "Time",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "key": "coach",
+          "label": "Coach",
+          "type": "TEXT"
+        }
+      ]
+    },
+    {
+      "key": "coach",
+      "singular": "Coach",
+      "plural": "Coaches",
+      "prefix": "team",
+      "icon": "●",
+      "description": "Coaches.",
+      "fields": [
+        {
+          "key": "specialty",
+          "label": "Specialty",
+          "type": "TEXT",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "class",
+      "title": "Strength: Squat focus",
+      "slug": "strength-squat",
+      "excerpt": "Back squat, accessories and core.",
+      "body": [
+        "Back squat, accessories and core."
+      ],
+      "fields": {
+        "day": "Monday",
+        "time": "6:00 am",
+        "coach": "Marcus"
+      }
+    },
+    {
+      "type": "class",
+      "title": "Conditioning",
+      "slug": "conditioning-tuesday",
+      "excerpt": "Rower and sled intervals.",
+      "body": [
+        "Rower and sled intervals."
+      ],
+      "fields": {
+        "day": "Tuesday",
+        "time": "12:15 pm",
+        "coach": "Ava"
+      }
+    },
+    {
+      "type": "class",
+      "title": "Strength: Deadlift focus",
+      "slug": "strength-deadlift",
+      "excerpt": "Deadlift and posterior chain.",
+      "body": [
+        "Deadlift and posterior chain."
+      ],
+      "fields": {
+        "day": "Wednesday",
+        "time": "6:00 pm",
+        "coach": "Diego"
+      }
+    },
+    {
+      "type": "class",
+      "title": "Mobility & core",
+      "slug": "mobility-core",
+      "excerpt": "Recovery-focused session.",
+      "body": [
+        "Recovery-focused session."
+      ],
+      "fields": {
+        "day": "Thursday",
+        "time": "7:00 am",
+        "coach": "Ava"
+      }
+    },
+    {
+      "type": "class",
+      "title": "Saturday team workout",
+      "slug": "saturday-team",
+      "excerpt": "Partner workout, all levels.",
+      "body": [
+        "Partner workout, all levels."
+      ],
+      "fields": {
+        "day": "Saturday",
+        "time": "9:00 am",
+        "coach": "Marcus"
+      }
+    },
+    {
+      "type": "coach",
+      "title": "Marcus Hill",
+      "slug": "marcus-hill",
+      "excerpt": "Head coach. Former collegiate strength coach.",
+      "body": [
+        "Head coach. Former collegiate strength coach."
+      ],
+      "fields": {
+        "specialty": "Powerlifting"
+      },
+      "image": "t-1"
+    },
+    {
+      "type": "coach",
+      "title": "Ava Brooks",
+      "slug": "ava-brooks",
+      "excerpt": "Conditioning and mobility.",
+      "body": [
+        "Conditioning and mobility."
+      ],
+      "fields": {
+        "specialty": "Conditioning"
+      },
+      "image": "t-2"
+    },
+    {
+      "type": "coach",
+      "title": "Diego Santos",
+      "slug": "diego-santos",
+      "excerpt": "Olympic lifting and personal training.",
+      "body": [
+        "Olympic lifting and personal training."
+      ],
+      "fields": {
+        "specialty": "Olympic lifting"
+      },
+      "image": "t-3"
+    }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Strength and conditioning",
+        "description": "Small-group strength classes, open gym and personal training in Denver."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "banner",
+          "eyebrow": "Denver · Est. 2019",
+          "title": "Get strong for real life",
+          "text": "Small-group strength and conditioning, coached by people who care about your form as much as your PRs.",
+          "actions": [
+            {
+              "label": "Claim a free week",
+              "href": "/membership"
+            },
+            {
+              "label": "See classes",
+              "href": "/classes"
+            }
+          ],
+          "image": "hero"
+        },
+        {
+          "kind": "features",
+          "eyebrow": "Train",
+          "title": "Three ways to train",
+          "columns": 3,
+          "items": [
+            {
+              "icon": "▲",
+              "title": "Strength",
+              "text": "Barbell programming in groups of eight."
+            },
+            {
+              "icon": "◆",
+              "title": "Conditioning",
+              "text": "Intervals, sleds and rowers. 45 minutes."
+            },
+            {
+              "icon": "●",
+              "title": "Personal training",
+              "text": "One-to-one coaching on your schedule."
+            }
+          ]
+        },
+        {
+          "kind": "loop",
+          "tone": "alt",
+          "eyebrow": "This week",
+          "title": "Class schedule",
+          "postType": "class",
+          "limit": 5,
+          "card": "row",
+          "fields": [
+            "day",
+            "time",
+            "coach"
+          ],
+          "action": {
+            "label": "Full schedule",
+            "href": "/classes"
+          }
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Coaches",
+          "title": "Coached, not just counted",
+          "postType": "coach",
+          "limit": 3,
+          "card": "person",
+          "columns": 3,
+          "fields": [
+            "specialty"
+          ],
+          "action": {
+            "label": "Meet the coaches",
+            "href": "/coaches"
+          }
+        },
+        {
+          "kind": "testimonials",
+          "tone": "alt",
+          "items": [
+            {
+              "quote": "Deadlifted my bodyweight for the first time at 46.",
+              "name": "Karen",
+              "role": "Member since 2023"
+            },
+            {
+              "quote": "The coaches actually remember your injuries.",
+              "name": "Jordan",
+              "role": "Member since 2021"
+            }
+          ]
+        },
+        {
+          "kind": "cta",
+          "tone": "primary",
+          "title": "Your first week is free",
+          "actions": [
+            {
+              "label": "Claim your free week",
+              "href": "/membership"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Classes",
+      "slug": "classes",
+      "seo": {
+        "title": "Classes",
+        "description": "Weekly class schedule."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "Schedule",
+          "title": "Weekly classes",
+          "postType": "class",
+          "limit": 24,
+          "card": "row",
+          "fields": [
+            "day",
+            "time",
+            "coach"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Coaches",
+      "slug": "coaches",
+      "seo": {
+        "title": "Coaches",
+        "description": "The coaching team."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "Team",
+          "title": "Our coaches",
+          "postType": "coach",
+          "limit": 12,
+          "card": "person",
+          "columns": 3,
+          "fields": [
+            "specialty"
+          ]
+        },
+        {
+          "kind": "split",
+          "tone": "alt",
+          "eyebrow": "The gym",
+          "title": "6,000 square feet of iron",
+          "text": "Twelve racks, a turf lane and a recovery room with sauna and cold plunge.",
+          "image": "gym"
+        }
+      ]
+    },
+    {
+      "title": "Membership",
+      "slug": "membership",
+      "seo": {
+        "title": "Membership",
+        "description": "Memberships and free trial."
+      },
+      "sections": [
+        {
+          "kind": "pricing",
+          "eyebrow": "Membership",
+          "title": "Train as often as you like",
+          "text": "No contracts. Pause any time.",
+          "tiers": [
+            {
+              "name": "Classes 8",
+              "price": "$129",
+              "period": "/ month",
+              "description": "Two classes a week.",
+              "features": [
+                "8 classes a month",
+                "Open gym weekends"
+              ],
+              "action": {
+                "label": "Start free week",
+                "href": "mailto:join@example.com"
+              }
+            },
+            {
+              "name": "Unlimited",
+              "price": "$189",
+              "period": "/ month",
+              "description": "Every class, every day.",
+              "features": [
+                "Unlimited classes",
+                "Open gym",
+                "Recovery room"
+              ],
+              "action": {
+                "label": "Start free week",
+                "href": "mailto:join@example.com"
+              },
+              "featured": true
+            },
+            {
+              "name": "Personal",
+              "price": "$90",
+              "period": "/ session",
+              "description": "One-to-one coaching.",
+              "features": [
+                "Custom programme",
+                "Nutrition check-ins"
+              ],
+              "action": {
+                "label": "Book a session",
+                "href": "mailto:join@example.com"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "contact",
+          "tone": "alt",
+          "title": "Visit the gym",
+          "items": [
+            {
+              "label": "Address",
+              "value": "2900 Larimer St, Denver"
+            },
+            {
+              "label": "Phone",
+              "value": "(303) 555-0190",
+              "href": "tel:+13035550190"
+            },
+            {
+              "label": "Hours",
+              "value": "Mon–Fri 5am–9pm · Sat–Sun 7am–2pm"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

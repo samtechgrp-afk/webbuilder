@@ -1,0 +1,377 @@
+{
+  "key": "mobile-app",
+  "name": "Mobile App Showcase",
+  "sector": "saas",
+  "description": "Energetic, coral-toned landing page for a consumer app with device mockups, feature highlights and app-store calls to action.",
+  "highlights": [
+    "Device mockups",
+    "Feature highlights",
+    "Reviews",
+    "Support FAQ"
+  ],
+  "site": {
+    "name": "Pace",
+    "tagline": "The running coach in your pocket",
+    "logoText": "Pace",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Pace builds a training plan around your life and adapts it after every run."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#FFF8F4",
+      "surface-low": "#FFEFE6",
+      "surface-mid": "#FFE3D3",
+      "surface-high": "#FFFFFF",
+      "primary": "#FF5A36",
+      "on-primary": "#FFFFFF",
+      "accent": "#7C3AED",
+      "heading": "#1F1300",
+      "text": "#4A3A2E",
+      "muted": "#8A7768",
+      "border": "rgba(31, 19, 0, 0.1)"
+    },
+    "fonts": {
+      "heading": "var(--font-geist-sans), system-ui, sans-serif",
+      "display": "var(--font-geist-sans), system-ui, sans-serif",
+      "body": "var(--font-geist-sans), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.2,
+      "maxRatio": 1.3,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.08",
+      "snug": "1.3",
+      "body": "1.65"
+    },
+    "letterSpacing": {
+      "tight": "-0.04em",
+      "snug": "-0.015em",
+      "wide": "0.1em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "8px",
+      "md": "14px",
+      "lg": "28px",
+      "pill": "999px",
+      "button": "999px",
+      "card": "24px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    },
+    "ambient": {
+      "primary": "radial-gradient(50% 60% at 15% 10%, rgba(255, 90, 54, 0.16), transparent 70%)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "airy",
+    "cards": "flat",
+    "headerBorder": false
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Features",
+        "href": "/"
+      },
+      {
+        "label": "Support",
+        "href": "/support"
+      }
+    ],
+    "action": {
+      "label": "Download",
+      "href": "/support"
+    }
+  },
+  "footer": {
+    "text": "{{site}} is available on iPhone, Android and your watch.",
+    "columns": [
+      {
+        "title": "App",
+        "links": [
+          {
+            "label": "Features",
+            "href": "/"
+          },
+          {
+            "label": "Support",
+            "href": "/support"
+          }
+        ]
+      },
+      {
+        "title": "Legal",
+        "links": [
+          {
+            "label": "Privacy",
+            "href": "mailto:privacy@example.com"
+          },
+          {
+            "label": "Terms",
+            "href": "mailto:legal@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} Running Co."
+  },
+  "images": [
+    {
+      "key": "phone",
+      "alt": "App showing today's run",
+      "motif": "device",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#FFE3D3",
+        "#FFF8F4",
+        "#1F1300",
+        "#FF5A36"
+      ]
+    },
+    {
+      "key": "phone-2",
+      "alt": "Weekly plan on the app",
+      "motif": "device",
+      "width": 1100,
+      "height": 900,
+      "palette": [
+        "#EDE4FF",
+        "#FFF8F4",
+        "#1F1300",
+        "#7C3AED"
+      ]
+    },
+    {
+      "key": "route",
+      "alt": "Route map at sunrise",
+      "motif": "landscape",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#FFE3D3",
+        "#FFC9A8",
+        "#FF5A36",
+        "#FFFFFF"
+      ]
+    }
+  ],
+  "postTypes": [],
+  "entries": [],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · The running coach in your pocket",
+        "description": "Pace builds a training plan around your life and adapts it after every run."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "split",
+          "eyebrow": "Editor's Choice",
+          "title": "Run further, without getting hurt",
+          "text": "{{site}} builds a plan around your schedule and adjusts it after every run, so you improve every week.",
+          "actions": [
+            {
+              "label": "Download free",
+              "href": "/support"
+            },
+            {
+              "label": "How it works",
+              "href": "/support"
+            }
+          ],
+          "note": "4.9 ★ from 120,000 runners",
+          "image": "phone"
+        },
+        {
+          "kind": "stats",
+          "items": [
+            {
+              "value": "2.4M",
+              "label": "Runs logged"
+            },
+            {
+              "value": "38%",
+              "label": "Fewer injuries reported"
+            },
+            {
+              "value": "4.9★",
+              "label": "App Store rating"
+            }
+          ]
+        },
+        {
+          "kind": "features",
+          "eyebrow": "Features",
+          "title": "A coach that listens",
+          "columns": 3,
+          "items": [
+            {
+              "icon": "↗",
+              "title": "Adaptive plans",
+              "text": "Missed a run? Felt great? Your week rebalances automatically."
+            },
+            {
+              "icon": "♥",
+              "title": "Heart-rate zones",
+              "text": "Pair any watch or strap and train at the right effort."
+            },
+            {
+              "icon": "◎",
+              "title": "Race goals",
+              "text": "From your first 5K to a marathon PR, with a plan that counts down."
+            },
+            {
+              "icon": "☾",
+              "title": "Recovery score",
+              "text": "Sleep and soreness feed into tomorrow's session."
+            },
+            {
+              "icon": "♪",
+              "title": "Audio coaching",
+              "text": "Cues in your ear for pace, intervals and form."
+            },
+            {
+              "icon": "⚑",
+              "title": "Clubs",
+              "text": "Train with friends and climb the weekly leaderboard."
+            }
+          ]
+        },
+        {
+          "kind": "split",
+          "reverse": true,
+          "eyebrow": "Your week",
+          "title": "Every session has a reason",
+          "text": "Easy days, tempo runs and long runs, explained in plain language so you know why you're doing them.",
+          "image": "phone-2",
+          "bullets": [
+            "Plans from 3 to 6 runs a week",
+            "Strength and mobility sessions",
+            "Works offline on your watch"
+          ]
+        },
+        {
+          "kind": "steps",
+          "tone": "alt",
+          "eyebrow": "Get started",
+          "title": "Running in three minutes",
+          "items": [
+            {
+              "title": "Tell us your goal",
+              "text": "Pick a race or just run more consistently."
+            },
+            {
+              "title": "Share your week",
+              "text": "Choose the days and times that work for you."
+            },
+            {
+              "title": "Lace up",
+              "text": "Start today's run with audio coaching on."
+            }
+          ]
+        },
+        {
+          "kind": "testimonials",
+          "items": [
+            {
+              "quote": "First marathon at 41, and no injuries the whole way through.",
+              "name": "Jess",
+              "role": "Chicago Marathon finisher"
+            },
+            {
+              "quote": "It moved my long run when I got sick. That's the coach I needed.",
+              "name": "Tomás",
+              "role": "Half-marathoner"
+            },
+            {
+              "quote": "I went from couch to 10K in twelve weeks.",
+              "name": "Mira",
+              "role": "New runner"
+            }
+          ]
+        },
+        {
+          "kind": "cta",
+          "tone": "primary",
+          "title": "Your first week is free",
+          "text": "Available on iPhone, Android and Apple Watch.",
+          "actions": [
+            {
+              "label": "Download {{site}}",
+              "href": "/support"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Support",
+      "slug": "support",
+      "seo": {
+        "title": "Support",
+        "description": "Answers about plans, devices and subscriptions."
+      },
+      "sections": [
+        {
+          "kind": "faq",
+          "eyebrow": "Support",
+          "title": "How can we help?",
+          "text": "Still stuck? Email us and a real runner will reply within a day.",
+          "items": [
+            {
+              "q": "Which watches work with {{site}}?",
+              "a": "Apple Watch, Garmin, Coros, Polar and any Bluetooth heart-rate strap."
+            },
+            {
+              "q": "Can I change my plan mid-way?",
+              "a": "Yes. Change your goal or available days any time and the plan rebuilds from today."
+            },
+            {
+              "q": "How much does it cost?",
+              "a": "The first week is free, then $9.99 a month or $59.99 a year."
+            },
+            {
+              "q": "How do I cancel?",
+              "a": "Cancel from your phone's subscription settings. You keep access until the period ends."
+            }
+          ]
+        },
+        {
+          "kind": "contact",
+          "tone": "alt",
+          "title": "Talk to us",
+          "items": [
+            {
+              "label": "Email",
+              "value": "help@example.com",
+              "href": "mailto:help@example.com"
+            },
+            {
+              "label": "Response time",
+              "value": "Within 24 hours"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

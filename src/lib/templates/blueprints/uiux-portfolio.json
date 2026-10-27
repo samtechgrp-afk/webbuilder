@@ -1,0 +1,455 @@
+{
+  "key": "uiux-portfolio",
+  "name": "UI/UX Designer Portfolio",
+  "sector": "portfolio",
+  "description": "Clean, playful product designer portfolio with case studies, a skills grid, process steps and a résumé page.",
+  "highlights": [
+    "Case study post type",
+    "Skills grid",
+    "Process steps",
+    "Experience timeline"
+  ],
+  "site": {
+    "name": "Maya Okafor",
+    "tagline": "Product designer for complex tools",
+    "logoText": "Maya Okafor",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Maya Okafor is a product designer who makes complex software feel simple. Currently design lead at a developer tools company."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#FFFFFF",
+      "surface-low": "#F6F6F9",
+      "surface-mid": "#ECECF3",
+      "surface-high": "#FFFFFF",
+      "primary": "#4F46E5",
+      "on-primary": "#FFFFFF",
+      "accent": "#F59E0B",
+      "heading": "#111127",
+      "text": "#3C3C55",
+      "muted": "#74748A",
+      "border": "#E6E6EF"
+    },
+    "fonts": {
+      "heading": "var(--font-geist-sans), system-ui, sans-serif",
+      "display": "var(--font-geist-sans), system-ui, sans-serif",
+      "body": "var(--font-geist-sans), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.2,
+      "maxRatio": 1.3,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.08",
+      "snug": "1.3",
+      "body": "1.65"
+    },
+    "letterSpacing": {
+      "tight": "-0.035em",
+      "snug": "-0.012em",
+      "wide": "0.1em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "8px",
+      "md": "14px",
+      "lg": "24px",
+      "pill": "999px",
+      "button": "999px",
+      "card": "20px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "regular",
+    "cards": "elevated",
+    "headerBorder": false
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Work",
+        "href": "/work"
+      },
+      {
+        "label": "About",
+        "href": "/about"
+      }
+    ],
+    "action": {
+      "label": "Get in touch",
+      "href": "mailto:maya@example.com"
+    }
+  },
+  "footer": {
+    "text": "Product design for complex tools.",
+    "columns": [
+      {
+        "title": "Maya",
+        "links": [
+          {
+            "label": "Work",
+            "href": "/work"
+          },
+          {
+            "label": "About",
+            "href": "/about"
+          }
+        ]
+      },
+      {
+        "title": "Elsewhere",
+        "links": [
+          {
+            "label": "Dribbble",
+            "href": "https://dribbble.com"
+          },
+          {
+            "label": "LinkedIn",
+            "href": "https://linkedin.com"
+          },
+          {
+            "label": "Read.cv",
+            "href": "https://read.cv"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}}"
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Design system components on a canvas",
+      "motif": "interface",
+      "width": 1200,
+      "height": 1400,
+      "palette": [
+        "#ECECF3",
+        "#FFFFFF",
+        "#4F46E5",
+        "#F59E0B"
+      ]
+    },
+    {
+      "key": "c-1",
+      "alt": "Observability dashboard redesign",
+      "motif": "interface",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#ECECF3",
+        "#FFFFFF",
+        "#4F46E5",
+        "#111127"
+      ]
+    },
+    {
+      "key": "c-2",
+      "alt": "Mobile banking onboarding flow",
+      "motif": "device",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#FEF3C7",
+        "#FFFFFF",
+        "#111127",
+        "#F59E0B"
+      ]
+    },
+    {
+      "key": "c-3",
+      "alt": "Design system documentation",
+      "motif": "pattern",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#E0E7FF",
+        "#F6F6F9",
+        "#4F46E5",
+        "#F59E0B"
+      ]
+    },
+    {
+      "key": "maya",
+      "alt": "Portrait of Maya",
+      "motif": "portrait",
+      "width": 1000,
+      "height": 1250,
+      "palette": [
+        "#ECECF3",
+        "#F6F6F9",
+        "#111127",
+        "#4F46E5"
+      ]
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "case",
+      "singular": "Case study",
+      "plural": "Case studies",
+      "prefix": "case-studies",
+      "icon": "◧",
+      "description": "Design case studies.",
+      "fields": [
+        {
+          "key": "company",
+          "label": "Company",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "key": "role",
+          "label": "Role",
+          "type": "TEXT"
+        },
+        {
+          "key": "year",
+          "label": "Year",
+          "type": "NUMBER"
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "case",
+      "title": "Making traces readable",
+      "slug": "making-traces-readable",
+      "excerpt": "Redesigning an observability dashboard used by 40,000 engineers.",
+      "body": [
+        "Redesigning an observability dashboard used by 40,000 engineers."
+      ],
+      "fields": {
+        "company": "Tracewell",
+        "role": "Design lead",
+        "year": 2026
+      },
+      "image": "c-1"
+    },
+    {
+      "type": "case",
+      "title": "Onboarding in four minutes",
+      "slug": "onboarding-in-four-minutes",
+      "excerpt": "Cutting account opening time by 60% for a mobile bank.",
+      "body": [
+        "Cutting account opening time by 60% for a mobile bank."
+      ],
+      "fields": {
+        "company": "Monzo",
+        "role": "Product designer",
+        "year": 2018
+      },
+      "image": "c-2"
+    },
+    {
+      "type": "case",
+      "title": "A design system for billing",
+      "slug": "billing-design-system",
+      "excerpt": "Components and patterns for a complex billing product.",
+      "body": [
+        "Components and patterns for a complex billing product."
+      ],
+      "fields": {
+        "company": "Stripe",
+        "role": "Senior product designer",
+        "year": 2022
+      },
+      "image": "c-3"
+    }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Product designer",
+        "description": "A product designer who makes complex software feel simple."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "split",
+          "eyebrow": "Product designer",
+          "title": "I make complex tools feel obvious",
+          "text": "Design lead at Tracewell. Previously Stripe and Monzo. I work on dashboards, design systems and the bits of software nobody else wants to touch.",
+          "actions": [
+            {
+              "label": "See my work",
+              "href": "/work"
+            },
+            {
+              "label": "About me",
+              "href": "/about"
+            }
+          ],
+          "image": "hero"
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Selected work",
+          "title": "Case studies",
+          "postType": "case",
+          "limit": 3,
+          "card": "media",
+          "fields": [
+            "company",
+            "role"
+          ],
+          "linkLabel": "Read case study",
+          "action": {
+            "label": "All work",
+            "href": "/work"
+          }
+        },
+        {
+          "kind": "steps",
+          "tone": "alt",
+          "eyebrow": "Process",
+          "title": "How I work",
+          "items": [
+            {
+              "title": "Understand",
+              "text": "Talk to users and read the support tickets."
+            },
+            {
+              "title": "Sketch",
+              "text": "Many rough options, quickly."
+            },
+            {
+              "title": "Prototype",
+              "text": "Real data, real interactions."
+            },
+            {
+              "title": "Ship",
+              "text": "Pair with engineers until it's live."
+            }
+          ]
+        },
+        {
+          "kind": "features",
+          "eyebrow": "Skills",
+          "title": "What I bring",
+          "columns": 3,
+          "items": [
+            {
+              "icon": "◧",
+              "title": "Interaction design",
+              "text": "Flows and states for data-heavy products."
+            },
+            {
+              "icon": "▦",
+              "title": "Design systems",
+              "text": "Tokens, components and docs teams actually use."
+            },
+            {
+              "icon": "◎",
+              "title": "Research",
+              "text": "Interviews and usability testing that change decisions."
+            }
+          ]
+        },
+        {
+          "kind": "testimonials",
+          "items": [
+            {
+              "quote": "Maya turned our most-hated screen into the one customers screenshot and share.",
+              "name": "Dan Ortiz",
+              "role": "VP Product, Tracewell"
+            }
+          ]
+        },
+        {
+          "kind": "cta",
+          "tone": "primary",
+          "title": "Open to advisory and freelance work",
+          "actions": [
+            {
+              "label": "Get in touch",
+              "href": "mailto:maya@example.com"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Work",
+      "slug": "work",
+      "seo": {
+        "title": "Work",
+        "description": "Product design case studies."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "Work",
+          "title": "Case studies",
+          "postType": "case",
+          "limit": 12,
+          "card": "media",
+          "fields": [
+            "company",
+            "role",
+            "year"
+          ],
+          "linkLabel": "Read case study"
+        }
+      ]
+    },
+    {
+      "title": "About",
+      "slug": "about",
+      "seo": {
+        "title": "About",
+        "description": "Background and experience."
+      },
+      "sections": [
+        {
+          "kind": "split",
+          "eyebrow": "About",
+          "title": "Ten years designing software people use all day",
+          "text": "I started as a front-end developer, which is why I still prototype in code. I care about clarity, speed and accessibility.",
+          "image": "maya"
+        },
+        {
+          "kind": "list",
+          "tone": "alt",
+          "eyebrow": "Experience",
+          "title": "Where I've worked",
+          "items": [
+            {
+              "title": "Design lead, Tracewell",
+              "meta": "2023 – now",
+              "text": "Leading a team of five on an observability platform."
+            },
+            {
+              "title": "Senior product designer, Stripe",
+              "meta": "2019 – 2023",
+              "text": "Billing and the Dashboard design system."
+            },
+            {
+              "title": "Product designer, Monzo",
+              "meta": "2016 – 2019",
+              "text": "Onboarding and savings."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

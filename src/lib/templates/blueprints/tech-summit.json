@@ -1,0 +1,614 @@
+{
+  "key": "tech-summit",
+  "name": "Tech Summit & Conference",
+  "sector": "hospitality",
+  "description": "Electric, dark conference site with countdown-style hero, speaker grid, agenda, ticket tiers, sponsors and venue details.",
+  "highlights": [
+    "Speakers post type",
+    "Agenda",
+    "Ticket tiers",
+    "Sponsors and venue"
+  ],
+  "site": {
+    "name": "Horizon Summit",
+    "tagline": "Two days on the future of AI and software",
+    "logoText": "Horizon Summit",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Horizon Summit brings 3,000 engineers, founders and researchers to San Francisco for two days on AI and the future of software."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#07071A",
+      "surface-low": "#0D0D26",
+      "surface-mid": "#141433",
+      "surface-high": "#1B1B40",
+      "primary": "#7C5CFF",
+      "on-primary": "#FFFFFF",
+      "accent": "#22D3EE",
+      "heading": "#F5F5FF",
+      "text": "#C3C3E0",
+      "muted": "#8585AD",
+      "border": "rgba(255, 255, 255, 0.1)"
+    },
+    "fonts": {
+      "heading": "var(--font-geist-sans), system-ui, sans-serif",
+      "display": "var(--font-geist-sans), system-ui, sans-serif",
+      "body": "var(--font-geist-sans), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.25,
+      "maxRatio": 1.38,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "0.96",
+      "snug": "1.2",
+      "body": "1.6"
+    },
+    "letterSpacing": {
+      "tight": "-0.045em",
+      "snug": "-0.015em",
+      "wide": "0.16em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "8px",
+      "md": "12px",
+      "lg": "20px",
+      "pill": "999px",
+      "button": "999px",
+      "card": "16px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(0, 0, 0, 0.5)",
+      "md": "0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 24px -8px rgba(0, 0, 0, 0.7)",
+      "lg": "0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 80px -20px rgba(0, 0, 0, 0.85)"
+    },
+    "ambient": {
+      "primary": "radial-gradient(60% 60% at 70% 0%, rgba(124, 92, 255, 0.35), transparent 70%), radial-gradient(40% 50% at 10% 20%, rgba(34, 211, 238, 0.18), transparent 70%)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "regular",
+    "cards": "bordered",
+    "headerBorder": false
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Speakers",
+        "href": "/speakers"
+      },
+      {
+        "label": "Agenda",
+        "href": "/agenda"
+      },
+      {
+        "label": "Tickets",
+        "href": "/tickets"
+      }
+    ],
+    "action": {
+      "label": "Get tickets",
+      "href": "/tickets"
+    }
+  },
+  "footer": {
+    "text": "May 12–13, 2027 · Moscone West, San Francisco",
+    "columns": [
+      {
+        "title": "Summit",
+        "links": [
+          {
+            "label": "Speakers",
+            "href": "/speakers"
+          },
+          {
+            "label": "Agenda",
+            "href": "/agenda"
+          },
+          {
+            "label": "Tickets",
+            "href": "/tickets"
+          }
+        ]
+      },
+      {
+        "title": "Get involved",
+        "links": [
+          {
+            "label": "Sponsor",
+            "href": "mailto:sponsor@example.com"
+          },
+          {
+            "label": "Speak",
+            "href": "mailto:speakers@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}}"
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Stage lights over a conference crowd",
+      "motif": "aurora",
+      "width": 1800,
+      "height": 850,
+      "palette": [
+        "#07071A",
+        "#141433",
+        "#7C5CFF",
+        "#22D3EE"
+      ]
+    },
+    {
+      "key": "sp-1",
+      "alt": "Portrait of Dr. Aisha Rahman",
+      "motif": "portrait",
+      "width": 900,
+      "height": 900,
+      "palette": [
+        "#141433",
+        "#1B1B40",
+        "#7C5CFF",
+        "#22D3EE"
+      ]
+    },
+    {
+      "key": "sp-2",
+      "alt": "Portrait of Leo Martins",
+      "motif": "portrait",
+      "width": 900,
+      "height": 900,
+      "palette": [
+        "#0D0D26",
+        "#1B1B40",
+        "#22D3EE",
+        "#7C5CFF"
+      ]
+    },
+    {
+      "key": "sp-3",
+      "alt": "Portrait of Grace Kim",
+      "motif": "portrait",
+      "width": 900,
+      "height": 900,
+      "palette": [
+        "#141433",
+        "#0D0D26",
+        "#C3C3E0",
+        "#7C5CFF"
+      ]
+    },
+    {
+      "key": "sp-4",
+      "alt": "Portrait of Tomás Herrera",
+      "motif": "portrait",
+      "width": 900,
+      "height": 900,
+      "palette": [
+        "#1B1B40",
+        "#141433",
+        "#7C5CFF",
+        "#F5F5FF"
+      ]
+    },
+    {
+      "key": "venue",
+      "alt": "Moscone West exterior",
+      "motif": "skyline",
+      "width": 1200,
+      "height": 960,
+      "palette": [
+        "#0D0D26",
+        "#141433",
+        "#7C5CFF",
+        "#22D3EE"
+      ]
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "speaker",
+      "singular": "Speaker",
+      "plural": "Speakers",
+      "prefix": "people",
+      "icon": "◉",
+      "description": "Conference speakers.",
+      "fields": [
+        {
+          "key": "position",
+          "label": "Position",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "key": "company",
+          "label": "Company",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "key": "talk",
+          "label": "Talk title",
+          "type": "TEXT"
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "speaker",
+      "title": "Dr. Aisha Rahman",
+      "slug": "aisha-rahman",
+      "excerpt": "Chief scientist working on reasoning models.",
+      "body": [
+        "Chief scientist working on reasoning models."
+      ],
+      "fields": {
+        "position": "Chief Scientist",
+        "company": "Lattice AI",
+        "talk": "The next ten years"
+      },
+      "image": "sp-1"
+    },
+    {
+      "type": "speaker",
+      "title": "Leo Martins",
+      "slug": "leo-martins",
+      "excerpt": "Builds agent infrastructure.",
+      "body": [
+        "Builds agent infrastructure."
+      ],
+      "fields": {
+        "position": "CTO",
+        "company": "Relay",
+        "talk": "Agents in production"
+      },
+      "image": "sp-2"
+    },
+    {
+      "type": "speaker",
+      "title": "Grace Kim",
+      "slug": "grace-kim",
+      "excerpt": "Product lead for an AI coding assistant.",
+      "body": [
+        "Product lead for an AI coding assistant."
+      ],
+      "fields": {
+        "position": "Head of Product",
+        "company": "Codeline",
+        "talk": "Agents in production"
+      },
+      "image": "sp-3"
+    },
+    {
+      "type": "speaker",
+      "title": "Tomás Herrera",
+      "slug": "tomas-herrera",
+      "excerpt": "Runs inference at planetary scale.",
+      "body": [
+        "Runs inference at planetary scale."
+      ],
+      "fields": {
+        "position": "VP Infrastructure",
+        "company": "Nimbus",
+        "talk": "Infrastructure for a billion agents"
+      },
+      "image": "sp-4"
+    }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} 2027 · AI and the future of software",
+        "description": "3,000 engineers, founders and researchers in San Francisco, May 12–13, 2027."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "centered",
+          "eyebrow": "May 12–13, 2027 · San Francisco",
+          "title": "Where the next decade of software gets built",
+          "text": "Two days of talks, workshops and hallway conversations with 3,000 engineers, founders and researchers.",
+          "actions": [
+            {
+              "label": "Get tickets",
+              "href": "/tickets"
+            },
+            {
+              "label": "See the speakers",
+              "href": "/speakers"
+            }
+          ],
+          "note": "Early-bird pricing ends January 31"
+        },
+        {
+          "kind": "stats",
+          "items": [
+            {
+              "value": "3,000",
+              "label": "Attendees"
+            },
+            {
+              "value": "80",
+              "label": "Speakers"
+            },
+            {
+              "value": "4",
+              "label": "Stages"
+            },
+            {
+              "value": "2",
+              "label": "Days"
+            }
+          ]
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Speakers",
+          "title": "Featured speakers",
+          "postType": "speaker",
+          "limit": 4,
+          "card": "person",
+          "columns": 4,
+          "fields": [
+            "position",
+            "company"
+          ],
+          "action": {
+            "label": "All speakers",
+            "href": "/speakers"
+          }
+        },
+        {
+          "kind": "features",
+          "tone": "alt",
+          "eyebrow": "Tracks",
+          "title": "Four stages",
+          "columns": 4,
+          "items": [
+            {
+              "icon": "◆",
+              "title": "Models",
+              "text": "Research, evals and training at scale."
+            },
+            {
+              "icon": "▲",
+              "title": "Agents",
+              "text": "Building systems that act."
+            },
+            {
+              "icon": "●",
+              "title": "Infrastructure",
+              "text": "Inference, data and cost."
+            },
+            {
+              "icon": "■",
+              "title": "Product",
+              "text": "Shipping AI people actually use."
+            }
+          ]
+        },
+        {
+          "kind": "logos",
+          "title": "Sponsors",
+          "items": [
+            "Vercel",
+            "Datadog",
+            "Cloudflare",
+            "MongoDB",
+            "Supabase",
+            "Linear"
+          ]
+        },
+        {
+          "kind": "cta",
+          "tone": "primary",
+          "title": "Early-bird tickets are 40% off",
+          "actions": [
+            {
+              "label": "Get tickets",
+              "href": "/tickets"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Speakers",
+      "slug": "speakers",
+      "seo": {
+        "title": "Speakers",
+        "description": "Speakers at {{site}} 2027."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "Speakers",
+          "title": "Everyone on stage",
+          "postType": "speaker",
+          "limit": 24,
+          "card": "person",
+          "columns": 4,
+          "fields": [
+            "position",
+            "company"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Agenda",
+      "slug": "agenda",
+      "seo": {
+        "title": "Agenda",
+        "description": "The two-day programme."
+      },
+      "sections": [
+        {
+          "kind": "list",
+          "eyebrow": "Day one · May 12",
+          "title": "Agenda",
+          "items": [
+            {
+              "title": "Registration and coffee",
+              "meta": "8:00"
+            },
+            {
+              "title": "Opening keynote: The next ten years",
+              "meta": "9:00",
+              "text": "Dr. Aisha Rahman"
+            },
+            {
+              "title": "Agents in production",
+              "meta": "10:30",
+              "text": "Leo Martins and Grace Kim"
+            },
+            {
+              "title": "Lunch and expo",
+              "meta": "12:30"
+            },
+            {
+              "title": "Workshops",
+              "meta": "14:00",
+              "text": "Hands-on sessions across four rooms"
+            },
+            {
+              "title": "Evening party",
+              "meta": "19:00",
+              "text": "Pier 27"
+            }
+          ]
+        },
+        {
+          "kind": "list",
+          "tone": "alt",
+          "eyebrow": "Day two · May 13",
+          "title": "Agenda",
+          "items": [
+            {
+              "title": "Breakfast roundtables",
+              "meta": "8:30"
+            },
+            {
+              "title": "Keynote: Infrastructure for a billion agents",
+              "meta": "9:30",
+              "text": "Tomás Herrera"
+            },
+            {
+              "title": "Track sessions",
+              "meta": "11:00"
+            },
+            {
+              "title": "Closing panel",
+              "meta": "16:30"
+            }
+          ]
+        },
+        {
+          "kind": "split",
+          "eyebrow": "Venue",
+          "title": "Moscone West, San Francisco",
+          "text": "747 Howard Street, steps from BART. Discounted hotels nearby.",
+          "image": "venue"
+        }
+      ]
+    },
+    {
+      "title": "Tickets",
+      "slug": "tickets",
+      "seo": {
+        "title": "Tickets",
+        "description": "Ticket options for {{site}} 2027."
+      },
+      "sections": [
+        {
+          "kind": "pricing",
+          "eyebrow": "Tickets",
+          "title": "Pick your pass",
+          "tiers": [
+            {
+              "name": "General",
+              "price": "$799",
+              "period": "early bird",
+              "description": "Both days, all talks.",
+              "features": [
+                "All stages",
+                "Expo hall",
+                "Lunch both days"
+              ],
+              "action": {
+                "label": "Buy General",
+                "href": "mailto:tickets@example.com"
+              }
+            },
+            {
+              "name": "Builder",
+              "price": "$1,299",
+              "period": "early bird",
+              "description": "Talks plus workshops.",
+              "features": [
+                "Everything in General",
+                "Hands-on workshops",
+                "Evening party"
+              ],
+              "action": {
+                "label": "Buy Builder",
+                "href": "mailto:tickets@example.com"
+              },
+              "featured": true
+            },
+            {
+              "name": "VIP",
+              "price": "$2,499",
+              "period": "limited",
+              "description": "The full experience.",
+              "features": [
+                "Reserved seating",
+                "Speaker dinner",
+                "Lounge access"
+              ],
+              "action": {
+                "label": "Buy VIP",
+                "href": "mailto:tickets@example.com"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "faq",
+          "tone": "alt",
+          "title": "Ticket questions",
+          "items": [
+            {
+              "q": "Are tickets refundable?",
+              "a": "Fully refundable until March 31, transferable any time."
+            },
+            {
+              "q": "Are there student tickets?",
+              "a": "Yes, $199 with a valid student ID. Email us."
+            },
+            {
+              "q": "Will talks be recorded?",
+              "a": "Main-stage talks are published two weeks after the event."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

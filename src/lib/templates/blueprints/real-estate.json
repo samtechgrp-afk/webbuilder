@@ -1,0 +1,509 @@
+{
+  "key": "real-estate",
+  "name": "Real Estate Agency",
+  "sector": "hospitality",
+  "description": "Polished property agency site with featured listings (price, beds, baths), neighbourhood guides, agent stats and valuation CTA.",
+  "highlights": [
+    "Listings with prices",
+    "Agent stats",
+    "Valuation CTA",
+    "Neighbourhood features"
+  ],
+  "site": {
+    "name": "Northgate Realty",
+    "tagline": "Homes in Seattle's best neighbourhoods",
+    "logoText": "Northgate Realty",
+    "seo": {
+      "titleTemplate": "%s · {{site}}",
+      "description": "Northgate Realty helps buyers and sellers across Seattle with local agents, honest advice and great photography."
+    }
+  },
+  "tokens": {
+    "colors": {
+      "background": "#FFFFFF",
+      "surface-low": "#F5F6F4",
+      "surface-mid": "#E9ECE7",
+      "surface-high": "#FFFFFF",
+      "primary": "#1E3A34",
+      "on-primary": "#FFFFFF",
+      "accent": "#C2A15C",
+      "heading": "#13211D",
+      "text": "#3B4743",
+      "muted": "#727D79",
+      "border": "#E1E5E0"
+    },
+    "fonts": {
+      "heading": "var(--font-fraunces), Georgia, serif",
+      "display": "var(--font-fraunces), Georgia, serif",
+      "body": "var(--font-inter), system-ui, sans-serif",
+      "mono": "var(--font-geist-mono), ui-monospace, monospace"
+    },
+    "typeScale": {
+      "minBase": 1,
+      "maxBase": 1.0625,
+      "minRatio": 1.2,
+      "maxRatio": 1.3,
+      "minWidth": 360,
+      "maxWidth": 1280
+    },
+    "lineHeights": {
+      "tight": "1.08",
+      "snug": "1.3",
+      "body": "1.65"
+    },
+    "letterSpacing": {
+      "tight": "-0.02em",
+      "snug": "-0.005em",
+      "wide": "0.14em"
+    },
+    "spaceUnit": 8,
+    "radii": {
+      "sm": "4px",
+      "md": "8px",
+      "lg": "14px",
+      "pill": "999px",
+      "button": "999px",
+      "card": "10px"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "md": "0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 32px -14px rgba(15, 23, 42, 0.2)",
+      "lg": "0 2px 6px rgba(15, 23, 42, 0.05), 0 32px 64px -24px rgba(15, 23, 42, 0.3)"
+    }
+  },
+  "look": {
+    "headings": "normal",
+    "density": "regular",
+    "cards": "elevated",
+    "headerBorder": true
+  },
+  "header": {
+    "logo": "{{site}}",
+    "nav": [
+      {
+        "label": "Listings",
+        "href": "/listings"
+      },
+      {
+        "label": "Sell",
+        "href": "/sell"
+      },
+      {
+        "label": "About",
+        "href": "/about"
+      }
+    ],
+    "action": {
+      "label": "Book a valuation",
+      "href": "/sell"
+    }
+  },
+  "footer": {
+    "text": "Licensed real estate brokerage in Washington State.",
+    "columns": [
+      {
+        "title": "Agency",
+        "links": [
+          {
+            "label": "Listings",
+            "href": "/listings"
+          },
+          {
+            "label": "Sell",
+            "href": "/sell"
+          },
+          {
+            "label": "About",
+            "href": "/about"
+          }
+        ]
+      },
+      {
+        "title": "Contact",
+        "links": [
+          {
+            "label": "(206) 555-0155",
+            "href": "tel:+12065550155"
+          },
+          {
+            "label": "homes@example.com",
+            "href": "mailto:homes@example.com"
+          }
+        ]
+      }
+    ],
+    "legal": "© 2026 {{site}} LLC. Equal housing opportunity."
+  },
+  "images": [
+    {
+      "key": "hero",
+      "alt": "Craftsman house at dusk",
+      "motif": "skyline",
+      "width": 1800,
+      "height": 850,
+      "palette": [
+        "#1E3A34",
+        "#2F5249",
+        "#C2A15C",
+        "#E9ECE7"
+      ]
+    },
+    {
+      "key": "l-1",
+      "alt": "Modern townhouse in Capitol Hill",
+      "motif": "arch",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#E9ECE7",
+        "#F5F6F4",
+        "#1E3A34",
+        "#C2A15C"
+      ]
+    },
+    {
+      "key": "l-2",
+      "alt": "Craftsman bungalow in Ballard",
+      "motif": "arch",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#EDE6D6",
+        "#F5F6F4",
+        "#5B4A33",
+        "#C2A15C"
+      ]
+    },
+    {
+      "key": "l-3",
+      "alt": "Waterfront condo in Queen Anne",
+      "motif": "skyline",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#DCE7EE",
+        "#F5F6F4",
+        "#1E3A34",
+        "#C2A15C"
+      ]
+    },
+    {
+      "key": "l-4",
+      "alt": "Family home in Wallingford",
+      "motif": "arch",
+      "width": 1200,
+      "height": 900,
+      "palette": [
+        "#E6ECE2",
+        "#F5F6F4",
+        "#3B4743",
+        "#C2A15C"
+      ]
+    },
+    {
+      "key": "agents",
+      "alt": "The Northgate team",
+      "motif": "portrait",
+      "width": 1200,
+      "height": 960,
+      "palette": [
+        "#F5F6F4",
+        "#E9ECE7",
+        "#1E3A34",
+        "#C2A15C"
+      ]
+    }
+  ],
+  "postTypes": [
+    {
+      "key": "listing",
+      "singular": "Listing",
+      "plural": "Listings",
+      "prefix": "homes",
+      "icon": "⌂",
+      "description": "Homes for sale.",
+      "fields": [
+        {
+          "key": "neighborhood",
+          "label": "Neighbourhood",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "key": "rooms",
+          "label": "Bedrooms and bathrooms",
+          "type": "TEXT"
+        },
+        {
+          "key": "asking",
+          "label": "Asking price",
+          "type": "TEXT",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "type": "listing",
+      "title": "Modern townhouse on 14th Ave",
+      "slug": "townhouse-14th-ave",
+      "excerpt": "Three floors, a roof deck and city views.",
+      "body": [
+        "Three floors, a roof deck and city views."
+      ],
+      "fields": {
+        "neighborhood": "Capitol Hill",
+        "rooms": "3 bed · 2 bath",
+        "asking": "$1,095,000"
+      },
+      "image": "l-1"
+    },
+    {
+      "type": "listing",
+      "title": "Restored 1912 Craftsman",
+      "slug": "restored-craftsman",
+      "excerpt": "Original woodwork, new kitchen, big garden.",
+      "body": [
+        "Original woodwork, new kitchen, big garden."
+      ],
+      "fields": {
+        "neighborhood": "Ballard",
+        "rooms": "4 bed · 2 bath",
+        "asking": "$1,349,000"
+      },
+      "image": "l-2"
+    },
+    {
+      "type": "listing",
+      "title": "Waterfront condo with Sound views",
+      "slug": "waterfront-condo",
+      "excerpt": "Floor-to-ceiling windows over Elliott Bay.",
+      "body": [
+        "Floor-to-ceiling windows over Elliott Bay."
+      ],
+      "fields": {
+        "neighborhood": "Queen Anne",
+        "rooms": "2 bed · 2 bath",
+        "asking": "$875,000"
+      },
+      "image": "l-3"
+    },
+    {
+      "type": "listing",
+      "title": "Family home near Gas Works Park",
+      "slug": "family-home-wallingford",
+      "excerpt": "Five bedrooms on a quiet tree-lined street.",
+      "body": [
+        "Five bedrooms on a quiet tree-lined street."
+      ],
+      "fields": {
+        "neighborhood": "Wallingford",
+        "rooms": "5 bed · 3 bath",
+        "asking": "$1,625,000"
+      },
+      "image": "l-4"
+    }
+  ],
+  "products": [],
+  "pages": [
+    {
+      "title": "Home",
+      "slug": "home",
+      "seo": {
+        "title": "{{site}} · Seattle real estate",
+        "description": "Local agents helping buyers and sellers across Seattle."
+      },
+      "sections": [
+        {
+          "kind": "hero",
+          "variant": "banner",
+          "eyebrow": "Seattle real estate",
+          "title": "Find the home that fits your life",
+          "text": "Local agents who know every street from Ballard to Beacon Hill, and photography that sells.",
+          "actions": [
+            {
+              "label": "Browse listings",
+              "href": "/listings"
+            },
+            {
+              "label": "What's my home worth?",
+              "href": "/sell"
+            }
+          ],
+          "image": "hero"
+        },
+        {
+          "kind": "loop",
+          "eyebrow": "Featured listings",
+          "title": "New on the market",
+          "postType": "listing",
+          "limit": 3,
+          "card": "media",
+          "fields": [
+            "neighborhood",
+            "rooms",
+            "asking"
+          ],
+          "linkLabel": "View home",
+          "action": {
+            "label": "All listings",
+            "href": "/listings"
+          }
+        },
+        {
+          "kind": "stats",
+          "tone": "alt",
+          "items": [
+            {
+              "value": "$1.4B",
+              "label": "Homes sold"
+            },
+            {
+              "value": "103%",
+              "label": "Average of list price"
+            },
+            {
+              "value": "11 days",
+              "label": "Average days on market"
+            }
+          ]
+        },
+        {
+          "kind": "features",
+          "eyebrow": "Why Northgate",
+          "title": "Selling with us",
+          "columns": 3,
+          "items": [
+            {
+              "icon": "◎",
+              "title": "Pricing that's right",
+              "text": "Valuations based on street-level data."
+            },
+            {
+              "icon": "▣",
+              "title": "Magazine photography",
+              "text": "Professional photos, video and floor plans."
+            },
+            {
+              "icon": "✓",
+              "title": "One agent, start to finish",
+              "text": "No hand-offs to junior staff."
+            }
+          ]
+        },
+        {
+          "kind": "cta",
+          "tone": "primary",
+          "title": "What's your home worth?",
+          "text": "A free, no-pressure valuation from a local agent.",
+          "actions": [
+            {
+              "label": "Book a valuation",
+              "href": "/sell"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Listings",
+      "slug": "listings",
+      "seo": {
+        "title": "Listings",
+        "description": "Homes for sale."
+      },
+      "sections": [
+        {
+          "kind": "loop",
+          "eyebrow": "For sale",
+          "title": "Current listings",
+          "postType": "listing",
+          "limit": 12,
+          "card": "media",
+          "fields": [
+            "neighborhood",
+            "rooms",
+            "asking"
+          ],
+          "linkLabel": "View home"
+        }
+      ]
+    },
+    {
+      "title": "Sell",
+      "slug": "sell",
+      "seo": {
+        "title": "Sell your home",
+        "description": "Valuations and selling with {{site}}."
+      },
+      "sections": [
+        {
+          "kind": "steps",
+          "eyebrow": "Selling",
+          "title": "From valuation to keys",
+          "items": [
+            {
+              "title": "Value",
+              "text": "A free valuation and pricing plan."
+            },
+            {
+              "title": "Prepare",
+              "text": "Staging, photos and a launch plan."
+            },
+            {
+              "title": "Market",
+              "text": "Open houses and targeted promotion."
+            },
+            {
+              "title": "Close",
+              "text": "Negotiation through to completion."
+            }
+          ]
+        },
+        {
+          "kind": "contact",
+          "tone": "alt",
+          "title": "Book a valuation",
+          "items": [
+            {
+              "label": "Phone",
+              "value": "(206) 555-0155",
+              "href": "tel:+12065550155"
+            },
+            {
+              "label": "Email",
+              "value": "homes@example.com",
+              "href": "mailto:homes@example.com"
+            },
+            {
+              "label": "Office",
+              "value": "5400 Ballard Ave NW, Seattle"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "About",
+      "slug": "about",
+      "seo": {
+        "title": "About",
+        "description": "About {{site}}."
+      },
+      "sections": [
+        {
+          "kind": "split",
+          "eyebrow": "About",
+          "title": "Twenty local agents, one standard",
+          "text": "Founded in 2008, we're Seattle-owned and only work in Seattle.",
+          "image": "agents",
+          "bullets": [
+            "Top 1% brokerage in King County",
+            "4.9★ from 600 reviews"
+          ]
+        }
+      ]
+    }
+  ]
+}
