@@ -5,6 +5,7 @@ import { PRESETS, PRESET_KEYS } from "@/lib/design/presets";
 import { SECTORS } from "@/lib/templates/types";
 import { canCreateSites } from "@/server/template-service";
 import { templateSummaries } from "../sites/new/summaries";
+import { platformDomain } from "@/lib/env.mjs";
 import { WelcomeWizard, type ThemeChoice } from "./WelcomeWizard";
 
 export const metadata: Metadata = { title: "Welcome" };
@@ -18,5 +19,5 @@ export default async function OnboardingPage() {
     const c = PRESETS[key].tokens.colors ?? {};
     return { key, label: PRESETS[key].label, description: PRESETS[key].description, swatch: [c.background, c["surface-low"], c.primary, c.heading].filter((x): x is string => !!x) };
   });
-  return <WelcomeWizard firstName={user.name?.split(" ")[0] ?? null} themes={themes} templates={templateSummaries()} sectors={SECTORS} />;
+  return <WelcomeWizard firstName={user.name?.split(" ")[0] ?? null} themes={themes} templates={templateSummaries()} sectors={SECTORS} rootDomain={platformDomain()} />;
 }
