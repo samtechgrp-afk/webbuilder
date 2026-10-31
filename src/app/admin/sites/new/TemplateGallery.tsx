@@ -31,7 +31,7 @@ export interface SiteSetupChoice {
 const DEVICES = { desktop: { label: "Desktop", width: 1440 }, tablet: { label: "Tablet", width: 820 }, mobile: { label: "Mobile", width: 390 } } as const;
 type Device = keyof typeof DEVICES;
 
-export function TemplateGallery({ templates, sectors, setup }: { templates: TemplateSummary[]; sectors: Record<string, string>; setup?: SiteSetupChoice }) {
+export function TemplateGallery({ templates, sectors, setup, rootDomain }: { templates: TemplateSummary[]; sectors: Record<string, string>; setup?: SiteSetupChoice; rootDomain: string }) {
   const [sector, setSector] = useState<string>("all");
   const [open, setOpen] = useState<TemplateSummary | null>(null);
   const shown = sector === "all" ? templates : templates.filter((t) => t.sector === sector);
@@ -75,7 +75,7 @@ export function TemplateGallery({ templates, sectors, setup }: { templates: Temp
           </li>
         ))}
       </ul>
-      {open && <PreviewModal key={open.key} t={open} sectorLabel={sectors[open.sector]} setup={setup} onClose={() => setOpen(null)} />}
+      {open && <PreviewModal key={open.key} t={open} sectorLabel={sectors[open.sector]} setup={setup} rootDomain={rootDomain} onClose={() => setOpen(null)} />}
     </>
   );
 }
@@ -106,7 +106,7 @@ function Thumbnail({ t }: { t: TemplateSummary }) {
   );
 }
 
-function PreviewModal({ t, sectorLabel, setup, onClose }: { t: TemplateSummary; sectorLabel: string; setup?: SiteSetupChoice; onClose: () => void }) {
+function PreviewModal({ t, sectorLabel, setup, rootDomain, onClose }: { t: TemplateSummary; sectorLabel: string; setup?: SiteSetupChoice; rootDomain: string; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const [device, setDevice] = useState<Device>("desktop");
@@ -231,7 +231,7 @@ function PreviewModal({ t, sectorLabel, setup, onClose }: { t: TemplateSummary; 
                     aria-describedby="subdomain-hint"
                   />
                 </div>
-                <p id="subdomain-hint" className="mt-1 text-xs text-zinc-500">Your site starts at {subdomain || "your-site"}.{typeof window === "undefined" ? "" : window.location.host}. Add a custom domain later.</p>
+                <p id="subdomain-hint" className="mt-1 text-xs text-zinc-500">Your site starts at {subdomain || "your-site"}.{rootDomain}. Add a custom domain later.</p>
               </div>
               {state?.error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" data-create-error="">{state.error}</p>}
               <Button type="submit" tone="primary" className="w-full" disabled={pending} data-create-site="">

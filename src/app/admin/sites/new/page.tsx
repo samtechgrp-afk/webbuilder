@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
+import { platformDomain } from "@/lib/env.mjs";
 import { SECTORS } from "@/lib/templates/types";
 import { canCreateSites } from "@/server/template-service";
 import { templateSummaries } from "./summaries";
@@ -30,7 +31,7 @@ export default async function NewSitePage() {
           <p className="mt-1 text-sm text-zinc-600">Pick a starter template. Pages, design system, content types and sample content are all editable afterwards.</p>
         </div>
       </div>
-      <TemplateGallery templates={templates} sectors={SECTORS} />
+      <TemplateGallery templates={templates} sectors={SECTORS} rootDomain={platformDomain()} />
     </main>
   );
 }

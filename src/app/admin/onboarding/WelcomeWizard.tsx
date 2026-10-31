@@ -35,7 +35,7 @@ const STEPS = ["Name your site", "Language", "Theme", "Starting point"] as const
  * optional theme preset over the template's own design, then the template
  * gallery, whose create form carries the earlier choices.
  */
-export function WelcomeWizard({ firstName, themes, templates, sectors }: { firstName: string | null; themes: ThemeChoice[]; templates: TemplateSummary[]; sectors: Record<string, string> }) {
+export function WelcomeWizard({ firstName, themes, templates, sectors, rootDomain }: { firstName: string | null; themes: ThemeChoice[]; templates: TemplateSummary[]; sectors: Record<string, string>; rootDomain: string }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
@@ -73,7 +73,7 @@ export function WelcomeWizard({ firstName, themes, templates, sectors }: { first
             </form>
           </div>
         </div>
-        <TemplateGallery templates={templates} sectors={sectors} setup={setup} />
+        <TemplateGallery templates={templates} sectors={sectors} setup={setup} rootDomain={rootDomain} />
       </main>
     );
   }
