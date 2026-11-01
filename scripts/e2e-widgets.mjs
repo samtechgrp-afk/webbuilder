@@ -126,7 +126,7 @@ try {
 
   // A client edits the rich text but never sees designer settings. The designer
   // leaves through the toolbar first, which releases the page's edit lock.
-  await page.getByRole("link", { name: /Aurelia Interiors/ }).first().click();
+  await page.locator("header").getByRole("link", { name: "← Aurelia Interiors" }).click();
   await page.waitForURL((u) => !u.pathname.endsWith("/edit"));
   await page.waitForTimeout(1500);
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
