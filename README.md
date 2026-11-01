@@ -20,6 +20,7 @@ Phase 4 added the global design system:
 - **Presets**: Linear Dark, Stripe Clean and Vercel Monochrome, applied in one click. A preset keeps the site's own extra tokens, so existing pages keep rendering.
 - **Editors**: `/admin/sites/:id/design-system` (panel, live specimen, history with restore) and a **Design system** drawer in Design mode that restyles the canvas as you edit. The Style inspector switches fields between a raw value and a global token.
 - **Guardrails**: only roles with `design.tokens` see the page or drawer; the server asserts the permission, validates every value (zod plus the CSS-injection filter) and refuses stale saves.
+- **Custom fonts** (`SiteFont` table, `src/lib/design/fonts.ts`, `src/server/design/font-service.ts`): the **Fonts** manager (from the Typography panel's *Manage fonts…*, the Design system drawer or page) uploads `.ttf`/`.otf` (and `.woff`/`.woff2`) files to media storage (R2 in production) under `<siteId>/fonts/` through `POST /api/sites/:id/fonts`, reading the family, weight, italic flag and variable weight range from the file itself, and links font host stylesheets such as Google Fonts (families are read from Google, Bunny and Fontshare URLs; other hosts take a typed family). Every renderer gets the fonts as `tokens.fontFaces` and `buildCss` puts the `@import` and `@font-face` rules first in the page CSS, so the canvas, live site, 404 page and static export load the same files; pages without custom fonts render byte-for-byte as before. Families show up in the inspector's Font picker for any widget with text and as values for the global font tokens. Font files are always streamed by `/uploads` (never redirected to the public bucket) with `Access-Control-Allow-Origin: *`, because browsers fetch fonts in CORS mode. Designers only (`design.tokens`).
 
 Phase 5 added SEO:
 
@@ -90,6 +91,7 @@ npm run e2e:widgets              # Playwright: categorised palette + search, add
 npm run e2e:forms                # Playwright: contact form with attachment, newsletter, star rating → live submit (JS and no-JS) → Resend notification → Forms inbox, CSV, permissions (needs RESEND_API_KEY=re_e2e_test_key RESEND_API_BASE=http://127.0.0.1:4243)
 npm run e2e:site-widgets         # Playwright: navigation menu (desktop row, phone drawer with Esc), breadcrumbs, site search, share buttons, sandboxed embed → publish → live site
 npm run e2e:tilted-hero          # Playwright: Tilted grid hero → gallery manager (bulk upload, reorder, alt text) → publish → live band on desktop and phone
+npm run e2e:fonts                # Playwright: font manager → upload two .ttf weights + Google Fonts link → inspector Font picker → canvas → publish → live @font-face/@import, CORS font file → remove
 ```
 
 Reseed with the server stopped (or restart it after seeding): resolved sites are cached by subdomain. For scheduled publishing in production, set `CRON_SECRET`; `vercel.json` calls the cron route every minute. The proxy fetches the rendered 404 page from `INTERNAL_URL` (defaults to `https://$VERCEL_URL`, else `http://127.0.0.1:$PORT`); with Vercel Deployment Protection on, point `INTERNAL_URL` at a reachable origin.
@@ -238,6 +240,7 @@ The designer's palette groups widgets into categories (Structure & layout, Basic
 | `src/lib/builder/styles.ts` | Style injection (container queries), token-driven base CSS, WCAG contrast |
 | `src/lib/design/*` | Token types and compiler (fluid type, spacing grid), presets and fonts, zod validation |
 | `src/server/design/tokens-service.ts`, `src/server/design-actions.ts` | Save / apply preset / restore tokens, version check, revisions, cache expiry |
+| `src/server/design/font-service.ts`, `font-file.ts`, `src/components/design/FontManager.tsx` | Custom fonts: upload (format sniffing, name/OS/2/fvar parsing), links, delete; the Fonts modal |
 | `src/lib/seo/*`, `src/server/seo/*` | SEO resolution and audit rules, site defaults schema, sitemap/robots bodies; sitemap data, page metadata + JSON-LD, public base URL |
 | `src/app/sites/[site]/sitemap.xml`, `robots.txt` | Per-site crawler files (the proxy maps a site's own host here) |
 | `src/components/design/*` | Tokens panel and live specimen, shared by the drawer and the design-system page |

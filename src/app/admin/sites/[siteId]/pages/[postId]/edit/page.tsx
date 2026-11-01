@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { ClientEditor } from "@/components/editor/ClientEditor";
+import { listFonts } from "@/server/design/font-service";
 import type { DesignTokens } from "@/lib/builder/styles";
 import { isBuilderDocument } from "@/lib/builder/types";
 import { prisma } from "@/lib/db";
@@ -36,7 +37,7 @@ export default async function EditPage({ params }: PageProps<"/admin/sites/[site
     : { id: post.id, title: post.title };
 
   const tokenState = await prisma.site.findUniqueOrThrow({ where: { id: t.site.id }, select: { designTokens: true, designTokensVersion: true } });
-  const [lock, assets, revisions, latest, postTypes, groups, taxonomies] = await Promise.all([
+  const [lock, assets, revisions, latest, postTypes, groups, taxonomies, fonts] = await Promise.all([
     acquireEditLock(t, post.id),
     t.db.mediaAsset.findMany({
       where: { OR: [{ mimeType: { startsWith: "image/" } }, { mimeType: { startsWith: "video/" } }, { mimeType: { startsWith: "audio/" } }] },
@@ -53,6 +54,7 @@ export default async function EditPage({ params }: PageProps<"/admin/sites/[site
     t.db.postType.findMany({ orderBy: { labelPlural: "asc" }, select: { id: true, key: true, labelPlural: true } }),
     t.db.fieldGroup.findMany({ where: { active: true }, orderBy: { order: "asc" }, include: { fields: { orderBy: { order: "asc" }, select: { key: true, label: true, type: true } } } }),
     t.db.taxonomy.findMany({ include: { postTypes: { select: { id: true } }, terms: { orderBy: { name: "asc" }, select: { id: true, name: true } } } }),
+    listFonts(t),
   ]);
 
   const allIds = postTypes.map((p) => p.id);
@@ -103,6 +105,7 @@ export default async function EditPage({ params }: PageProps<"/admin/sites/[site
         roleName={t.role.name}
         tokens={(tokenState.designTokens ?? {}) as DesignTokens}
         tokensVersion={tokenState.designTokensVersion}
+        fonts={fonts}
         assets={assets}
         revisions={revisions.map((r) => ({
           id: r.id,

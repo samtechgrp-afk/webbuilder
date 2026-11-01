@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DefaultArchive, DefaultEntry, DefaultSearch } from "@/components/site/DefaultLayouts";
 import { SiteDocument, type PageContext } from "@/lib/builder/render";
-import type { DesignTokens } from "@/lib/builder/styles";
 import { getPreview } from "@/server/preview";
 import type { RevisionMeta } from "@/server/cms/dynamic";
 import { jsonLdScript, pageSeo, type SeoTarget } from "@/server/seo/page-seo";
-import { getPublishedArchive, getPublishedEntry, getPublishedPage, resolveSite, searchSite } from "@/server/public-site";
+import { getPublishedArchive, getPublishedEntry, getPublishedPage, resolveSite, searchSite, siteTokens } from "@/server/public-site";
 import { SEARCH_PATH } from "@/server/route-check";
 import { publicBaseUrl } from "@/server/seo/public-url";
 import { defaultLocale } from "@/lib/i18n/locales";
@@ -29,7 +28,7 @@ async function resolve(key: string, slug: string[] | undefined, query = "") {
   const row = await resolveSite(key);
   if (!row) return null;
   const site = { id: row.id, name: row.name, settings: row.settings, branding: row.branding };
-  const tokens = (row.designTokens ?? {}) as DesignTokens;
+  const tokens = siteTokens(row);
   const loc = await siteLocaleContext(row, key, slug);
   const base = { site: row, tokens, loc, linkBase: loc.linkBase };
 
@@ -193,7 +192,7 @@ async function Preview({ siteKey, slug }: { siteKey: string; slug: string[] | un
   const loc = await siteLocaleContext(row, siteKey, slug);
   const linkBase = loc.linkBase;
   const lang = loc.locale?.code;
-  const tokens = (row.designTokens ?? {}) as DesignTokens;
+  const tokens = siteTokens(row);
   const p = await getPreview({ id: row.id, name: row.name, settings: row.settings, branding: row.branding }, loc.rest, linkBase, loc.stored);
   if (!p) notFound();
   const previewDoc = p.kind === "page" ? p.document : p.template;

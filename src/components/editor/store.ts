@@ -7,6 +7,7 @@ import type { FieldType } from "@/lib/cms/fields";
 import { createWidgetTree, duplicateNode, enclosingLoop, findParent, insertNode, moveNode, removeNode } from "@/lib/builder/tree";
 import { hasPermission } from "@/lib/rbac";
 import type { DesignTokens } from "@/lib/design/tokens";
+import type { ManagedFont } from "@/lib/design/fonts";
 import type { Binding, Breakpoint, BuilderDocument, LockSettings, SemanticTag, StyleKey, WidgetType } from "@/lib/builder/types";
 import type { CommerceData } from "@/lib/commerce/types";
 
@@ -62,12 +63,18 @@ interface EditorState {
   tokensVersion: number;
   /** The shop's active products for the commerce widgets and their settings. */
   commerce: CommerceData | null;
+  /** The site's custom fonts (font manager). The canvas loads them and the Font pickers list them. */
+  fonts: ManagedFont[];
+  fontManagerOpen: boolean;
 
   init(doc: BuilderDocument, ctx: EditContext, version: number): void;
   initDynamic(dynamic: DynamicData | null, catalog: BindingCatalog, contextPostTypeId: string | null): void;
   setLoopItems(loopId: string, items: DynamicPost[]): void;
   initTokens(tokens: DesignTokens, version: number): void;
   initCommerce(commerce: CommerceData | null): void;
+  setFonts(fonts: ManagedFont[]): void;
+  /** Opens the font manager (Designers only; the editor renders it when allowed). */
+  setFontManagerOpen(open: boolean): void;
   /** Designer-only (`design.tokens`): live-edit the global tokens. */
   setTokens(tokens: DesignTokens): boolean;
   markTokensSaved(tokens: DesignTokens, version: number): void;
@@ -132,6 +139,8 @@ export const useEditor = create<EditorState>((set, get) => ({
   savedTokens: null,
   tokensVersion: 0,
   commerce: null,
+  fonts: [],
+  fontManagerOpen: false,
 
   init: (doc, ctx, version) =>
     set({ doc, savedDoc: doc, ctx, version, past: [], future: [], selectedId: null, editingTextId: null, saveState: "idle" }),
@@ -140,6 +149,8 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   initTokens: (tokens, tokensVersion) => set({ tokens, savedTokens: tokens, tokensVersion }),
   initCommerce: (commerce) => set({ commerce }),
+  setFonts: (fonts) => set({ fonts }),
+  setFontManagerOpen: (fontManagerOpen) => set({ fontManagerOpen }),
   setTokens: (tokens) => {
     if (!hasPermission(get().ctx.permissions, "design.tokens")) return false;
     set({ tokens });
