@@ -80,7 +80,7 @@ export function TemplateGallery({ templates, sectors, setup, rootDomain }: { tem
   );
 }
 
-/** A miniature of the template's hero drawn from its tokens, so 30 cards don't load 30 pages. */
+/** A miniature of the template's hero drawn from its tokens, so the cards don't each load a page. */
 function Thumbnail({ t }: { t: TemplateSummary }) {
   const c = t.colors;
   return (

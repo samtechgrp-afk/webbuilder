@@ -166,8 +166,8 @@ try {
   if ((await signup.locator('[data-onboarding-theme="stripe-clean"]').getAttribute("aria-checked")) !== "true") fail("The theme radio didn't select");
   await signup.click("[data-onboarding-next]");
   await signup.locator('[data-onboarding-step="4"]').waitFor();
-  if ((await signup.locator("[data-template-card]").count()) !== 30) fail("Step 4 doesn't show the 30-template gallery");
-  await signup.locator('[data-preview="coffee-roasters"]').first().click();
+  if ((await signup.locator("[data-template-card]").count()) !== 6) fail("Step 4 doesn't show the 6-template gallery");
+  await signup.locator('[data-preview="fashion-store"]').first().click();
   const modal = signup.locator("[data-preview-modal]");
   await modal.waitFor();
   const templateKey = await modal.getAttribute("data-preview-modal");
