@@ -188,3 +188,46 @@ export async function getApiEntries(siteId: string, typeKey: string, page: numbe
     })),
   };
 }
+
+export interface SearchHit {
+  id: string;
+  title: string;
+  excerpt: string | null;
+  url: string;
+  kind: string;
+}
+
+/**
+ * The site search page (/search?q=…): live pages and entries of one language
+ * whose published title or excerpt contains the words. Hidden pages (noindex),
+ * templates and the 404 page are left out.
+ */
+export async function searchSite(site: SiteLike, query: string, locale = ""): Promise<SearchHit[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(siteCacheTag(site.id));
+  const words = query.trim().split(/\s+/).filter(Boolean).slice(0, 6).map((w) => w.slice(0, 60));
+  if (!words.length) return [];
+  const notFoundPageId = ((site.settings ?? {}) as { notFoundPageId?: string | null }).notFoundPageId;
+  const posts = await prisma.post.findMany({
+    where: {
+      siteId: site.id,
+      locale,
+      noIndex: false,
+      postType: { key: { not: "template" } },
+      ...LIVE,
+      ...(notFoundPageId ? { NOT: { id: notFoundPageId } } : {}),
+      AND: words.map((w) => ({ OR: [{ publishedRevision: { title: { contains: w, mode: "insensitive" as const } } }, { excerpt: { contains: w, mode: "insensitive" as const } }] })),
+    },
+    orderBy: [{ publishedAt: "desc" }],
+    take: 30,
+    select: { id: true, slug: true, excerpt: true, publishedRevision: { select: { title: true } }, postType: { select: { key: true, routePrefix: true, labelSingular: true } } },
+  });
+  return posts.map((p) => ({
+    id: p.id,
+    title: p.publishedRevision?.title ?? p.slug,
+    excerpt: p.excerpt,
+    url: entryPath(p.postType, p.slug),
+    kind: p.postType.key === "page" ? "Page" : p.postType.labelSingular,
+  }));
+}

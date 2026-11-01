@@ -47,7 +47,10 @@ export type RouteCheck =
       localeDetection: boolean;
     };
 
-type Hit = { postId: string } | { archive: string } | { product: string };
+type Hit = { postId: string } | { archive: string } | { product: string } | { search: true };
+
+/** The site search results page, unless a page of the site owns that address. */
+export const SEARCH_PATH = "search";
 
 async function findContent(siteId: string, parts: string[], locale: string, hidden: string[]): Promise<Hit | null> {
   const slug = parts.length ? parts.join("/") : "home";
@@ -74,6 +77,7 @@ async function findContent(siteId: string, parts: string[], locale: string, hidd
       select: { routePrefix: true },
     });
     if (archive) return { archive: archive.routePrefix ?? parts[0] };
+    if (parts[0] === SEARCH_PATH) return { search: true };
   }
   return null;
 }
@@ -88,6 +92,7 @@ async function alternatesFor(siteId: string, hit: Hit, locales: SiteLocaleInfo[]
   if (!locales.length) return [];
   if ("archive" in hit) return locales.map((l) => ({ localeCode: l.code, path: `/${hit.archive}` }));
   if ("product" in hit) return locales.map((l) => ({ localeCode: l.code, path: `/${PRODUCT_BASE}/${hit.product}` }));
+  if ("search" in hit) return locales.map((l) => ({ localeCode: l.code, path: `/${SEARCH_PATH}` }));
   const group = await prisma.postTranslation.findUnique({ where: { postId: hit.postId }, select: { translationId: true } });
   if (!group) return [];
   const members = await prisma.postTranslation.findMany({

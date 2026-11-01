@@ -1,0 +1,431 @@
+{
+  "version": 1,
+  "rootId": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "section",
+      "tag": "main",
+      "props": {},
+      "style": {},
+      "children": [
+        "nhweaedj6",
+        "nja877lmk",
+        "npee9bp0u"
+      ]
+    },
+    "nhweaedj6": {
+      "id": "nhweaedj6",
+      "type": "section",
+      "props": {},
+      "style": {
+        "desktop": {
+          "padding": "clamp(4rem,8cqi,7rem) 1.5rem",
+          "display": "flex",
+          "flexDirection": "column",
+          "alignItems": "center",
+          "gap": "var(--space-md)",
+          "textAlign": "center",
+          "background": "var(--color-surface)"
+        }
+      },
+      "children": [
+        "n0r4gmjs3",
+        "negdm9vga",
+        "nvauywt36"
+      ],
+      "tag": "header"
+    },
+    "n0r4gmjs3": {
+      "id": "n0r4gmjs3",
+      "type": "heading",
+      "props": {
+        "text": "Websites your team can actually update"
+      },
+      "style": {
+        "desktop": {
+          "fontFamily": "var(--font-display)",
+          "fontSize": "var(--text-h1)",
+          "lineHeight": "1.05",
+          "maxWidth": "18ch"
+        }
+      },
+      "tag": "h1"
+    },
+    "negdm9vga": {
+      "id": "negdm9vga",
+      "type": "text",
+      "props": {
+        "text": "Drag, drop and publish. Every page is fast, accessible and ready for search engines from day one."
+      },
+      "style": {
+        "desktop": {
+          "fontSize": "1.2rem",
+          "lineHeight": "1.6",
+          "color": "var(--color-muted)",
+          "maxWidth": "52ch"
+        }
+      }
+    },
+    "nvauywt36": {
+      "id": "nvauywt36",
+      "type": "button",
+      "props": {
+        "link": {
+          "label": "Start a project",
+          "href": "/contact"
+        }
+      },
+      "style": {
+        "desktop": {
+          "padding": ".9rem 1.5rem",
+          "borderRadius": "var(--radius-pill)",
+          "background": "var(--color-deep)",
+          "color": "var(--color-inverse)",
+          "fontWeight": "500"
+        }
+      }
+    },
+    "nja877lmk": {
+      "id": "nja877lmk",
+      "type": "section",
+      "props": {},
+      "style": {
+        "desktop": {
+          "padding": "clamp(4rem,8cqi,7rem) 1.5rem",
+          "display": "flex",
+          "flexDirection": "column",
+          "alignItems": "center",
+          "gap": "var(--space-md)",
+          "textAlign": "center"
+        }
+      },
+      "children": [
+        "nftvou9n2",
+        "njpmvnztv"
+      ],
+      "tag": "section"
+    },
+    "nftvou9n2": {
+      "id": "nftvou9n2",
+      "type": "heading",
+      "props": {
+        "text": "Simple pricing"
+      },
+      "style": {
+        "desktop": {
+          "fontFamily": "var(--font-display)",
+          "fontSize": "var(--text-h2)",
+          "lineHeight": "1.1"
+        }
+      },
+      "tag": "h2"
+    },
+    "n7siwm2pi": {
+      "id": "n7siwm2pi",
+      "type": "container",
+      "props": {},
+      "style": {
+        "desktop": {
+          "display": "flex",
+          "flexDirection": "column",
+          "gap": "var(--space-sm)",
+          "flex": "1 1 0",
+          "minHeight": "120px"
+        },
+        "mobile": {
+          "flex": "1 1 100%"
+        }
+      },
+      "children": [
+        "nmzbl1evr"
+      ],
+      "name": "Column"
+    },
+    "nwluxzlpe": {
+      "id": "nwluxzlpe",
+      "type": "container",
+      "props": {},
+      "style": {
+        "desktop": {
+          "display": "flex",
+          "flexDirection": "column",
+          "gap": "var(--space-sm)",
+          "flex": "1 1 0",
+          "minHeight": "120px"
+        },
+        "mobile": {
+          "flex": "1 1 100%"
+        }
+      },
+      "children": [
+        "nzdzas2oe"
+      ],
+      "name": "Column"
+    },
+    "npu8cfd2g": {
+      "id": "npu8cfd2g",
+      "type": "container",
+      "props": {},
+      "style": {
+        "desktop": {
+          "display": "flex",
+          "flexDirection": "column",
+          "gap": "var(--space-sm)",
+          "flex": "1 1 0",
+          "minHeight": "120px"
+        },
+        "mobile": {
+          "flex": "1 1 100%"
+        }
+      },
+      "children": [
+        "nxifw15qv"
+      ],
+      "name": "Column"
+    },
+    "njpmvnztv": {
+      "id": "njpmvnztv",
+      "type": "container",
+      "props": {},
+      "style": {
+        "desktop": {
+          "display": "flex",
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": "var(--space-md)",
+          "alignItems": "stretch"
+        },
+        "mobile": {
+          "flexDirection": "column"
+        }
+      },
+      "children": [
+        "n7siwm2pi",
+        "nwluxzlpe",
+        "npu8cfd2g"
+      ],
+      "name": "Row · 3 columns"
+    },
+    "nmzbl1evr": {
+      "id": "nmzbl1evr",
+      "type": "pricing",
+      "props": {
+        "plan": "Starter",
+        "price": {
+          "amount": 19,
+          "currency": "USD",
+          "compareAt": null
+        },
+        "period": "/month",
+        "description": "One site, the essentials.",
+        "features": [
+          {
+            "text": "Unlimited pages",
+            "included": true
+          },
+          {
+            "text": "Custom domain",
+            "included": true
+          },
+          {
+            "text": "Online shop",
+            "included": true
+          },
+          {
+            "text": "Priority support",
+            "included": false
+          }
+        ],
+        "link": {
+          "label": "Start free trial",
+          "href": "/signup"
+        },
+        "ribbon": ""
+      },
+      "style": {
+        "desktop": {
+          "padding": "var(--space-lg, 2.5rem)",
+          "borderRadius": "var(--radius-lg, 16px)",
+          "border": "1px solid var(--color-border, rgba(0,0,0,.1))",
+          "background": "var(--color-surface, #fff)"
+        }
+      }
+    },
+    "nzdzas2oe": {
+      "id": "nzdzas2oe",
+      "type": "pricing",
+      "props": {
+        "plan": "Studio",
+        "price": {
+          "amount": 49,
+          "currency": "USD",
+          "compareAt": null
+        },
+        "period": "/month",
+        "description": "For growing teams that update their site every week.",
+        "features": [
+          {
+            "text": "Unlimited pages",
+            "included": true
+          },
+          {
+            "text": "Custom domain",
+            "included": true
+          },
+          {
+            "text": "Online shop",
+            "included": true
+          },
+          {
+            "text": "Priority support",
+            "included": false
+          }
+        ],
+        "link": {
+          "label": "Start free trial",
+          "href": "/signup"
+        },
+        "ribbon": "Most popular",
+        "featured": true
+      },
+      "style": {
+        "desktop": {
+          "padding": "var(--space-lg, 2.5rem)",
+          "borderRadius": "var(--radius-lg, 16px)",
+          "border": "1px solid var(--color-border, rgba(0,0,0,.1))",
+          "background": "var(--color-surface, #fff)"
+        }
+      }
+    },
+    "nxifw15qv": {
+      "id": "nxifw15qv",
+      "type": "pricing",
+      "props": {
+        "plan": "Agency",
+        "price": {
+          "amount": 149,
+          "currency": "USD",
+          "compareAt": null
+        },
+        "period": "/month",
+        "description": "Client sites, roles and white-label hand-off.",
+        "features": [
+          {
+            "text": "Unlimited pages",
+            "included": true
+          },
+          {
+            "text": "Custom domain",
+            "included": true
+          },
+          {
+            "text": "Online shop",
+            "included": true
+          },
+          {
+            "text": "Priority support",
+            "included": false
+          }
+        ],
+        "link": {
+          "label": "Start free trial",
+          "href": "/signup"
+        },
+        "ribbon": ""
+      },
+      "style": {
+        "desktop": {
+          "padding": "var(--space-lg, 2.5rem)",
+          "borderRadius": "var(--radius-lg, 16px)",
+          "border": "1px solid var(--color-border, rgba(0,0,0,.1))",
+          "background": "var(--color-surface, #fff)"
+        }
+      }
+    },
+    "npee9bp0u": {
+      "id": "npee9bp0u",
+      "type": "section",
+      "props": {},
+      "style": {
+        "desktop": {
+          "padding": "clamp(4rem,8cqi,7rem) 1.5rem",
+          "display": "flex",
+          "flexDirection": "column",
+          "alignItems": "center",
+          "gap": "var(--space-md)",
+          "textAlign": "center"
+        }
+      },
+      "children": [
+        "nouh8o2a2",
+        "nctofx8t3"
+      ],
+      "tag": "section"
+    },
+    "nouh8o2a2": {
+      "id": "nouh8o2a2",
+      "type": "heading",
+      "props": {
+        "text": "Talk to us"
+      },
+      "style": {
+        "desktop": {
+          "fontFamily": "var(--font-display)",
+          "fontSize": "var(--text-h2)",
+          "lineHeight": "1.1"
+        }
+      },
+      "tag": "h2"
+    },
+    "nctofx8t3": {
+      "id": "nctofx8t3",
+      "type": "form",
+      "props": {
+        "fields": [
+          {
+            "label": "Name",
+            "type": "text",
+            "placeholder": "Your name",
+            "required": true,
+            "width": "half"
+          },
+          {
+            "label": "Email",
+            "type": "email",
+            "placeholder": "you@example.com",
+            "required": true,
+            "width": "half"
+          },
+          {
+            "label": "Topic",
+            "type": "select",
+            "options": [
+              "New project",
+              "Question",
+              "Something else"
+            ],
+            "required": false,
+            "width": "full"
+          },
+          {
+            "label": "Message",
+            "type": "textarea",
+            "placeholder": "How can we help?",
+            "required": true,
+            "width": "full"
+          }
+        ],
+        "submitLabel": "Send message",
+        "successMessage": "Thanks! We got your message and will reply soon."
+      },
+      "style": {
+        "desktop": {
+          "width": "100%",
+          "maxWidth": "40rem",
+          "textAlign": "left"
+        }
+      }
+    }
+  }
+}

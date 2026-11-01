@@ -5,7 +5,8 @@ import { buildCss, nodeClass, type DesignTokens } from "./styles";
 import type { BuilderDocument, BuilderNode, ImageValue, LinkValue, PriceValue, VideoValue } from "./types";
 import { WIDGETS, type LanguageSwitcherProps } from "./widgets";
 import { SiteIcon } from "./icons";
-import { embedUrl, mapEmbedUrl, parseVideoUrl } from "./media";
+import { embedUrl, mapEmbedUrl, parseAudioUrl, parseVideoUrl } from "./media";
+import { BRAND_ICONS } from "./brand-icons";
 import { settingValues, type MediaRef } from "./settings";
 import { WidgetEnhancer } from "@/components/site/WidgetEnhancer";
 import { CartWidget } from "@/components/commerce/CartWidget";
@@ -49,6 +50,18 @@ interface RenderOptions {
   commerce?: CommerceData;
   /** Where Contact form and Newsletter widgets post. Without it (canvas, previews) forms render disabled. */
   formAction?: string;
+  /** The page being shown: its address (share buttons), path (current menu item) and trail (breadcrumbs). */
+  page?: PageContext;
+}
+
+export interface PageContext {
+  /** Absolute public URL. */
+  url: string;
+  title: string;
+  /** Site path without the link base, "/" for the home page. */
+  path: string;
+  /** Trail after Home; the last item is the current page. Empty on the home page. */
+  crumbs: { label: string; href: string }[];
 }
 
 /** One entry of a language switcher. `href` is final (prefix or domain already applied). */
@@ -61,10 +74,10 @@ export interface LanguageLink {
   translated: boolean;
 }
 
-export function SiteDocument({ doc, tokens = {}, hooks, data, editor, linkBase = "", lang, languages, commerce, formAction }: RenderOptions) {
+export function SiteDocument({ doc, tokens = {}, hooks, data, editor, linkBase = "", lang, languages, commerce, formAction, page }: RenderOptions) {
   // Styles come from the template document; loop copies reuse the original's class.
   const view = data ? applyDynamic(doc, data, { editor }) : doc;
-  const ctx: Ctx = { doc: view, hooks, linkBase, languages, editor, lang, commerce, formAction };
+  const ctx: Ctx = { doc: view, hooks, linkBase, languages, editor, lang, commerce, formAction, page };
   return (
     <div className="site-root" lang={lang || undefined}>
       <style dangerouslySetInnerHTML={{ __html: buildCss(doc, tokens) }} />
@@ -85,6 +98,7 @@ interface Ctx {
   commerce?: CommerceData;
   /** Where Contact form and Newsletter widgets post. Without it (canvas, previews) forms render disabled. */
   formAction?: string;
+  page?: PageContext;
 }
 
 const withBase = (href: string, base: string) => (base && /^\/(?!\/)/.test(href) ? `${base}${href === "/" ? "" : href}` || "/" : href);
@@ -121,7 +135,8 @@ function needsEnhancer(doc: BuilderDocument) {
       (n.type === "countdown" && typeof n.props.target === "string" && !!n.props.target) ||
       (n.type === "counter" && n.props.duration !== 0) ||
       n.type === "form" ||
-      n.type === "newsletter",
+      n.type === "newsletter" ||
+      n.type === "nav",
   );
 }
 
@@ -174,6 +189,53 @@ const starRow = (count: number) =>
       <path d={STAR_PATH} fill="currentColor" />
     </svg>
   ));
+
+
+const SHARE: Record<string, { label: string; url: (u: string, t: string) => string }> = {
+  facebook: { label: "Facebook", url: (u) => `https://www.facebook.com/sharer/sharer.php?u=${u}` },
+  x: { label: "X", url: (u, t) => `https://x.com/intent/post?url=${u}&text=${t}` },
+  linkedin: { label: "LinkedIn", url: (u) => `https://www.linkedin.com/sharing/share-offsite/?url=${u}` },
+  whatsapp: { label: "WhatsApp", url: (u, t) => `https://wa.me/?text=${t}%20${u}` },
+  pinterest: { label: "Pinterest", url: (u, t) => `https://pinterest.com/pin/create/button/?url=${u}&description=${t}` },
+  telegram: { label: "Telegram", url: (u, t) => `https://t.me/share/url?url=${u}&text=${t}` },
+  reddit: { label: "Reddit", url: (u, t) => `https://www.reddit.com/submit?url=${u}&title=${t}` },
+  bluesky: { label: "Bluesky", url: (u, t) => `https://bsky.app/intent/compose?text=${t}%20${u}` },
+  threads: { label: "Threads", url: (u, t) => `https://www.threads.net/intent/post?text=${t}%20${u}` },
+  email: { label: "Email", url: (u, t) => `mailto:?subject=${t}&body=${u}` },
+};
+const SHARE_SETS: Record<string, string[]> = {
+  minimal: ["x", "linkedin", "email"],
+  popular: ["facebook", "x", "linkedin", "whatsapp", "email"],
+  all: Object.keys(SHARE),
+};
+
+function SocialGlyph({ network }: { network: string }) {
+  const brand = BRAND_ICONS[network];
+  if (brand)
+    return (
+      <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" fillRule={brand.evenOdd ? "evenodd" : undefined}>
+        <path d={brand.path} fill="currentColor" />
+      </svg>
+    );
+  return <SiteIcon name={network === "email" ? "mail" : network === "phone" ? "phone" : "globe"} size="1em" />;
+}
+
+/** A pasted embed that is a single https iframe runs as that iframe (its own origin isolates it); anything else goes in a sealed srcdoc frame. */
+function singleIframeSrc(code: string): string | null {
+  const m = code.trim().match(/^<iframe\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>\s*<\/iframe>$/i);
+  if (!m) return null;
+  try {
+    const u = new URL(m[1].replace(/&amp;/g, "&"));
+    return u.protocol === "https:" ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+const SAME_PAGE = (href: string, base: string, path: string) => {
+  const own = withBase(path, base);
+  return href === own || (path === "/" && href === (base || "/"));
+};
 
 /** Accepted attachments: what the server accepts too (FORM_FILE_TYPES). */
 const FILE_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,.gif,.txt,.doc,.docx";
@@ -684,6 +746,194 @@ function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
           {set.showValue ? <strong data-rating-value="">{shown}</strong> : null}
           {str(node.props.label) ? <span data-rating-label="">{str(node.props.label)}</span> : null}
         </Tag>
+      );
+    }
+    case "nav": {
+      type Entry = { link: LinkValue; subs: LinkValue[] };
+      const groups: Entry[] = [];
+      for (const it of items(node.props.items).slice(0, 30)) {
+        if (!hasLink(it.link)) continue;
+        const link = it.link as LinkValue;
+        if (it.level === "sub" && groups.length) groups[groups.length - 1].subs.push(link);
+        else groups.push({ link, subs: [] });
+      }
+      const id = `nav-${baseNodeId(node.id)}`;
+      const current = ctx.page?.path;
+      const a = (l: LinkValue) => {
+        const href = withBase(l.href, ctx.linkBase);
+        const here = current !== undefined && SAME_PAGE(href, ctx.linkBase, current);
+        return (
+          <a href={href} aria-current={here ? "page" : undefined} target={l.newTab ? "_blank" : undefined} rel={l.newTab ? "noopener noreferrer" : undefined}>
+            {l.label}
+          </a>
+        );
+      };
+      return (
+        <Tag
+          {...common}
+          aria-label={str(node.props.label) || "Main"}
+          data-drawer={set.drawer as string}
+          data-side={set.side as string}
+          data-look={set.look as string}
+          data-align={set.align as string}
+          style={{ "--wb-accent": css(set.accent), "--wb-gap": `${set.gap}px`, "--wb-drawer-bg": css(set.drawerBg) } as Vars}
+        >
+          <input type="checkbox" id={`${id}-toggle`} data-nav-toggle="" aria-label="Menu" aria-controls={`${id}-list`} tabIndex={ctx.editor ? -1 : undefined} />
+          <label htmlFor={`${id}-toggle`} data-nav-button="" aria-hidden="true">
+            <SiteIcon name="menu" size={24} />
+            <SiteIcon name="x" size={24} />
+          </label>
+          <label htmlFor={`${id}-toggle`} data-nav-backdrop="" aria-hidden="true" />
+          <ul id={`${id}-list`} data-nav-list="">
+            {groups.map((g, i) => (
+              <li key={i} data-has-sub={g.subs.length ? "" : undefined}>
+                {a(g.link)}
+                {g.subs.length ? (
+                  <ul data-nav-sub="">
+                    {g.subs.map((l, j) => (
+                      <li key={j}>{a(l)}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </Tag>
+      );
+    }
+    case "breadcrumbs": {
+      const crumbs = ctx.page?.crumbs ?? (ctx.editor ? [{ label: "Section", href: "/" }, { label: "This page", href: "/" }] : null);
+      if (!crumbs) return null;
+      const home = str(node.props.homeLabel) || "Home";
+      const trail = set.showCurrent ? crumbs : crumbs.slice(0, -1);
+      return (
+        <Tag {...common} aria-label="Breadcrumb" data-sep={set.separator as string}>
+          <ol>
+            <li>{crumbs.length ? <a href={withBase("/", ctx.linkBase)}>{home}</a> : <span aria-current="page">{home}</span>}</li>
+            {trail.map((c, i) =>
+              i === crumbs.length - 1 ? (
+                <li key={i}>
+                  <span aria-current="page">{c.label}</span>
+                </li>
+              ) : (
+                <li key={i}>{c.href ? <a href={withBase(c.href, ctx.linkBase)}>{c.label}</a> : <span>{c.label}</span>}</li>
+              ),
+            )}
+          </ol>
+        </Tag>
+      );
+    }
+    case "search": {
+      const id = `search-${baseNodeId(node.id)}`;
+      return (
+        <Tag {...common} data-shape={set.shape as string}>
+          <form role="search" method="get" action={ctx.editor ? undefined : withBase("/search", ctx.linkBase)} data-search="">
+            <label data-sr="" htmlFor={id}>Search this site</label>
+            <input id={id} type="search" name="q" required maxLength={100} placeholder={str(node.props.placeholder) || "Search…"} disabled={ctx.editor || undefined} />
+            {set.button === "none" ? null : (
+              <button type="submit" aria-label={set.button === "icon" ? str(node.props.buttonLabel) || "Search" : undefined} disabled={ctx.editor || undefined}>
+                {set.button === "icon" ? <SiteIcon name="search" size={18} /> : str(node.props.buttonLabel) || "Search"}
+              </button>
+            )}
+          </form>
+        </Tag>
+      );
+    }
+    case "social": {
+      const share = set.mode === "share";
+      const page = ctx.page;
+      const links: { key: string; network: string; label: string; href: string }[] = share
+        ? (SHARE_SETS[set.networks as string] ?? SHARE_SETS.popular).map((n) => ({
+            key: n,
+            network: n,
+            label: `Share on ${SHARE[n].label}`,
+            href: page ? SHARE[n].url(encodeURIComponent(page.url), encodeURIComponent(page.title)) : "#",
+          }))
+        : items(node.props.items)
+            .filter((it) => hasLink(it.link) || (it.link && typeof (it.link as LinkValue).href === "string" && (it.link as LinkValue).href))
+            .map((it, i) => {
+              const network = str(it.network) || "website";
+              const link = it.link as LinkValue;
+              const name = BRAND_ICONS[network]?.label ?? (network === "email" ? "Email" : network === "phone" ? "Phone" : "Website");
+              return { key: String(i), network, label: link.label || name, href: link.href };
+            });
+      if (!links.length) return ctx.editor ? <div {...common} data-empty="" aria-label="Social links (add profiles under Content)" /> : null;
+      return (
+        <Tag {...common} data-shape={set.shape as string} data-colors={set.colors as string} data-labels={set.labels ? "" : undefined} style={{ "--wb-icon": `${set.size}px` } as Vars}>
+          <ul>
+            {links.map((l) => {
+              const brand = BRAND_ICONS[l.network];
+              const external = /^https?:/.test(l.href);
+              return (
+                <li key={l.key}>
+                  <a
+                    href={l.href}
+                    aria-label={set.labels ? undefined : l.label}
+                    title={l.label}
+                    target={external ? "_blank" : undefined}
+                    rel={external ? (share ? "noopener noreferrer" : "me noopener noreferrer") : undefined}
+                    data-network={l.network}
+                    style={brand ? ({ "--wb-brand": brand.color } as Vars) : undefined}
+                  >
+                    <SocialGlyph network={l.network} />
+                    {set.labels ? <span>{share ? SHARE[l.network]?.label ?? l.label : l.label}</span> : null}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </Tag>
+      );
+    }
+    case "audio": {
+      const v = node.props.audio as VideoValue | undefined;
+      const src = v?.src ? (v.assetId ? v.src : parseAudioUrl(v.src)) : null;
+      if (!src) return ctx.editor ? <div {...common} data-empty="" aria-label="Audio player (pick a file under Content)" /> : null;
+      const cover = node.props.cover as ImageValue | undefined;
+      const Caption = Tag === "figure" ? "figcaption" : "div";
+      const title = str(node.props.title);
+      const artist = str(node.props.artist);
+      return (
+        <Tag {...common} data-look={set.look as string}>
+          {set.look === "card" && cover?.src ? (
+            <div data-audio-cover="">
+              <Img img={cover} sizes="160px" />
+            </div>
+          ) : null}
+          <div data-audio-body="">
+            {title || artist ? (
+              <Caption data-audio-meta="">
+                {title ? <strong>{title}</strong> : null}
+                {artist ? <span>{artist}</span> : null}
+              </Caption>
+            ) : null}
+            <audio controls preload="metadata" src={src} loop={set.loop ? true : undefined} controlsList={set.download ? undefined : "nodownload"} aria-label={title || "Audio"}>
+              <a href={src}>{title || "Listen"}</a>
+            </audio>
+          </div>
+        </Tag>
+      );
+    }
+    case "embed": {
+      const code = str(set.code);
+      if (!code.trim()) return ctx.editor ? <div {...common} data-empty="" aria-label="Embed code (paste it under Settings)" /> : null;
+      const direct = singleIframeSrc(code);
+      const style = { height: `${set.height}px` };
+      return (
+        <div {...common}>
+          {direct ? (
+            <iframe src={direct} title={str(set.title) || "Embedded content"} loading="lazy" style={style} referrerPolicy="strict-origin-when-cross-origin" allow="fullscreen; clipboard-write; encrypted-media; picture-in-picture" />
+          ) : (
+            <iframe
+              srcDoc={`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base target="_blank"><style>html,body{margin:0}</style></head><body>${code}</body></html>`}
+              title={str(set.title) || "Embedded content"}
+              loading="lazy"
+              style={style}
+              sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
+              referrerPolicy="no-referrer"
+            />
+          )}
+        </div>
       );
     }
     case "spacer":

@@ -9,7 +9,7 @@ import { enclosingLoop, MAX_LOOP_ITEMS } from "@/lib/builder/tree";
 import { contrastRatio, resolveColor, type DesignTokens } from "@/lib/builder/styles";
 import type { Binding, BuilderDocument, ImageValue, LinkValue, LoopQuery, PriceValue, StyleKey, VideoValue } from "@/lib/builder/types";
 import { ICON_NAMES, SiteIcon, iconLabel } from "@/lib/builder/icons";
-import { parseVideoUrl } from "@/lib/builder/media";
+import { parseAudioUrl, parseVideoUrl } from "@/lib/builder/media";
 import { settingValue, settingVisible, type MediaRef, type SettingDef } from "@/lib/builder/settings";
 import { RichTextEditor } from "@/components/cms/RichTextEditor";
 import { MAX_GRID_PRODUCTS, type CartProps, type ProductDetailsProps, type ProductGridProps } from "@/lib/commerce/types";
@@ -241,11 +241,21 @@ function CommitInput({
   }
   const commit = () => draft !== value && onCommit(draft);
   return multiline ? (
-    <textarea className={`${inputCls} min-h-28`} value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={commit} aria-label={rest["aria-label"]} />
+    <textarea
+      className={rest.className ?? `${inputCls} min-h-28`}
+      id={rest.id}
+      maxLength={rest.maxLength}
+      placeholder={rest.placeholder}
+      spellCheck={rest.className ? false : undefined}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      aria-label={rest["aria-label"]}
+    />
   ) : (
     <input
       {...rest}
-      className={inputCls}
+      className={rest.className ?? inputCls}
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={commit}
@@ -404,14 +414,17 @@ function ContentEditor({
     case "icon":
       return <IconPicker label={field.label} value={typeof value === "string" ? value : ""} onChange={set} />;
 
-    case "video": {
+    case "video":
+    case "audio": {
       const v = (value as VideoValue) ?? { assetId: null, src: "" };
+      const kind = field.kind;
       return (
         <VideoEditor
+          kind={kind}
           value={v}
           onChange={set}
           picker={(close, pick) => (
-            <MediaPicker siteId={siteId} assets={assets} canUpload={canUpload} currentId={v.assetId} accept="video" onClose={close} onUploaded={onAssetUploaded} onPick={(a) => pick({ assetId: a.id, src: a.url })} />
+            <MediaPicker siteId={siteId} assets={assets} canUpload={canUpload} currentId={v.assetId} accept={kind} onClose={close} onUploaded={onAssetUploaded} onPick={(a) => pick({ assetId: a.id, src: a.url })} />
           )}
         />
       );
@@ -693,25 +706,35 @@ function IconPicker({ label, value, onChange, allowNone }: { label: string; valu
   );
 }
 
-function VideoEditor({ value, onChange, picker }: { value: VideoValue; onChange: (v: VideoValue) => void; picker: (close: () => void, pick: (v: VideoValue) => void) => ReactNode }) {
+function VideoEditor({
+  kind = "video",
+  value,
+  onChange,
+  picker,
+}: {
+  kind?: "video" | "audio";
+  value: VideoValue;
+  onChange: (v: VideoValue) => void;
+  picker: (close: () => void, pick: (v: VideoValue) => void) => ReactNode;
+}) {
   const [picking, setPicking] = useState(false);
   const [url, setUrl] = useState(value.assetId ? "" : value.src);
-  const valid = !url || parseVideoUrl(url) !== null;
+  const valid = !url || (kind === "audio" ? parseAudioUrl(url) !== null : parseVideoUrl(url) !== null);
   return (
     <div className="space-y-2">
       {value.assetId && value.src ? (
         <p className="truncate rounded-md bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-700">From the media library: {value.src.split("/").pop()}</p>
       ) : null}
       <button type="button" onClick={() => setPicking(true)} className="w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50">
-        {value.assetId ? "Replace video" : "Choose from media library"}
+        {value.assetId ? `Replace ${kind}` : "Choose from media library"}
       </button>
       <label className="block text-xs text-zinc-600">
-        Or a YouTube / Vimeo address
+        {kind === "audio" ? "Or an https audio address" : "Or a YouTube / Vimeo address"}
         <input
-          aria-label="Video address"
+          aria-label={kind === "audio" ? "Audio address" : "Video address"}
           className={`${inputCls} ${valid ? "" : "border-red-400"}`}
           value={url}
-          placeholder="https://www.youtube.com/watch?v=…"
+          placeholder={kind === "audio" ? "https://example.com/episode.mp3" : "https://www.youtube.com/watch?v=…"}
           onChange={(e) => setUrl(e.target.value)}
           onBlur={() => {
             if (!valid) return;
@@ -720,7 +743,7 @@ function VideoEditor({ value, onChange, picker }: { value: VideoValue; onChange:
           }}
         />
       </label>
-      {!valid && <p className="text-xs text-red-600">Use a YouTube, Vimeo or https .mp4 / .webm address.</p>}
+      {!valid && <p className="text-xs text-red-600">{kind === "audio" ? "Use an https .mp3, .m4a, .ogg or .wav address." : "Use a YouTube, Vimeo or https .mp4 / .webm address."}</p>}
       {picking &&
         picker(
           () => setPicking(false),
@@ -792,6 +815,9 @@ function SettingsEditor({ nodeId, ...props }: { nodeId: string } & InspectorProp
                 <input id={id} type="range" className="w-full" min={def.min} max={def.max} step={def.step ?? 1} value={Number(value)} onChange={(e) => change(def, Number(e.target.value))} />
               )}
               {def.kind === "text" && <CommitInput id={id} aria-label={def.label} value={String(value ?? "")} maxLength={def.maxLength} placeholder={def.placeholder} onCommit={(v) => change(def, v)} />}
+              {def.kind === "code" && (
+                <CommitInput id={id} aria-label={def.label} multiline value={String(value ?? "")} maxLength={def.maxLength} placeholder={def.placeholder} onCommit={(v) => change(def, v)} className={`${inputCls} min-h-32 font-mono text-[11px]`} />
+              )}
               {def.kind === "color" && <ColorSetting id={id} value={String(value ?? "")} tokens={props.tokens} onChange={(v) => change(def, v)} />}
               {def.kind === "icon" && <IconPicker label={def.label} value={String(value ?? "")} onChange={(v) => change(def, v)} allowNone />}
               {def.kind === "media" && (

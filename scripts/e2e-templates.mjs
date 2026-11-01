@@ -122,7 +122,7 @@ try {
   }
   await modal.locator("[data-preview-page]").selectOption("agenda");
   const agenda = await modal.locator("[data-preview-frame]").elementHandle().then((h) => h.contentFrame());
-  await agenda.waitForFunction(() => document.body.innerText.includes("Registration and coffee"));
+  await agenda.waitForFunction(() => document.body?.innerText.includes("Registration and coffee"));
   await modal.locator('[data-device="desktop"]').click();
   await modal.locator("[data-close-preview]").click();
   await modal.waitFor({ state: "hidden" });

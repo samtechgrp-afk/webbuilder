@@ -39,7 +39,7 @@ export default async function EditPage({ params }: PageProps<"/admin/sites/[site
   const [lock, assets, revisions, latest, postTypes, groups, taxonomies] = await Promise.all([
     acquireEditLock(t, post.id),
     t.db.mediaAsset.findMany({
-      where: { OR: [{ mimeType: { startsWith: "image/" } }, { mimeType: { startsWith: "video/" } }] },
+      where: { OR: [{ mimeType: { startsWith: "image/" } }, { mimeType: { startsWith: "video/" } }, { mimeType: { startsWith: "audio/" } }] },
       orderBy: { createdAt: "desc" },
       select: { id: true, url: true, altText: true, width: true, height: true, originalName: true, mimeType: true },
     }),

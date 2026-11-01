@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ICON_NAMES } from "./icons";
-import { parseVideoUrl } from "./media";
+import { parseAudioUrl, parseVideoUrl } from "./media";
 import type { ContentField, ItemField } from "./widgets";
 
 /** Links may be site-relative, anchors, http(s), mailto or tel. Never `javascript:` and friends. */
@@ -49,6 +49,10 @@ const videoSchema = z
   .object({ assetId: z.string().min(1).max(40).nullable(), src: z.string().max(2048) })
   .refine((v) => v.assetId !== null || v.src === "" || parseVideoUrl(v.src) !== null, "Use a video from the media library, or a YouTube, Vimeo or https .mp4 address");
 
+const audioSchema = z
+  .object({ assetId: z.string().min(1).max(40).nullable(), src: z.string().max(2048) })
+  .refine((v) => v.assetId !== null || v.src === "" || parseAudioUrl(v.src) !== null, "Use audio from the media library, or an https .mp3, .m4a, .ogg or .wav address");
+
 const iconSchema = z.string().refine((v) => v === "" || ICON_NAMES.has(v), "Pick an icon from the list");
 
 const numberSchema = (min = -1e9, max = 1e9) => z.number().finite().min(min).max(max);
@@ -96,6 +100,8 @@ export function contentSchema(field: ContentField) {
       return z.string().max(field.maxLength ?? 20000);
     case "video":
       return videoSchema;
+    case "audio":
+      return audioSchema;
     case "icon":
       return iconSchema;
     case "number":

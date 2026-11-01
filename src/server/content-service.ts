@@ -89,9 +89,9 @@ async function resolveImage(t: TenantContext, img: ImageValue): Promise<ImageVal
 }
 
 /** A video from this site's library: its URL always comes from the MediaAsset row. */
-async function resolveVideo(t: TenantContext, assetId: string): Promise<string | null> {
+async function resolveVideo(t: TenantContext, assetId: string, kind: "video" | "audio" = "video"): Promise<string | null> {
   const asset = await t.db.mediaAsset.findUnique({ where: { id: assetId }, select: { url: true, mimeType: true } });
-  return asset && asset.mimeType.startsWith("video/") ? asset.url : null;
+  return asset && asset.mimeType.startsWith(`${kind}/`) ? asset.url : null;
 }
 
 export async function normaliseContent(t: TenantContext, next: BuilderDocument, changed: { nodeId: string; field: string }[]) {
@@ -122,12 +122,12 @@ export async function normaliseContent(t: TenantContext, next: BuilderDocument, 
       value = resolved;
     }
     if (def.kind === "html") value = sanitizeRichText(parsed.data as string);
-    if (def.kind === "video") {
+    if (def.kind === "video" || def.kind === "audio") {
       const v = parsed.data as VideoValue;
       if (v.assetId) {
-        const src = await resolveVideo(t, v.assetId);
+        const src = await resolveVideo(t, v.assetId, def.kind);
         if (!src) {
-          violations.push({ nodeId, message: "That video isn't in this site's media library" });
+          violations.push({ nodeId, message: `That ${def.kind} isn't in this site's media library` });
           continue;
         }
         value = { assetId: v.assetId, src } satisfies VideoValue;

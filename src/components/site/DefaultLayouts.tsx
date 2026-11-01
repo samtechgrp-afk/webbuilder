@@ -117,3 +117,58 @@ export function DefaultNotFound({ siteName, tokens, linkBase, lang }: { siteName
     </Shell>
   );
 }
+
+const SEARCH_CSS = `
+.dl-search{display:flex;gap:.5rem;margin:0 0 2rem}
+.dl-search input{flex:1;min-width:0;font:inherit;padding:.75rem 1rem;border:1px solid color-mix(in srgb,currentColor 25%,transparent);border-radius:var(--radius-md,12px);background:transparent;color:inherit}
+.dl-search button{font:inherit;padding:.75rem 1.25rem;border:0;border-radius:var(--radius-md,12px);background:var(--color-text,#111);color:var(--color-background,#fff);cursor:pointer}
+.dl-results{list-style:none;padding:0;margin:0;display:grid;gap:1.5rem}
+.dl-results a{color:inherit;text-decoration:none}.dl-results a:hover h2{text-decoration:underline}
+.dl-results h2{font-family:var(--font-display,inherit);font-size:1.3rem;line-height:1.25;margin:.15rem 0 .35rem}
+.dl-results p{color:var(--color-muted,#666);line-height:1.5;margin:0}
+`;
+
+export interface SearchResult {
+  id: string;
+  title: string;
+  excerpt: string | null;
+  url: string;
+  kind: string;
+}
+
+/** The site search page: works without JavaScript (a plain GET form). */
+export function DefaultSearch({ query, results, tokens, linkBase, lang }: { query: string; results: SearchResult[]; tokens: DesignTokens; linkBase: string; lang?: string }) {
+  const q = query.trim();
+  return (
+    <Shell tokens={tokens} lang={lang}>
+      <style dangerouslySetInnerHTML={{ __html: SEARCH_CSS }} />
+      <main className="dl dl-narrow">
+        <h1>{q ? `Results for “${q}”` : "Search"}</h1>
+        <form className="dl-search" role="search" action={withBase("/search", linkBase)} method="get">
+          <label htmlFor="dl-q" className="sr-only" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
+            Search this site
+          </label>
+          <input id="dl-q" type="search" name="q" defaultValue={q} placeholder="Search this site" maxLength={200} />
+          <button type="submit">Search</button>
+        </form>
+        {q ? (
+          results.length ? (
+            <ul className="dl-results" data-results={results.length}>
+              {results.map((r) => (
+                <li key={r.id}>
+                  <a href={withBase(r.url, linkBase)}>
+                    <span className="dl-kicker">{r.kind}</span>
+                    <h2>{r.title}</h2>
+                    {r.excerpt && <p>{r.excerpt}</p>}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="dl-body">Nothing matched. Try fewer or different words.</p>
+          )
+        ) : null}
+      </main>
+    </Shell>
+  );
+}

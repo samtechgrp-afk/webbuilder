@@ -13,7 +13,7 @@ export interface PickerAsset {
   mimeType?: string;
 }
 
-const isKind = (a: PickerAsset, kind: "image" | "video") => (a.mimeType ? a.mimeType.startsWith(`${kind}/`) : kind === "image");
+const isKind = (a: PickerAsset, kind: "image" | "video" | "audio") => (a.mimeType ? a.mimeType.startsWith(`${kind}/`) : kind === "image");
 
 /** The site's media library. Only this site's assets are listed or accepted. */
 export function MediaPicker({
@@ -33,7 +33,7 @@ export function MediaPicker({
   onPick: (asset: PickerAsset) => void;
   onClose: () => void;
   onUploaded: (asset: PickerAsset) => void;
-  accept?: "image" | "video";
+  accept?: "image" | "video" | "audio";
 }) {
   const shown = assets.filter((a) => isKind(a, accept));
   const input = useRef<HTMLInputElement>(null);
@@ -69,7 +69,7 @@ export function MediaPicker({
                 <input
                   ref={input}
                   type="file"
-                  accept={accept === "video" ? "video/mp4,video/webm" : "image/jpeg,image/png,image/webp,image/avif,image/gif"}
+                  accept={accept === "video" ? "video/mp4,video/webm" : accept === "audio" ? "audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm,audio/aac" : "image/jpeg,image/png,image/webp,image/avif,image/gif"}
                   className="hidden"
                   onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
                 />
@@ -79,7 +79,7 @@ export function MediaPicker({
                   disabled={uploading}
                   className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
                 >
-                  {uploading ? "Uploading…" : accept === "video" ? "Upload video" : "Upload image"}
+                  {uploading ? "Uploading…" : accept === "video" ? "Upload video" : accept === "audio" ? "Upload audio" : "Upload image"}
                 </button>
               </>
             )}
@@ -102,6 +102,8 @@ export function MediaPicker({
             >
               {accept === "video" ? (
                 <video src={a.url} muted preload="metadata" className="aspect-[4/3] w-full bg-zinc-900 object-cover" />
+              ) : accept === "audio" ? (
+                <span className="flex aspect-[4/3] w-full items-center justify-center bg-zinc-100 text-2xl" aria-hidden="true">♪</span>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={a.url} alt={a.altText ?? ""} className="aspect-[4/3] w-full object-cover" loading="lazy" />
@@ -109,7 +111,7 @@ export function MediaPicker({
               <span className="block truncate px-2 py-1.5 text-[11px] text-zinc-600">{a.altText || a.originalName}</span>
             </button>
           ))}
-          {!shown.length && <p className="col-span-full py-10 text-center text-sm text-zinc-500">{accept === "video" ? "No videos yet. Upload an MP4 or WebM." : "No images yet."}</p>}
+          {!shown.length && <p className="col-span-full py-10 text-center text-sm text-zinc-500">{accept === "video" ? "No videos yet. Upload an MP4 or WebM." : accept === "audio" ? "No audio yet. Upload an MP3, M4A, OGG or WAV." : "No images yet."}</p>}
         </div>
       </div>
     </div>

@@ -28,6 +28,8 @@ export type SettingDef = Base &
     | { kind: "toggle"; default: boolean }
     | { kind: "number"; min: number; max: number; step?: number; unit?: string; default: number }
     | { kind: "text"; maxLength: number; placeholder?: string; default: string }
+    /** Multi-line source (embed code). Designer-only like every setting; rendered only inside a sandboxed iframe. */
+    | { kind: "code"; maxLength: number; placeholder?: string; default: string }
     /** A CSS colour or token reference (`var(--color-primary)`). Empty means "inherit". */
     | { kind: "color"; default: string }
     | { kind: "icon"; default: string }
@@ -70,6 +72,8 @@ export function settingProblem(def: SettingDef, v: unknown): string | null {
       return typeof v === "number" && Number.isFinite(v) && v >= def.min && v <= def.max ? null : `${def.label} must be between ${def.min} and ${def.max}`;
     case "text":
       return typeof v === "string" && v.length <= def.maxLength && !/[\u0000-\u001F\u007F]/.test(v) ? null : `${def.label} is too long`;
+    case "code":
+      return typeof v === "string" && v.length <= def.maxLength && !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(v) ? null : `${def.label} is too long`;
     case "color":
       return typeof v === "string" && v.length <= 120 && (v === "" || safeCssValue(v) === v) ? null : `${def.label} isn't a valid colour`;
     case "icon":
