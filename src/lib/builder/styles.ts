@@ -417,6 +417,14 @@ const BASE_CSS = `
 @keyframes wb-slide{from{transform:translateX(100%)}to{transform:none}}
 @keyframes wb-fade{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.site-root [data-cart-drawer],.site-root [data-cart-backdrop]{animation:none}}
+.site-root [data-w="tilted-grid-hero"]{display:grid;position:relative;overflow:hidden}
+.site-root [data-tgh]{min-width:0;min-height:0}
+.site-root [data-tgh] .bg-muted{background-color:var(--color-surface,rgba(127,127,127,.12))}
+.site-root [data-tgh-content]{position:relative;z-index:10;display:flex;height:100%;flex-direction:column;align-items:center;justify-content:space-between;gap:1rem;padding:3rem 1.5rem;text-align:center}
+.site-root [data-tgh-content][data-position="center"]{justify-content:center}
+.site-root [data-tgh-content][data-position="top"]{justify-content:flex-start}
+.site-root [data-tgh-content][data-position="bottom"]{justify-content:flex-end}
+.site-root [data-tgh-content]>[data-w]{text-wrap:balance}
 `;
 
 export function buildCss(doc: BuilderDocument, tokens: DesignTokens = {}): string {

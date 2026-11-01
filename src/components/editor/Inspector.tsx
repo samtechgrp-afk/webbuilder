@@ -15,6 +15,7 @@ import { RichTextEditor } from "@/components/cms/RichTextEditor";
 import { MAX_GRID_PRODUCTS, type CartProps, type ProductDetailsProps, type ProductGridProps } from "@/lib/commerce/types";
 import { BINDABLE, WIDGETS, type BindTarget, type ContentField, type LanguageSwitcherProps } from "@/lib/builder/widgets";
 import { DesignPanel } from "./DesignPanel";
+import { ImageGalleryModal } from "./ImageGalleryModal";
 import { MediaPicker, type PickerAsset } from "./MediaPicker";
 import { parentOf, useEditor } from "./store";
 
@@ -318,6 +319,39 @@ function ContentEditor({
 
     case "gallery": {
       const images = Array.isArray(value) ? (value as ImageValue[]) : [];
+      if (field.ui === "image-gallery") {
+        const missingAlt = images.filter((img) => !img.alt).length;
+        return (
+          <div className="space-y-2" data-image-gallery-field="">
+            {images.length ? (
+              <div className="grid grid-cols-4 gap-1">
+                {images.slice(0, 8).map((img, i) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={`${img.assetId}-${i}`} src={img.src} alt="" className="aspect-video w-full rounded border border-zinc-200 object-cover" />
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-500">No images yet. The hero shows gradient placeholders until you add some.</p>
+            )}
+            <button type="button" onClick={() => setPicking(true)} className="w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50">
+              {images.length ? `Manage ${images.length} image${images.length === 1 ? "" : "s"}` : "Add images"}
+            </button>
+            {missingAlt > 0 && <p className="text-xs text-amber-700">{missingAlt} image{missingAlt === 1 ? " needs" : "s need"} alt text.</p>}
+            <ImageGalleryModal
+              open={picking}
+              onClose={() => setPicking(false)}
+              title={field.label === "Images" ? "Manage gallery" : field.label}
+              images={images}
+              onSave={set}
+              siteId={siteId}
+              assets={assets}
+              canUpload={canUpload}
+              onAssetUploaded={onAssetUploaded}
+              max={30}
+            />
+          </div>
+        );
+      }
       return (
         <div className="space-y-2">
           <ul className="space-y-2">

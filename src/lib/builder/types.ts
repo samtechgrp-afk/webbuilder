@@ -70,7 +70,9 @@ export type WidgetType =
   // Widget library (forms and lead capture)
   | "form" | "newsletter" | "rating"
   // Widget library (site, navigation, social and media)
-  | "nav" | "breadcrumbs" | "search" | "social" | "audio" | "embed";
+  | "nav" | "breadcrumbs" | "search" | "social" | "audio" | "embed"
+  // Premium heroes
+  | "tilted-grid-hero";
 
 export type SemanticTag =
   | "section" | "header" | "main" | "footer" | "article" | "aside" | "nav" | "div" | "figure"
@@ -101,6 +103,35 @@ export interface ImageValue {
   height?: number;
   /** Responsive WebP variants ("…-640.webp 640w, …"). Filled from the media library, never from the browser. */
   srcSet?: string;
+}
+
+/** One picture of a gallery field (Gallery, Tilted grid hero): a media library image. */
+export type GalleryImage = ImageValue;
+
+/**
+ * Props stored on a Tilted grid hero node. `images` is client-editable
+ * content; the rest are designer settings (see WIDGETS["tilted-grid-hero"])
+ * and fall back to their defaults when unset. The headline and copy above
+ * the band are ordinary child widgets.
+ */
+export interface TiltedGridHeroWidgetProps {
+  images: GalleryImage[];
+  /** Seconds for the row to advance by one tile. */
+  speed?: number;
+  /** Tile height, % of the hero's height. */
+  tileHeight?: number;
+  /** Tile shape as a CSS-style ratio ("16 / 9"). */
+  aspect?: string;
+  /** Space between tiles, % of a tile's height. */
+  gap?: number;
+  /** Vertical centre of the row, % of the hero's height. */
+  axis?: number;
+  /** How far the row bends round by the frame's edge, in degrees (5 to 85). */
+  curve?: number;
+  /** Width of the fade at each end, % of the hero's width. */
+  fade?: number;
+  /** Where the child widgets sit over the band. */
+  contentPosition?: "spread" | "center" | "top" | "bottom";
 }
 
 export interface LinkValue {

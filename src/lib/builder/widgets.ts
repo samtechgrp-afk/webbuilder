@@ -81,6 +81,12 @@ export interface ContentField {
   minItems?: number;
   maxItems?: number;
   itemLabel?: string;
+  /**
+   * gallery: how the inspector edits the list. "image-gallery" shows a
+   * thumbnail strip with a button that opens the gallery manager (bulk
+   * upload, reorder, alt text) instead of the inline list.
+   */
+  ui?: "image-gallery";
 }
 
 /** Content kinds that are the same in every language (a translation can't override them). */
@@ -1124,6 +1130,59 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     ],
     defaults: { props: { address: "Eiffel Tower, Paris" }, style: { desktop: { aspectRatio: "16 / 9", borderRadius: "var(--radius-md)" }, mobile: { aspectRatio: "4 / 3" } } },
   },
+  "tilted-grid-hero": {
+    label: "Tilted grid hero",
+    category: "interactive",
+    icon: "film",
+    keywords: "hero banner 3d curved cylinder marquee images showcase premium motion",
+    isContainer: true,
+    defaultTag: "section",
+    allowedTags: ["section", "header", "div"],
+    contentFields: [{ key: "images", label: "Images", kind: "gallery", ui: "image-gallery" }],
+    hint: "Images curve round a 3D band behind your headline",
+    settings: [
+      { key: "speed", label: "Seconds per tile", kind: "number", min: 1, max: 20, step: 0.5, unit: "s", default: 4, help: "How long the row takes to move on by one image. Lower is faster." },
+      { key: "tileHeight", label: "Tile height", kind: "number", min: 10, max: 60, step: 1, unit: "%", default: 26, help: "Share of the hero's height." },
+      {
+        key: "aspect",
+        label: "Tile shape",
+        kind: "select",
+        default: "16 / 9",
+        options: [
+          { value: "16 / 9", label: "Widescreen (16:9)" },
+          { value: "21 / 9", label: "Cinema (21:9)" },
+          { value: "3 / 2", label: "Photo (3:2)" },
+          { value: "4 / 3", label: "Classic (4:3)" },
+          { value: "1 / 1", label: "Square" },
+          { value: "4 / 5", label: "Portrait (4:5)" },
+        ],
+      },
+      { key: "gap", label: "Gap between tiles", kind: "number", min: 0, max: 40, step: 1, unit: "%", default: 6, help: "Share of a tile's height." },
+      { key: "axis", label: "Band position", kind: "number", min: 10, max: 90, step: 1, unit: "%", default: 56, help: "Vertical centre of the band, from the top." },
+      { key: "curve", label: "Curve", kind: "number", min: 5, max: 85, step: 1, unit: "°", default: 80, help: "How hard the ends bend toward the viewer." },
+      { key: "fade", label: "Edge fade", kind: "number", min: 0, max: 40, step: 1, unit: "%", default: 12 },
+      {
+        key: "contentPosition",
+        label: "Content position",
+        kind: "select",
+        default: "spread",
+        options: [
+          { value: "spread", label: "Top and bottom (spread)" },
+          { value: "center", label: "Centred" },
+          { value: "top", label: "Top" },
+          { value: "bottom", label: "Bottom" },
+        ],
+        help: "Where the headline and other widgets inside sit over the band.",
+      },
+    ],
+    defaults: {
+      props: { images: [] },
+      style: {
+        desktop: { height: "560px", width: "100%", borderRadius: "var(--radius-md, 8px)", border: "1px solid var(--color-border, rgba(0,0,0,.1))", background: "var(--color-background, #fff)" },
+        mobile: { height: "480px" },
+      },
+    },
+  },
 };
 
 /** How the language switcher shows its links. */
@@ -1192,6 +1251,7 @@ export const BINDABLE: Record<WidgetType, BindTarget[]> = {
   social: [],
   audio: [],
   embed: [],
+  "tilted-grid-hero": [{ key: "images", label: "Images", accepts: "gallery" }],
   iconbox: [
     { key: "title", label: "Title", accepts: "text" },
     { key: "text", label: "Text", accepts: "text" },
