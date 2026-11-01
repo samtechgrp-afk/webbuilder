@@ -11,6 +11,18 @@ export type ParsedVideo =
 
 const YT_ID = /^[A-Za-z0-9_-]{11}$/;
 
+/** A media library audio file, or an https .mp3 / .m4a / .aac / .ogg / .oga / .wav / .weba address. */
+export function parseAudioUrl(src: string): string | null {
+  if (!src) return null;
+  if (/^\/uploads\/[A-Za-z0-9/_.-]+\.(mp3|m4a|aac|ogg|oga|wav|weba)$/i.test(src)) return src;
+  try {
+    const url = new URL(src);
+    return url.protocol === "https:" && /\.(mp3|m4a|aac|ogg|oga|wav|weba)$/i.test(url.pathname) ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export function parseVideoUrl(src: string): ParsedVideo | null {
   if (!src) return null;
   // Our own uploads (local driver) or a media URL resolved by the server.

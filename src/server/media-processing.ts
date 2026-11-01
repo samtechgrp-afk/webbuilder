@@ -132,7 +132,13 @@ export function titleFromFilename(name: string) {
 }
 
 /** Upload kinds the library accepts, with the extension each is stored under. */
-export const FILE_KINDS: Record<string, { ext: string; kind: "video" | "document"; maxMb: number }> = {
+export const FILE_KINDS: Record<string, { ext: string; kind: "video" | "audio" | "document"; maxMb: number }> = {
+  "audio/mpeg": { ext: "mp3", kind: "audio", maxMb: 50 },
+  "audio/mp4": { ext: "m4a", kind: "audio", maxMb: 50 },
+  "audio/aac": { ext: "aac", kind: "audio", maxMb: 50 },
+  "audio/ogg": { ext: "ogg", kind: "audio", maxMb: 50 },
+  "audio/wav": { ext: "wav", kind: "audio", maxMb: 100 },
+  "audio/webm": { ext: "weba", kind: "audio", maxMb: 50 },
   "video/mp4": { ext: "mp4", kind: "video", maxMb: 100 },
   "video/webm": { ext: "webm", kind: "video", maxMb: 100 },
   "application/pdf": { ext: "pdf", kind: "document", maxMb: 25 },

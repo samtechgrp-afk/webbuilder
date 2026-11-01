@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { DefaultArchive, DefaultEntry } from "@/components/site/DefaultLayouts";
-import { SiteDocument } from "@/lib/builder/render";
+import { DefaultArchive, DefaultEntry, DefaultSearch } from "@/components/site/DefaultLayouts";
+import { SiteDocument, type PageContext } from "@/lib/builder/render";
 import type { DesignTokens } from "@/lib/builder/styles";
 import { getPreview } from "@/server/preview";
 import type { RevisionMeta } from "@/server/cms/dynamic";
 import { jsonLdScript, pageSeo, type SeoTarget } from "@/server/seo/page-seo";
-import { getPublishedArchive, getPublishedEntry, getPublishedPage, resolveSite } from "@/server/public-site";
+import { getPublishedArchive, getPublishedEntry, getPublishedPage, resolveSite, searchSite } from "@/server/public-site";
+import { SEARCH_PATH } from "@/server/route-check";
+import { publicBaseUrl } from "@/server/seo/public-url";
 import { defaultLocale } from "@/lib/i18n/locales";
 import { baseFor, languageLinks, metadataLanguages, siteLocaleContext } from "@/server/i18n/site-locale";
 import { PRODUCT_BASE } from "@/lib/commerce/types";
@@ -18,12 +20,12 @@ import { getProductPage, loadCommerceData } from "@/server/commerce/catalog";
  * the proxy rewrite for <subdomain>.<ROOT_DOMAIN> and custom domains.
  * Resolves, in order: a builder page at the full path, a CPT entry at
  * /<prefix>/<slug>, a CPT archive at /<prefix>, a shop product at
- * /products/<slug>. Rendered as Server
+ * /products/<slug>, then the site search page at /search. Rendered as Server
  * Components from cached reads; publishing revalidates them.
  */
 export const instant = false;
 
-async function resolve(key: string, slug: string[] | undefined) {
+async function resolve(key: string, slug: string[] | undefined, query = "") {
   const row = await resolveSite(key);
   if (!row) return null;
   const site = { id: row.id, name: row.name, settings: row.settings, branding: row.branding };
@@ -46,6 +48,10 @@ async function resolve(key: string, slug: string[] | undefined) {
     if (loc.rest.length === 1) {
       const archive = await getPublishedArchive(site, loc.rest[0], stored);
       if (archive) return { kind: "archive" as const, archive, alternates: loc.locales.map((l) => ({ localeCode: l.code, path: `/${loc.rest[0]}` })) };
+      if (loc.rest[0] === SEARCH_PATH) {
+        const q = query.slice(0, 200);
+        return { kind: "search" as const, search: { query: q, results: await searchSite(site, q, stored) }, alternates: loc.locales.map((l) => ({ localeCode: l.code, path: `/${SEARCH_PATH}` })) };
+      }
     }
     return null;
   };
@@ -88,6 +94,10 @@ function seoTarget(r: Resolved): SeoTarget {
       offer: { price: toMajor(variantPrices.length ? Math.min(...variantPrices) : p.price, currency), currency, available: p.available },
     };
   }
+  if (r.kind === "search") {
+    // Results pages are never indexed.
+    return { kind: "archive", title: "Search", path: `/${SEARCH_PATH}`, postTypeId: "", seo: { seoTitle: null, seoDescription: null, noIndex: true, canonicalUrl: null, ogImageId: null } };
+  }
   if (r.kind === "archive") {
     const pt = r.archive.postType;
     return { kind: "archive", title: pt.labelPlural, path: `/${pt.routePrefix ?? pt.key}`, postTypeId: pt.id };
@@ -113,44 +123,66 @@ function seoTarget(r: Resolved): SeoTarget {
 
 export async function generateMetadata({ params, searchParams }: PageProps<"/sites/[site]/[[...slug]]">): Promise<Metadata> {
   const { site: key, slug } = await params;
-  if ((await searchParams).preview !== undefined) return { title: { absolute: "Preview" }, robots: { index: false } };
-  const r = await resolve(key, slug);
+  const sp = await searchParams;
+  if (sp.preview !== undefined) return { title: { absolute: "Preview" }, robots: { index: false } };
+  const r = await resolve(key, slug, firstParam(sp.q));
   if (!r) return {};
   return (await pageSeo(r.site, seoTarget(r), seoI18n(r))).metadata;
 }
 
 export default async function PublicPage({ params, searchParams }: PageProps<"/sites/[site]/[[...slug]]">) {
   const { site: key, slug } = await params;
-  if ((await searchParams).preview !== undefined) return <Preview siteKey={key} slug={slug} />;
-  const r = await resolve(key, slug);
+  const sp = await searchParams;
+  if (sp.preview !== undefined) return <Preview siteKey={key} slug={slug} />;
+  const r = await resolve(key, slug, firstParam(sp.q));
   if (!r) notFound();
-  const { jsonLd } = await pageSeo(r.site, seoTarget(r), seoI18n(r));
+  const target = seoTarget(r);
+  const { jsonLd } = await pageSeo(r.site, target, seoI18n(r));
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
-      <SiteBody r={r} />
+      <SiteBody r={r} page={await pageContext(r, target)} />
     </>
   );
 }
 
-function SiteBody({ r }: { r: Resolved }) {
+const firstParam = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
+
+/** What Breadcrumbs, Share buttons and the menu's "current page" need to know. */
+async function pageContext(r: Resolved, target: SeoTarget): Promise<PageContext> {
+  const base = r.loc.locales.length ? baseFor(r.loc, contentLocale(r)) : await publicBaseUrl(r.site);
+  const path = target.path;
+  const url = `${base.replace(/\/$/, "")}${path === "/" ? "/" : path}`;
+  const crumbs: PageContext["crumbs"] = [];
+  if (r.kind === "entry") {
+    const pt = r.entry.postType;
+    const prefix = `/${pt.routePrefix ?? pt.key}`;
+    crumbs.push({ label: pt.labelPlural, href: pt.hasArchive ? prefix : "" });
+  }
+  if (path !== "/") crumbs.push({ label: target.title, href: path });
+  return { url, title: target.title, path, crumbs };
+}
+
+function SiteBody({ r, page }: { r: Resolved; page: PageContext }) {
   const lang = contentLocale(r)?.code;
   const languages = r.loc.locales.length > 1 ? languageLinks(r.loc, r.alternates, r.loc.locale?.code ?? null) : undefined;
   const commerce = r.commerce;
   const formAction = `/api/v1/sites/${encodeURIComponent(r.site.subdomain)}/forms`;
   switch (r.kind) {
     case "page":
-      return <SiteDocument doc={r.page.document} data={r.page.data} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} formAction={formAction} />;
+      return <SiteDocument doc={r.page.document} data={r.page.data} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} formAction={formAction} page={page} />;
     case "product":
-      return <SiteDocument doc={r.product.document} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} formAction={formAction} />;
+      return <SiteDocument doc={r.product.document} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} formAction={formAction} page={page} />;
     case "entry":
       return r.entry.template && r.entry.data ? (
-        <SiteDocument doc={r.entry.template} data={r.entry.data} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} formAction={formAction} />
+        <SiteDocument doc={r.entry.template} data={r.entry.data} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} formAction={formAction} page={page} />
       ) : (
         <DefaultEntry entry={r.entry.entry} label={r.entry.postType.labelSingular} tokens={r.tokens} lang={lang} />
       );
     case "archive":
       return <DefaultArchive title={r.archive.postType.labelPlural} entries={r.archive.entries} tokens={r.tokens} linkBase={r.linkBase} lang={lang} />;
+    case "search":
+      return <DefaultSearch query={r.search.query} results={r.search.results} tokens={r.tokens} linkBase={r.linkBase} lang={lang} />;
   }
 }
 

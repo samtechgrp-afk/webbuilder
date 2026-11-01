@@ -1,3 +1,4 @@
+import { BRAND_ICONS } from "./brand-icons";
 import type { BindKind } from "@/lib/cms/fields";
 import type { CartProps, ProductDetailsProps, ProductGridProps } from "@/lib/commerce/types";
 import type { SettingDef } from "./settings";
@@ -13,6 +14,8 @@ export type ContentFieldKind =
   | "html"
   /** A media library video or a YouTube / Vimeo / https address. */
   | "video"
+  /** A media library audio file or an https audio address (same shape as video). */
+  | "audio"
   /** A Lucide icon name from the curated set. */
   | "icon"
   /** A number within min..max (a percentage, a counter's target, a star rating). */
@@ -35,6 +38,16 @@ export interface ItemField {
   /** Only show this field in the inspector when another field of the record has one of these values. */
   when?: { key: string; is: string[] };
 }
+
+/** Networks a Social links profile can point at: brand icons plus email, phone and website. */
+export const SOCIAL_NETWORKS = [
+  ...Object.entries(BRAND_ICONS)
+    .map(([value, b]) => ({ value, label: b.label }))
+    .sort((a, b) => a.label.localeCompare(b.label)),
+  { value: "email", label: "Email" },
+  { value: "phone", label: "Phone" },
+  { value: "website", label: "Website" },
+];
 
 /** Field types a Contact form offers. Values are stored; labels are what the inspector shows. */
 export const FORM_FIELD_TYPES = [
@@ -71,7 +84,7 @@ export interface ContentField {
 }
 
 /** Content kinds that are the same in every language (a translation can't override them). */
-export const SHARED_CONTENT_KINDS: ReadonlySet<ContentFieldKind> = new Set<ContentFieldKind>(["video", "icon", "number", "datetime"]);
+export const SHARED_CONTENT_KINDS: ReadonlySet<ContentFieldKind> = new Set<ContentFieldKind>(["video", "audio", "icon", "number", "datetime"]);
 
 /** Item field kinds a translation overrides; the rest come from the original. */
 export const TRANSLATABLE_ITEM_KINDS: ReadonlySet<ItemField["kind"]> = new Set<ItemField["kind"]>(["text", "multiline", "link", "lines"]);
@@ -825,6 +838,171 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     defaults: { props: { value: 4.8, label: "from 120 reviews" }, style: {} },
   },
 
+  // ── Navigation, site and social ───────────────────────────────────────────
+  nav: {
+    label: "Navigation menu",
+    category: "dynamic",
+    icon: "menu",
+    keywords: "menu nav header links hamburger drawer mobile dropdown submenu",
+    isContainer: false,
+    defaultTag: "nav",
+    allowedTags: ["nav"],
+    contentFields: [
+      {
+        key: "items",
+        label: "Menu items",
+        kind: "items",
+        itemLabel: "Item",
+        minItems: 1,
+        maxItems: 30,
+        itemFields: [
+          { key: "link", label: "Link", kind: "link" },
+          { key: "level", label: "Level", kind: "choice", options: [{ value: "top", label: "Top level" }, { value: "sub", label: "Under the item above (dropdown)" }] },
+        ],
+      },
+      { key: "label", label: "Menu name (for screen readers)", kind: "text", maxLength: 60 },
+    ],
+    hint: "Links with dropdowns; becomes a hamburger drawer on small screens",
+    settings: [
+      { key: "align", label: "Alignment", kind: "select", default: "end", options: [{ value: "start", label: "Left" }, { value: "center", label: "Centre" }, { value: "end", label: "Right" }] },
+      { key: "drawer", label: "Hamburger menu", kind: "select", default: "mobile", options: [{ value: "mobile", label: "On phones" }, { value: "tablet", label: "On tablets and phones" }, { value: "always", label: "Always" }, { value: "never", label: "Never (links wrap)" }] },
+      { key: "side", label: "Drawer opens from", kind: "select", default: "right", options: [{ value: "right", label: "Right" }, { value: "left", label: "Left" }, { value: "top", label: "Top (drops down)" }] },
+      { key: "look", label: "Link style", kind: "select", default: "plain", options: [{ value: "plain", label: "Plain" }, { value: "underline", label: "Underline the current page" }, { value: "pill", label: "Pill on the current page" }] },
+      { key: "gap", label: "Space between links", kind: "number", min: 0, max: 64, unit: "px", default: 24 },
+      COLOR("accent", "Highlight colour", { default: "var(--color-primary)" }),
+      COLOR("drawerBg", "Drawer background", { default: "" }),
+    ],
+    defaults: {
+      props: {
+        label: "Main",
+        items: [
+          { link: { label: "Home", href: "/" }, level: "top" },
+          { link: { label: "About", href: "/about" }, level: "top" },
+          { link: { label: "Services", href: "/services" }, level: "top" },
+          { link: { label: "Interiors", href: "/services#interiors" }, level: "sub" },
+          { link: { label: "Renovation", href: "/services#renovation" }, level: "sub" },
+          { link: { label: "Contact", href: "/contact" }, level: "top" },
+        ],
+      },
+      style: {},
+    },
+  },
+  breadcrumbs: {
+    label: "Breadcrumbs",
+    category: "dynamic",
+    icon: "chevron-right",
+    keywords: "trail path location navigation crumbs",
+    isContainer: false,
+    defaultTag: "nav",
+    allowedTags: ["nav"],
+    contentFields: [{ key: "homeLabel", label: "Home label", kind: "text", maxLength: 40 }],
+    hint: "Home › section › current page, filled in on every page",
+    settings: [
+      { key: "separator", label: "Separator", kind: "select", default: "chevron", options: [{ value: "chevron", label: "›" }, { value: "slash", label: "/" }, { value: "dot", label: "·" }, { value: "arrow", label: "→" }] },
+      { key: "showCurrent", label: "Show the current page", kind: "toggle", default: true },
+    ],
+    defaults: { props: { homeLabel: "Home" }, style: { desktop: { fontSize: "0.9rem" } } },
+  },
+  search: {
+    label: "Search bar",
+    category: "dynamic",
+    icon: "search",
+    keywords: "find query lookup site search",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div"],
+    contentFields: [
+      { key: "placeholder", label: "Placeholder", kind: "text", maxLength: 80 },
+      { key: "buttonLabel", label: "Button text", kind: "text", maxLength: 30 },
+    ],
+    hint: "Searches the site's published pages and posts",
+    settings: [
+      { key: "button", label: "Button", kind: "select", default: "icon", options: [{ value: "icon", label: "Magnifier icon" }, { value: "text", label: "Text" }, { value: "none", label: "None (press Enter)" }] },
+      { key: "shape", label: "Shape", kind: "select", default: "pill", options: [{ value: "pill", label: "Rounded" }, { value: "square", label: "Square" }] },
+    ],
+    defaults: { props: { placeholder: "Search…", buttonLabel: "Search" }, style: { desktop: { maxWidth: "420px" } } },
+  },
+  social: {
+    label: "Social links",
+    category: "social",
+    icon: "share-2",
+    keywords: "social icons follow share facebook instagram x twitter linkedin youtube tiktok whatsapp",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "nav"],
+    contentFields: [
+      {
+        key: "items",
+        label: "Profiles",
+        kind: "items",
+        itemLabel: "Profile",
+        maxItems: 20,
+        itemFields: [
+          { key: "network", label: "Network", kind: "choice", options: SOCIAL_NETWORKS },
+          { key: "link", label: "Address", kind: "link" },
+        ],
+      },
+    ],
+    hint: "Follow links to your profiles, or share buttons for the page",
+    settings: [
+      { key: "mode", label: "Buttons", kind: "select", default: "follow", options: [{ value: "follow", label: "Follow: link to my profiles" }, { value: "share", label: "Share: share this page" }] },
+      { key: "networks", label: "Share on", kind: "select", default: "popular", options: [{ value: "popular", label: "Facebook, X, LinkedIn, WhatsApp, email" }, { value: "all", label: "All share networks" }, { value: "minimal", label: "X, LinkedIn, email" }], when: { key: "mode", is: ["share"] } },
+      { key: "labels", label: "Show names", kind: "toggle", default: false },
+      { key: "shape", label: "Shape", kind: "select", default: "circle", options: [{ value: "plain", label: "Icon only" }, { value: "circle", label: "Circle" }, { value: "rounded", label: "Rounded square" }] },
+      { key: "colors", label: "Colours", kind: "select", default: "brand", options: [{ value: "brand", label: "Brand colours" }, { value: "mono", label: "Text colour" }] },
+      { key: "size", label: "Icon size", kind: "number", min: 12, max: 48, unit: "px", default: 18 },
+    ],
+    defaults: {
+      props: {
+        items: [
+          { network: "instagram", link: { label: "", href: "https://instagram.com/" } },
+          { network: "facebook", link: { label: "", href: "https://facebook.com/" } },
+          { network: "linkedin", link: { label: "", href: "https://linkedin.com/" } },
+        ],
+      },
+      style: {},
+    },
+  },
+  audio: {
+    label: "Audio player",
+    category: "social",
+    icon: "headphones",
+    keywords: "music podcast mp3 sound player episode",
+    isContainer: false,
+    defaultTag: "figure",
+    allowedTags: ["figure", "div"],
+    contentFields: [
+      { key: "audio", label: "Audio", kind: "audio" },
+      { key: "title", label: "Title", kind: "text", maxLength: 120 },
+      { key: "artist", label: "Artist or show", kind: "text", maxLength: 120 },
+      { key: "cover", label: "Cover image", kind: "image" },
+    ],
+    hint: "Plays an MP3, M4A, OGG or WAV with the browser's own controls",
+    settings: [
+      { key: "loop", label: "Loop", kind: "toggle", default: false },
+      { key: "download", label: "Allow download", kind: "toggle", default: true },
+      { key: "look", label: "Look", kind: "select", default: "card", options: [{ value: "card", label: "Card with cover" }, { value: "minimal", label: "Player only" }] },
+    ],
+    defaults: { props: { audio: { assetId: null, src: "" }, title: "Episode 1: Light and space", artist: "The Aurelia podcast", cover: { assetId: null, src: "", alt: "" } }, style: {} },
+  },
+  embed: {
+    label: "Embed code",
+    category: "social",
+    icon: "code",
+    keywords: "html iframe widget script third party calendly typeform",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div"],
+    contentFields: [],
+    hint: "Third-party HTML in a sandboxed frame (booking, forms, maps)",
+    settings: [
+      { key: "code", label: "Code", kind: "code", maxLength: 20000, default: "", placeholder: "<iframe src=\"https://…\"></iframe>", help: "Runs in a sealed-off frame: it can't read your site, its cookies or its visitors' sessions." },
+      { key: "title", label: "Title (for screen readers)", kind: "text", maxLength: 80, default: "Embedded content" },
+      { key: "height", label: "Height", kind: "number", min: 60, max: 1600, step: 10, unit: "px", default: 400 },
+    ],
+    defaults: { props: {}, style: {} },
+  },
+
   // ── Basic content ─────────────────────────────────────────────────────────
   prose: {
     label: "Rich text",
@@ -1008,6 +1186,12 @@ export const BINDABLE: Record<WidgetType, BindTarget[]> = {
   form: [],
   newsletter: [],
   rating: [],
+  nav: [],
+  breadcrumbs: [],
+  search: [],
+  social: [],
+  audio: [],
+  embed: [],
   iconbox: [
     { key: "title", label: "Title", accepts: "text" },
     { key: "text", label: "Text", accepts: "text" },

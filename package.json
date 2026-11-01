@@ -26,6 +26,7 @@
     "e2e:launch-prep": "node scripts/e2e-launch-prep.mjs",
     "e2e:widgets": "node scripts/e2e-widgets.mjs",
     "e2e:forms": "node scripts/e2e-forms.mjs",
+    "e2e:site-widgets": "node scripts/e2e-site-widgets.mjs",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate && prisma migrate deploy && next build"
   },

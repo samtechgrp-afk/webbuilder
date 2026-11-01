@@ -28,6 +28,7 @@ export function WidgetEnhancer() {
       ...find('[data-w="carousel"]').map(carousel),
       ...find('[data-w="countdown"][data-target]').map(countdown),
       ...find('[data-w="counter"][data-count-to]').map(counter),
+      ...find('[data-w="nav"]').map(navDrawer),
     ];
     return () => {
       document.removeEventListener("click", onClick);
@@ -91,6 +92,41 @@ function onSubmit(e: SubmitEvent) {
     })
     .catch(() => say("We couldn't reach the server. Check your connection and try again.", "error"))
     .finally(() => form.removeAttribute("aria-busy"));
+}
+
+/**
+ * The menu drawer already opens and closes without JavaScript (a checkbox);
+ * this adds Esc to close, closes it when a link is followed (in-page anchors
+ * included) and keeps the page behind from scrolling while it's open.
+ */
+function navDrawer(root: HTMLElement): () => void {
+  const toggle = root.querySelector<HTMLInputElement>("[data-nav-toggle]");
+  if (!toggle) return () => {};
+  const sync = () => {
+    toggle.setAttribute("aria-expanded", String(toggle.checked));
+    document.documentElement.style.overflow = toggle.checked && getComputedStyle(toggle).display !== "none" ? "hidden" : "";
+  };
+  const close = () => {
+    if (!toggle.checked) return;
+    toggle.checked = false;
+    sync();
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== "Escape" || !toggle.checked) return;
+    close();
+    toggle.focus();
+  };
+  const onClick = (e: MouseEvent) => (e.target as Element | null)?.closest?.("a") && close();
+  toggle.addEventListener("change", sync);
+  document.addEventListener("keydown", onKey);
+  root.addEventListener("click", onClick);
+  sync();
+  return () => {
+    toggle.removeEventListener("change", sync);
+    document.removeEventListener("keydown", onKey);
+    root.removeEventListener("click", onClick);
+    document.documentElement.style.overflow = "";
+  };
 }
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;

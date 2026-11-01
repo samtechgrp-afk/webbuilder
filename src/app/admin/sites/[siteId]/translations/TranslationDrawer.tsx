@@ -286,6 +286,7 @@ function OverrideInput({
         </div>
       );
     case "video":
+    case "audio":
     case "icon":
     case "number":
     case "datetime":
