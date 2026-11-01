@@ -33,6 +33,7 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/adm
               { href: "/content", label: "Content" },
               ...(multilingual && canTranslate ? [{ href: "/translations", label: "Translations" }] : []),
               { href: "/media", label: "Media" },
+              ...(t.can("forms.manage") ? [{ href: "/forms", label: "Forms" }] : []),
               ...(t.can("commerce.manage") ? [{ href: "/products", label: "Products" }, { href: "/orders", label: "Orders" }] : []),
               ...(t.can("schema.manage") ? [{ href: "/cpts", label: "Post types" }, { href: "/fields", label: "Fields" }] : []),
               ...(t.can("content.edit") || t.can("site.settings") ? [{ href: "/seo", label: "SEO" }] : []),

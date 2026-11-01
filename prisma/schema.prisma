@@ -35,16 +35,16 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  memberships Membership[]
-  sessions    Session[]
-  posts       Post[]         @relation("PostAuthor")
-  revisions   PostRevision[]
+  memberships          Membership[]
+  sessions             Session[]
+  posts                Post[]                @relation("PostAuthor")
+  revisions            PostRevision[]
   designTokenRevisions DesignTokenRevision[]
-  exports     SiteExport[]
-  apiKeys     ApiKey[]
-  editLocks   EditLock[]
-  uploads     MediaAsset[]
-  auditLogs   AuditLog[]
+  exports              SiteExport[]
+  apiKeys              ApiKey[]
+  editLocks            EditLock[]
+  uploads              MediaAsset[]
+  auditLogs            AuditLog[]
 }
 
 /// Server-side session. The browser only holds a signed cookie with this id,
@@ -112,59 +112,62 @@ enum SiteStatus {
 
 /// One client website (the tenant).
 model Site {
-  id           String     @id @default(cuid())
-  name         String
+  id                  String     @id @default(cuid())
+  name                String
   /// acme → acme.<ROOT_DOMAIN> and /sites/acme
-  subdomain    String     @unique
-  customDomain String?    @unique
-  status       SiteStatus @default(DRAFT)
+  subdomain           String     @unique
+  customDomain        String?    @unique
+  status              SiteStatus @default(DRAFT)
   /// Branding for the client portal (logo, accent colour).
-  branding     Json       @default("{}")
+  branding            Json       @default("{}")
   /// Global design tokens: colours, fluid type scale, radii, shadows,
   /// breakpoints. Only roles with `design.tokens` may change these.
-  designTokens Json       @default("{}")
+  designTokens        Json       @default("{}")
   /// Bumped on every token save; saves carry the version they started from
   /// so two designers can't silently overwrite each other.
-  designTokensVersion Int @default(0)
+  designTokensVersion Int        @default(0)
   /// Site-wide SEO defaults, analytics ids, locale.
-  settings     Json       @default("{}")
+  settings            Json       @default("{}")
   /// Designer-only custom <head> code / CSS. Never editable in Client Mode.
-  customCode   Json       @default("{}")
+  customCode          Json       @default("{}")
   /// Headless GraphQL API (/api/v1/sites/<site>/graphql). Off until a
   /// designer turns it on under Developer.
-  graphqlEnabled Boolean  @default(false)
+  graphqlEnabled      Boolean    @default(false)
   /// When on, requests without a key can read published content.
-  graphqlPublic  Boolean  @default(true)
+  graphqlPublic       Boolean    @default(true)
   /// Send first-time visitors to their browser language's version of a page.
-  localeDetection Boolean @default(false)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  localeDetection     Boolean    @default(false)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 
-  roles        Role[]
-  memberships  Membership[]
-  postTypes    PostType[]
-  posts        Post[]
-  revisions    PostRevision[]
-  fieldGroups  FieldGroup[]
-  customFields CustomField[]
-  fieldValues  FieldValue[]
-  taxonomies   Taxonomy[]
-  terms        Term[]
-  mediaFolders MediaFolder[]
-  mediaAssets  MediaAsset[]
+  roles                Role[]
+  memberships          Membership[]
+  postTypes            PostType[]
+  posts                Post[]
+  revisions            PostRevision[]
+  fieldGroups          FieldGroup[]
+  customFields         CustomField[]
+  fieldValues          FieldValue[]
+  taxonomies           Taxonomy[]
+  terms                Term[]
+  mediaFolders         MediaFolder[]
+  mediaAssets          MediaAsset[]
   designTokenRevisions DesignTokenRevision[]
-  exports      SiteExport[]
-  apiKeys      ApiKey[]
-  locales      SiteLocale[]
-  translations PostTranslation[]
-  store        Store?
-  products     Product[]
-  productVariants ProductVariant[]
-  orders       Order[]
-  orderItems   OrderItem[]
-  editLocks    EditLock[]
-  auditLogs    AuditLog[]
-  emailLogs    EmailLog[]
+  exports              SiteExport[]
+  apiKeys              ApiKey[]
+  locales              SiteLocale[]
+  translations         PostTranslation[]
+  store                Store?
+  products             Product[]
+  productVariants      ProductVariant[]
+  orders               Order[]
+  orderItems           OrderItem[]
+  editLocks            EditLock[]
+  auditLogs            AuditLog[]
+  emailLogs            EmailLog[]
+  formSubmissions      FormSubmission[]
+  formFiles            FormFile[]
+  subscribers          Subscriber[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -269,20 +272,20 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  site              Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  postType          PostType       @relation(fields: [postTypeId], references: [id])
-  author            User?          @relation("PostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  parent            Post?          @relation("PostTree", fields: [parentId], references: [id])
-  children          Post[]         @relation("PostTree")
-  revisions         PostRevision[] @relation("PostRevisions")
-  publishedRevision PostRevision?  @relation("PublishedRevision", fields: [publishedRevisionId], references: [id])
-  scheduledRevision PostRevision?  @relation("ScheduledRevision", fields: [scheduledRevisionId], references: [id], onDelete: SetNull)
-  ogImage           MediaAsset?    @relation("OgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
-  featuredImage     MediaAsset?    @relation("FeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
+  site              Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  postType          PostType         @relation(fields: [postTypeId], references: [id])
+  author            User?            @relation("PostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  parent            Post?            @relation("PostTree", fields: [parentId], references: [id])
+  children          Post[]           @relation("PostTree")
+  revisions         PostRevision[]   @relation("PostRevisions")
+  publishedRevision PostRevision?    @relation("PublishedRevision", fields: [publishedRevisionId], references: [id])
+  scheduledRevision PostRevision?    @relation("ScheduledRevision", fields: [scheduledRevisionId], references: [id], onDelete: SetNull)
+  ogImage           MediaAsset?      @relation("OgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
+  featuredImage     MediaAsset?      @relation("FeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
   fieldValues       FieldValue[]
   terms             PostTerm[]
   editLock          EditLock?
-  templateFor       PostType?      @relation("SingleTemplate")
+  templateFor       PostType?        @relation("SingleTemplate")
   translation       PostTranslation?
 
   @@unique([siteId, postTypeId, locale, slug])
@@ -761,18 +764,18 @@ model Product {
 }
 
 model ProductVariant {
-  id        String  @id @default(cuid())
-  siteId    String
-  productId String
+  id         String  @id @default(cuid())
+  siteId     String
+  productId  String
   /// "Red / Large"
-  title     String
+  title      String
   /// Overrides the product price when set.
-  price     Int?
-  sku       String?
-  inventory Int     @default(0)
+  price      Int?
+  sku        String?
+  inventory  Int     @default(0)
   /// { "Color": "Red", "Size": "Large" }
-  attributes Json   @default("{}")
-  position  Int     @default(0)
+  attributes Json    @default("{}")
+  position   Int     @default(0)
 
   site       Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
   product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -870,4 +873,81 @@ model EmailLog {
 
   @@index([siteId, createdAt])
   @@index([status, createdAt])
+}
+
+enum SubmissionStatus {
+  NEW
+  READ
+  SPAM
+}
+
+/// One visitor message from a Contact form widget. `fields` is a snapshot
+/// of what the visitor saw and typed ([{ label, type, value }]), so editing
+/// or deleting the form later never changes old submissions.
+model FormSubmission {
+  id        String           @id @default(cuid())
+  siteId    String
+  /// The form widget's node id and its name at the time of sending.
+  formId    String
+  formName  String
+  pagePath  String?
+  fields    Json
+  /// The first email field's value: reply-to and search.
+  email     String?
+  status    SubmissionStatus @default(NEW)
+  /// sha256(site + IP): rate limiting without storing the address.
+  ipHash    String?
+  userAgent String?
+  createdAt DateTime         @default(now())
+
+  site  Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  files FormFile[]
+
+  @@index([siteId, createdAt])
+  @@index([siteId, status])
+  @@index([siteId, ipHash, createdAt])
+}
+
+/// A file attached to a submission. Stored under a private key that the
+/// public uploads route refuses; admins download it through an
+/// authorised route.
+model FormFile {
+  id           String   @id @default(cuid())
+  siteId       String
+  submissionId String
+  fieldLabel   String
+  storageKey   String
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  createdAt    DateTime @default(now())
+
+  site       Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  submission FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, submissionId])
+}
+
+enum SubscriberStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+}
+
+/// A newsletter sign-up from a Newsletter widget, one row per address per site.
+model Subscriber {
+  id             String           @id @default(cuid())
+  siteId         String
+  email          String
+  name           String?
+  /// The form name it came from.
+  source         String
+  status         SubscriberStatus @default(SUBSCRIBED)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  unsubscribedAt DateTime?
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, email])
+  @@index([siteId, status, createdAt])
 }

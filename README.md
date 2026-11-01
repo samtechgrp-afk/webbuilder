@@ -87,6 +87,7 @@ npm run e2e:templates            # Playwright: client lockout, gallery filters, 
 RESEND_API_KEY=re_e2e_test_key RESEND_API_BASE=http://127.0.0.1:4243 STRIPE_API_BASE=http://127.0.0.1:4242 npm start   # for the launch suite
 npm run e2e:launch-prep          # Playwright + Stripe and Resend mocks: env validation at boot, sign-up → wizard → site, welcome email, order receipt and store alert, replay safety, order status link, Client Mode badges, help drawer, system health
 npm run e2e:widgets              # Playwright: categorised palette + search, add and configure widget library widgets → publish → live site, client content-only editing
+npm run e2e:forms                # Playwright: contact form with attachment, newsletter, star rating → live submit (JS and no-JS) → Resend notification → Forms inbox, CSV, permissions (needs RESEND_API_KEY=re_e2e_test_key RESEND_API_BASE=http://127.0.0.1:4243)
 ```
 
 Reseed with the server stopped (or restart it after seeding): resolved sites are cached by subdomain. For scheduled publishing in production, set `CRON_SECRET`; `vercel.json` calls the cron route every minute. The proxy fetches the rendered 404 page from `INTERNAL_URL` (defaults to `https://$VERCEL_URL`, else `http://127.0.0.1:$PORT`); with Vercel Deployment Protection on, point `INTERNAL_URL` at a reachable origin.
@@ -190,6 +191,15 @@ The designer's palette groups widgets into categories (Structure & layout, Basic
 - **Lists inside a widget** (`items` content): accordion panels, tabs, slides and pricing features are lists the client edits in the inspector (add, remove, reorder). Each list declares its own fields, which the server validates and whose images it resolves from the media library; translations override the text by position and keep the original's images, links and toggles.
 - **Interactivity without a framework on the page**: widgets render as plain HTML on the server. The few that need behaviour (lightbox, carousel arrows and autoplay, countdown ticking, counter animation) get it from one small script (`src/components/site/WidgetEnhancer.tsx`) that only ships on pages that use them and works by event delegation; without JavaScript, or in a static export, each still works in a simpler form (the lightbox link opens the image, the carousel swipes, the countdown shows its end date, the counter shows its number; accordions and tabs need no script at all).
 
+### Forms and lead capture
+
+- **Contact form** (`form`): fields are a list the client edits (short and long text, email, phone, number, website, date, dropdown, single choice, yes / no checkbox, 1 to 5 star rating, file upload), each with a label, placeholder, required flag and half or full width. Designers set the form name, who gets the notification emails (up to five addresses; empty means everyone with `forms.manage`), label style, button width and accent colour.
+- **Newsletter sign-up** (`newsletter`): email (and optionally name), consent note, thank-you message. Sign-ups go to **Forms → Subscribers** (one row per address per site, unsubscribe / resubscribe / delete, CSV for any email tool), with an optional email to the team for each new subscriber.
+- **Star rating** (`rating`): shows a score as stars with partial fills, out of 3 to 10.
+- **Submitting**: forms post to `POST /api/v1/sites/<site>/forms`. The server finds the form in the site's *published* documents by its widget id and validates every field against it (choices are posted as indexes, so translated labels map back to the original; unknown fields are dropped). Spam trap field, per-connection rate limit (5 messages per 10 minutes, IPs stored only as a salted hash), attachments limited to PDF, images, text and Word files of 4 MB at most. With JavaScript the answer shows in place, with each field's error next to it; without it (or from a static export, whose forms keep posting to the platform) the browser gets a small confirmation page.
+- **Notifications**: each message is emailed through the Resend dispatcher (idempotent per message, reply-to the visitor's email field) with a link to it in **Forms**.
+- **Forms inbox** (`/admin/sites/<id>/forms`, permission `forms.manage`, held by Designers and Client Admins): unread / inbox / spam, search, filter by form, message view, attachment download, CSV export. Attachments are stored under a private prefix that the public uploads route refuses; they're only served to members with `forms.manage`, as downloads.
+
 ## Where things live
 
 | Path | What |
@@ -205,6 +215,7 @@ The designer's palette groups widgets into categories (Structure & layout, Basic
 | `src/lib/builder/render.tsx` | One renderer for the live site and the editor canvas |
 | `src/lib/builder/widgets.ts`, `settings.ts`, `presets.ts`, `icons.tsx`, `media.ts` | Widget registry, designer settings engine, palette presets, Lucide icon set, video and map embeds |
 | `src/components/site/WidgetEnhancer.tsx` | Progressive enhancement for interactive widgets on the live site |
+| `src/lib/forms/submission.ts`, `src/server/forms/*`, `src/app/api/v1/sites/[site]/forms` | Form submission checks, submit endpoint, Forms inbox and subscribers |
 | `src/lib/builder/styles.ts` | Style injection (container queries), token-driven base CSS, WCAG contrast |
 | `src/lib/design/*` | Token types and compiler (fluid type, spacing grid), presets and fonts, zod validation |
 | `src/server/design/tokens-service.ts`, `src/server/design-actions.ts` | Save / apply preset / restore tokens, version check, revisions, cache expiry |

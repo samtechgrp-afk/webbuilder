@@ -43,3 +43,4 @@ next-env.d.ts
 public/uploads/
 e2e-screenshots/
 /storage/
+/.data

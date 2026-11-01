@@ -21,6 +21,7 @@ export const PERMISSIONS = {
   "revisions.restore": "Roll back to an earlier revision",
   "commerce.manage": "Manage products, prices and inventory",
   "analytics.view": "View site analytics",
+  "forms.manage": "Read form submissions and manage newsletter subscribers",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -43,7 +44,7 @@ export const SYSTEM_ROLES: Record<
     permissions: [
       "site.users", "content.edit", "media.upload", "media.manage", "post.create",
       "post.editAny", "post.submit", "post.publish", "revisions.restore",
-      "commerce.manage", "analytics.view",
+      "commerce.manage", "analytics.view", "forms.manage",
     ],
   },
   editor: {

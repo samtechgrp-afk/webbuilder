@@ -70,6 +70,8 @@ function itemFieldSchema(f: ItemField) {
       return z.boolean();
     case "lines":
       return z.array(plainText(f.maxLength ?? 200)).max(30);
+    case "choice":
+      return z.enum((f.options ?? []).map((o) => o.value) as [string, ...string[]]);
   }
 }
 

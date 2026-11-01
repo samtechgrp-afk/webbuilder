@@ -137,14 +137,15 @@ function SiteBody({ r }: { r: Resolved }) {
   const lang = contentLocale(r)?.code;
   const languages = r.loc.locales.length > 1 ? languageLinks(r.loc, r.alternates, r.loc.locale?.code ?? null) : undefined;
   const commerce = r.commerce;
+  const formAction = `/api/v1/sites/${encodeURIComponent(r.site.subdomain)}/forms`;
   switch (r.kind) {
     case "page":
-      return <SiteDocument doc={r.page.document} data={r.page.data} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} />;
+      return <SiteDocument doc={r.page.document} data={r.page.data} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} formAction={formAction} />;
     case "product":
-      return <SiteDocument doc={r.product.document} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} />;
+      return <SiteDocument doc={r.product.document} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} formAction={formAction} />;
     case "entry":
       return r.entry.template && r.entry.data ? (
-        <SiteDocument doc={r.entry.template} data={r.entry.data} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} />
+        <SiteDocument doc={r.entry.template} data={r.entry.data} tokens={r.tokens} linkBase={r.linkBase} lang={lang} languages={languages} commerce={commerce} formAction={formAction} />
       ) : (
         <DefaultEntry entry={r.entry.entry} label={r.entry.postType.labelSingular} tokens={r.tokens} lang={lang} />
       );

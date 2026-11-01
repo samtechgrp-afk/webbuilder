@@ -41,7 +41,7 @@ export default async function SiteNotFound({ params }: PageProps<"/site-404/[sit
   const custom = await getNotFoundPage({ id: row.id, name: row.name, settings: row.settings, branding: row.branding }, linkBase, locale?.code ?? "");
   const lang = custom?.locale || locales.find((l) => l.isDefault)?.code;
   return custom ? (
-    <SiteDocument doc={custom.document} data={custom.data} tokens={tokens} linkBase={linkBase} lang={lang} />
+    <SiteDocument doc={custom.document} data={custom.data} tokens={tokens} linkBase={linkBase} lang={lang} formAction={`/api/v1/sites/${encodeURIComponent(row.subdomain)}/forms`} />
   ) : (
     <DefaultNotFound siteName={row.name} tokens={tokens} linkBase={linkBase} lang={locale?.code ?? lang} />
   );

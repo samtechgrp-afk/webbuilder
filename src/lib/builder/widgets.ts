@@ -26,11 +26,31 @@ export type ContentFieldKind =
 export interface ItemField {
   key: string;
   label: string;
-  kind: "text" | "multiline" | "link" | "image" | "number" | "icon" | "toggle" | "lines";
+  kind: "text" | "multiline" | "link" | "image" | "number" | "icon" | "toggle" | "lines" | "choice";
   maxLength?: number;
   min?: number;
   max?: number;
+  /** choice: the allowed values (the first is the default). Values aren't translated. */
+  options?: { value: string; label: string }[];
+  /** Only show this field in the inspector when another field of the record has one of these values. */
+  when?: { key: string; is: string[] };
 }
+
+/** Field types a Contact form offers. Values are stored; labels are what the inspector shows. */
+export const FORM_FIELD_TYPES = [
+  { value: "text", label: "Short text" },
+  { value: "email", label: "Email" },
+  { value: "tel", label: "Phone" },
+  { value: "textarea", label: "Long text" },
+  { value: "select", label: "Dropdown" },
+  { value: "radio", label: "Single choice" },
+  { value: "checkbox", label: "Checkbox (yes / no)" },
+  { value: "number", label: "Number" },
+  { value: "url", label: "Website address" },
+  { value: "date", label: "Date" },
+  { value: "rating", label: "Star rating (1 to 5)" },
+  { value: "file", label: "File upload" },
+];
 
 export interface ContentField {
   key: string;
@@ -695,6 +715,116 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     defaults: { props: { value: 250, prefix: "", suffix: "+", label: "Projects delivered" }, style: { desktop: { textAlign: "center" } } },
   },
 
+  // ── Forms & lead capture ──────────────────────────────────────────────────
+  form: {
+    label: "Contact form",
+    category: "forms",
+    icon: "send",
+    keywords: "contact enquiry message form email upload file submission lead",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "section", "aside"],
+    contentFields: [
+      {
+        key: "fields",
+        label: "Fields",
+        kind: "items",
+        itemLabel: "Field",
+        minItems: 1,
+        maxItems: 20,
+        itemFields: [
+          { key: "label", label: "Label", kind: "text", maxLength: 120 },
+          { key: "type", label: "Type", kind: "choice", options: FORM_FIELD_TYPES },
+          { key: "placeholder", label: "Placeholder", kind: "text", maxLength: 120, when: { key: "type", is: ["text", "email", "tel", "number", "url", "textarea"] } },
+          { key: "options", label: "Choices", kind: "lines", maxLength: 120, when: { key: "type", is: ["select", "radio"] } },
+          { key: "required", label: "Required", kind: "toggle" },
+          { key: "width", label: "Width", kind: "choice", options: [{ value: "full", label: "Full width" }, { value: "half", label: "Half width" }] },
+        ],
+      },
+      { key: "submitLabel", label: "Button text", kind: "text", maxLength: 60 },
+      { key: "successMessage", label: "Thank-you message", kind: "multiline", maxLength: 300 },
+    ],
+    hint: "Text, email, choices and file upload; messages land in Forms and your inbox",
+    settings: [
+      { key: "formName", label: "Form name", kind: "text", maxLength: 60, default: "Contact form", help: "How submissions are labelled in Forms and in notification emails." },
+      { key: "notify", label: "Email each submission", kind: "toggle", default: true },
+      { key: "recipients", label: "Send to", kind: "text", maxLength: 300, default: "", placeholder: "hello@example.com, team@example.com", help: "Up to 5 addresses, comma separated. Empty sends to everyone who can read form submissions.", when: { key: "notify", is: [true] } },
+      { key: "labels", label: "Labels", kind: "select", default: "above", options: [{ value: "above", label: "Above the field" }, { value: "hidden", label: "Hidden (placeholder only)" }] },
+      { key: "buttonWidth", label: "Button width", kind: "select", default: "auto", options: [{ value: "auto", label: "Fit text" }, { value: "full", label: "Full width" }] },
+      COLOR("accent", "Accent colour", { default: "var(--color-primary)" }),
+    ],
+    defaults: {
+      props: {
+        fields: [
+          { label: "Name", type: "text", placeholder: "Your name", required: true, width: "half" },
+          { label: "Email", type: "email", placeholder: "you@example.com", required: true, width: "half" },
+          { label: "Topic", type: "select", options: ["New project", "Question", "Something else"], required: false, width: "full" },
+          { label: "Message", type: "textarea", placeholder: "How can we help?", required: true, width: "full" },
+        ],
+        submitLabel: "Send message",
+        successMessage: "Thanks! We got your message and will reply soon.",
+      },
+      style: { desktop: { maxWidth: "640px" } },
+    },
+  },
+  newsletter: {
+    label: "Newsletter sign-up",
+    category: "forms",
+    icon: "mail",
+    keywords: "subscribe email list mailing signup lead capture",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "section", "aside"],
+    contentFields: [
+      { key: "title", label: "Title", kind: "text", maxLength: 120 },
+      { key: "text", label: "Text", kind: "multiline", maxLength: 300 },
+      { key: "placeholder", label: "Email placeholder", kind: "text", maxLength: 80 },
+      { key: "buttonLabel", label: "Button text", kind: "text", maxLength: 40 },
+      { key: "consent", label: "Consent note", kind: "multiline", maxLength: 300 },
+      { key: "successMessage", label: "Thank-you message", kind: "multiline", maxLength: 300 },
+    ],
+    hint: "Collects email addresses into Forms → Subscribers",
+    settings: [
+      { key: "formName", label: "List name", kind: "text", maxLength: 60, default: "Newsletter", help: "Shown as the source of each subscriber." },
+      { key: "askName", label: "Ask for a name", kind: "toggle", default: false },
+      { key: "layout", label: "Layout", kind: "select", default: "inline", options: [{ value: "inline", label: "Field and button in a row" }, { value: "stacked", label: "Stacked" }] },
+      { key: "notify", label: "Email me about new subscribers", kind: "toggle", default: false },
+      COLOR("accent", "Accent colour", { default: "var(--color-primary)" }),
+    ],
+    defaults: {
+      props: {
+        title: "Stay in the loop",
+        text: "One email a month with new work and ideas. No spam.",
+        placeholder: "you@example.com",
+        buttonLabel: "Subscribe",
+        consent: "",
+        successMessage: "You're subscribed. Thanks for joining!",
+      },
+      style: { desktop: { maxWidth: "560px" } },
+    },
+  },
+  rating: {
+    label: "Star rating",
+    category: "forms",
+    icon: "star",
+    keywords: "stars review score rating reviews",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "p", "span"],
+    contentFields: [
+      { key: "value", label: "Rating", kind: "number", min: 0, max: 10, step: 0.1 },
+      { key: "label", label: "Label", kind: "text", maxLength: 120 },
+    ],
+    hint: "Shows a score as stars, with partial stars",
+    settings: [
+      { key: "max", label: "Out of", kind: "number", min: 3, max: 10, default: 5 },
+      { key: "size", label: "Star size", kind: "number", min: 12, max: 64, unit: "px", default: 20 },
+      COLOR("color", "Star colour", { default: "#f59e0b" }),
+      { key: "showValue", label: "Show the number", kind: "toggle", default: true },
+    ],
+    defaults: { props: { value: 4.8, label: "from 120 reviews" }, style: {} },
+  },
+
   // ── Basic content ─────────────────────────────────────────────────────────
   prose: {
     label: "Rich text",
@@ -875,6 +1005,9 @@ export const BINDABLE: Record<WidgetType, BindTarget[]> = {
   ],
   progress: [],
   counter: [],
+  form: [],
+  newsletter: [],
+  rating: [],
   iconbox: [
     { key: "title", label: "Title", accepts: "text" },
     { key: "text", label: "Text", accepts: "text" },
