@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { tenantDb } from "@/lib/tenant-db";
 import { isBuilderDocument, type BuilderDocument } from "@/lib/builder/types";
 import { composeDocument } from "@/lib/i18n/translate";
+import { withFontFaces } from "@/lib/design/fonts";
+import type { DesignTokens } from "@/lib/design/tokens";
 import { ENTRY_INCLUDE, buildDynamicPosts, entryPath, inLocale, liveOriginal, loadDynamicData, localizedSources, type RevisionMeta } from "./cms/dynamic";
 
 /** Cache tag for everything a tenant's public site renders. Publishing expires it. */
@@ -21,9 +23,16 @@ export async function resolveSite(key: string) {
   const host = decodeURIComponent(key).toLowerCase();
   const site = await prisma.site.findFirst({
     where: { OR: [{ subdomain: host }, { customDomain: host }, { locales: { some: { domain: host } } }], status: { not: "SUSPENDED" } },
+    // Custom fonts render with the tokens (see siteTokens), so a font change expires this read too.
+    include: { fonts: { orderBy: { createdAt: "asc" }, select: { id: true, family: true, source: true, url: true, format: true, weight: true, style: true, fallback: true } } },
   });
   if (site) cacheTag(siteCacheTag(site.id));
   return site;
+}
+
+/** A resolved site's design tokens with its custom fonts attached, ready for the renderers. */
+export function siteTokens(row: { designTokens: unknown; fonts?: Parameters<typeof withFontFaces>[1] }): DesignTokens {
+  return withFontFaces((row.designTokens ?? {}) as DesignTokens, row.fonts);
 }
 
 const LIVE = { publishedRevisionId: { not: null }, status: { not: "TRASHED" as const } };

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { loadDesignTokens } from "@/server/design/tokens-service";
+import { listFonts } from "@/server/design/font-service";
 import { DesignSystemEditor } from "./DesignSystemEditor";
 
 export const metadata: Metadata = { title: "Design system" };
@@ -11,7 +12,7 @@ export default async function DesignSystemPage({ params }: PageProps<"/admin/sit
   const { siteId } = await params;
   const t = await getTenant(siteId);
   if (!t.can("design.tokens")) notFound();
-  const { tokens, version, revisions } = await loadDesignTokens(t);
+  const [{ tokens, version, revisions }, fonts] = await Promise.all([loadDesignTokens(t), listFonts(t)]);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
@@ -19,7 +20,7 @@ export default async function DesignSystemPage({ params }: PageProps<"/admin/sit
       <p className="mb-6 text-sm text-zinc-500">
         Global colours, type, spacing and depth for every page of {t.site.name}. Changes preview here instantly and go live on every page when you save.
       </p>
-      <DesignSystemEditor siteId={t.site.id} initial={{ tokens, version, revisions }} />
+      <DesignSystemEditor siteId={t.site.id} initial={{ tokens, version, revisions }} fonts={fonts} />
     </main>
   );
 }

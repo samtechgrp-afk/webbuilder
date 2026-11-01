@@ -31,6 +31,7 @@ export const TENANT_MODELS = new Set<Prisma.ModelName>([
   "Term",
   "MediaFolder",
   "MediaAsset",
+  "SiteFont",
   "AuditLog",
   "DesignTokenRevision",
   "SiteExport",

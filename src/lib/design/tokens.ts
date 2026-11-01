@@ -1,4 +1,5 @@
 import { safeCssValue, safeIdent } from "./css-values";
+import type { SiteFontFace } from "./fonts";
 
 /**
  * Global design tokens. One JSON object per site (Site.designTokens) compiles
@@ -45,6 +46,12 @@ export interface DesignTokens {
   glows?: Record<string, string>;
   /** Radial ambient glows, written as background images. */
   ambient?: Record<string, string>;
+  /**
+   * The site's custom fonts (SiteFont rows), attached when a page is loaded
+   * so every renderer emits their @font-face / @import rules. Never stored
+   * in Site.designTokens: the tokens schema drops it on save.
+   */
+  fontFaces?: SiteFontFace[];
 }
 
 /** The open-ended groups and the variable prefix each compiles to. */

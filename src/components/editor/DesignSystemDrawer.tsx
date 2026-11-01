@@ -15,6 +15,7 @@ import { selectTokensDirty, useEditor } from "./store";
 export function DesignSystemDrawer({ siteId, onClose }: { siteId: string; onClose: () => void }) {
   const tokens = useEditor((s) => s.tokens) ?? {};
   const dirty = useEditor(selectTokensDirty);
+  const fonts = useEditor((s) => s.fonts);
   const [pending, start] = useTransition();
 
   function save() {
@@ -39,7 +40,13 @@ export function DesignSystemDrawer({ siteId, onClose }: { siteId: string; onClos
         </button>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-4">
-        <TokensPanel value={tokens} onChange={(t) => useEditor.getState().setTokens(t)} disabled={pending} />
+        <TokensPanel
+          value={tokens}
+          onChange={(t) => useEditor.getState().setTokens(t)}
+          disabled={pending}
+          fonts={fonts}
+          onManageFonts={() => useEditor.getState().setFontManagerOpen(true)}
+        />
       </div>
       <footer className="flex items-center gap-2 border-t border-zinc-200 px-4 py-2.5">
         <button
