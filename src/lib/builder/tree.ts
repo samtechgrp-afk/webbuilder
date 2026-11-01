@@ -69,6 +69,7 @@ export function createWidgetTree(doc: BuilderDocument, key: WidgetType | string)
   if (preset) return preset.build(doc, createWidget);
   const type = key as WidgetType;
   const node = createWidget(doc, type);
+  if (type === "tilted-grid-hero") return tiltedHeroChildren(doc, node);
   if (type !== "loop") return { node, extra: {} };
   const scratch: BuilderDocument = { ...doc, nodes: { ...doc.nodes, [node.id]: node } };
   const extra: Record<string, BuilderNode> = {};
@@ -94,6 +95,29 @@ export function createWidgetTree(doc: BuilderDocument, key: WidgetType | string)
     style: { desktop: { display: "flex", flexDirection: "column", gap: "var(--space-sm)", alignItems: "flex-start" } },
   });
   node.children = [card.id];
+  return { node, extra };
+}
+
+/** A Tilted grid hero arrives with a headline and a line of copy above the band, like the reference design. */
+function tiltedHeroChildren(doc: BuilderDocument, node: BuilderNode) {
+  const scratch: BuilderDocument = { ...doc, nodes: { ...doc.nodes, [node.id]: node } };
+  const extra: Record<string, BuilderNode> = {};
+  const add = (n: BuilderNode) => {
+    scratch.nodes[n.id] = n;
+    extra[n.id] = n;
+    return n;
+  };
+  const title = add({ ...createWidget(scratch, "heading"), tag: "h1", name: "Hero headline" });
+  title.props = { text: "Every frame, brought into focus." };
+  title.style = {
+    desktop: { maxWidth: "11em", fontSize: "3rem", fontWeight: "500", lineHeight: "1", letterSpacing: "-0.025em", color: "var(--color-heading, var(--color-text))" },
+    mobile: { fontSize: "2.25rem" },
+  };
+  const copy = add(createWidget(scratch, "text"));
+  copy.name = "Hero copy";
+  copy.props = { text: "Images curve in from one edge, flatten out at the centre, then fade away round the other." };
+  copy.style = { desktop: { maxWidth: "28rem", fontSize: ".875rem", lineHeight: "1.43", color: "var(--color-muted)" } };
+  node.children = [title.id, copy.id];
   return { node, extra };
 }
 

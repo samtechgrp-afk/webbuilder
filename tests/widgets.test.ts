@@ -278,3 +278,67 @@ describe("interactive widgets", () => {
     assert.equal(composed.nodes[id].props.plan, "Atelier");
   });
 });
+
+describe("tilted grid hero", () => {
+  const asset = { id: "a1", url: "/uploads/s/a1.webp", mimeType: "image/webp", width: 1600, height: 900, altText: "Dune", variants: {} };
+  const t = { db: { mediaAsset: { findUnique: async ({ where }: { where: { id: string } }) => (where.id === "a1" ? asset : null) } } } as unknown as TenantContext;
+
+  it("arrives with a headline and copy inside, like the reference design", () => {
+    const { doc, id } = withWidget("tilted-grid-hero");
+    const kids = doc.nodes[id].children ?? [];
+    assert.equal(kids.length, 2);
+    assert.equal(doc.nodes[kids[0]].type, "heading");
+    assert.equal(doc.nodes[kids[0]].tag, "h1");
+    assert.equal(doc.nodes[kids[1]].type, "text");
+    assert.equal(structuralProblem(doc), null);
+  });
+
+  it("renders the band behind the child widgets, with placeholders until images are added", () => {
+    const { doc } = withWidget("tilted-grid-hero");
+    const out = html(doc);
+    assert.match(out, /<section[^>]*data-w="tilted-grid-hero"/);
+    assert.match(out, /data-tgh=""[^>]*style="container-type:size"/);
+    assert.match(out, /aria-hidden="true"[^>]*class="pointer-events-none absolute inset-0/);
+    assert.match(out, /@keyframes tgh-o-/);
+    assert.match(out, /src="data:image\/svg\+xml/);
+    assert.match(out, /data-tgh-content="" data-position="spread"><h1[^>]*>Every frame, brought into focus\.<\/h1>/);
+  });
+
+  it("shows its own images and passes the settings through", () => {
+    const { doc } = withWidget("tilted-grid-hero", { props: { images: [{ assetId: "a1", src: "/uploads/s/a1.webp", alt: "Dune" }], aspect: "1 / 1", axis: 40 } });
+    const out = html(doc);
+    assert.match(out, /src="\/uploads\/s\/a1\.webp"/);
+    assert.doesNotMatch(out, /data:image\/svg/);
+    assert.match(out, /perspective-origin:50% 40%/);
+    // Square tiles: width = 1 × tile height.
+    assert.match(out, /width:calc\(1 \* min\(26cqh, 55cqw\)\)/);
+  });
+
+  it("lets clients swap images but keeps the motion settings with designers", () => {
+    const { doc, id } = withWidget("tilted-grid-hero");
+    const images = structuredClone(doc);
+    images.nodes[id].props.images = [{ assetId: "a1", src: "/uploads/s/a1.webp", alt: "Dune" }];
+    assert.equal(authorizeChanges(doc, diffDocuments(doc, images), client).length, 0);
+    const speed = structuredClone(doc);
+    speed.nodes[id].props.speed = 2;
+    assert.equal(authorizeChanges(doc, diffDocuments(doc, speed), client).length, 1);
+    assert.equal(authorizeChanges(doc, diffDocuments(doc, speed), designer).length, 0);
+  });
+
+  it("rejects out-of-range settings", () => {
+    const def = WIDGETS["tilted-grid-hero"].settings!;
+    assert.ok(settingProblem(def.find((s) => s.key === "curve")!, 90));
+    assert.ok(settingProblem(def.find((s) => s.key === "aspect")!, "7 / 3"));
+    assert.equal(settingProblem(def.find((s) => s.key === "speed")!, 2.5), null);
+  });
+
+  it("takes gallery URLs from the media library, never the browser", async () => {
+    const { doc, id } = withWidget("tilted-grid-hero", { props: { images: [{ assetId: "a1", src: "https://evil.example/x.png", alt: "" }] } });
+    await normaliseContent(t, doc, [{ nodeId: id, field: "images" }]);
+    const [img] = doc.nodes[id].props.images as { src: string; alt: string }[];
+    assert.equal(img.src, "/uploads/s/a1.webp");
+    assert.equal(img.alt, "Dune");
+    const bad = withWidget("tilted-grid-hero", { props: { images: [{ assetId: "nope", src: "", alt: "" }] } });
+    await assert.rejects(normaliseContent(t, bad.doc, [{ nodeId: bad.id, field: "images" }]));
+  });
+});

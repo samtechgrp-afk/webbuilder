@@ -27,6 +27,7 @@
     "e2e:widgets": "node scripts/e2e-widgets.mjs",
     "e2e:forms": "node scripts/e2e-forms.mjs",
     "e2e:site-widgets": "node scripts/e2e-site-widgets.mjs",
+    "e2e:tilted-hero": "node scripts/e2e-tilted-hero.mjs",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate && prisma migrate deploy && next build"
   },
@@ -34,6 +35,7 @@
     "@graphiql/toolkit": "^0.12.1",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
     "dataloader": "^2.2.3",
     "dompurify": "^3.4.17",
     "fflate": "^0.8.2",
@@ -48,6 +50,7 @@
     "react-dom": "19.3.0",
     "server-only": "^0.0.1",
     "sharp": "^0.35.5",
+    "tailwind-merge": "^3.7.0",
     "zod": "^4.6.7",
     "zustand": "^5.0.16"
   },

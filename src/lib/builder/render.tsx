@@ -12,6 +12,7 @@ import { WidgetEnhancer } from "@/components/site/WidgetEnhancer";
 import { CartWidget } from "@/components/commerce/CartWidget";
 import { ProductDetails } from "@/components/commerce/ProductDetails";
 import { ProductGrid } from "@/components/commerce/ProductGrid";
+import { TiltedGridHero } from "@/components/ui/tilted-grid-hero";
 import type { CartProps, CommerceData, ProductDetailsProps, ProductGridProps } from "@/lib/commerce/types";
 
 /**
@@ -347,6 +348,27 @@ function FormField({ field, i, base }: { field: Item; i: number; base: string })
     </div>
   );
 }
+
+/**
+ * Soft gradient washes shown until a Tilted grid hero has images of its own,
+ * so a freshly dropped hero already moves. Inline SVG: nothing to fetch and
+ * nothing stored in the page.
+ */
+const TILTED_PLACEHOLDERS = [
+  ["#f6d365", "#fda085", "#f5576c"],
+  ["#a1c4fd", "#c2e9fb", "#e0c3fc"],
+  ["#0f2027", "#2c5364", "#7aa7c7"],
+  ["#fbc2eb", "#a6c1ee", "#f9f7ff"],
+  ["#ff9a8b", "#ff6a88", "#ff99ac"],
+  ["#d4fc79", "#96e6a1", "#43c6ac"],
+  ["#30cfd0", "#330867", "#130f40"],
+  ["#fdfbfb", "#ebedee", "#c9d6ff"],
+].map(([a, b, c], i) => ({
+  src: `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90" preserveAspectRatio="none"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset=".55" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient><radialGradient id="r" cx="${i % 2 ? 0.25 : 0.75}" cy=".3" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><rect width="160" height="90" fill="url(#g)"/><rect width="160" height="90" fill="url(#r)"/></svg>`,
+  )}`,
+  alt: "",
+}));
 
 type Vars = CSSProperties & Record<`--${string}`, string | number | undefined>;
 
@@ -1027,6 +1049,30 @@ function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
             </span>
           ) : null}
         </div>
+      );
+    }
+    case "tilted-grid-hero": {
+      const own = ((node.props.images as ImageValue[] | undefined) ?? []).filter((img) => img?.src).map((img) => ({ src: img.src, alt: img.alt }));
+      const [w, h] = String(set.aspect).split("/").map(Number);
+      // The band is the one Client Component here: its ResizeObserver sizes the loop and hands tiles their next image.
+      return (
+        <Tag {...common}>
+          <TiltedGridHero
+            data-tgh=""
+            images={own.length ? own : TILTED_PLACEHOLDERS}
+            speed={Number(set.speed)}
+            tileHeight={Number(set.tileHeight)}
+            aspectRatio={w > 0 && h > 0 ? w / h : 16 / 9}
+            gap={Number(set.gap)}
+            axis={Number(set.axis)}
+            curve={Number(set.curve)}
+            fade={Number(set.fade)}
+          >
+            <div data-tgh-content="" data-position={set.contentPosition as string}>
+              {kids()}
+            </div>
+          </TiltedGridHero>
+        </Tag>
       );
     }
     case "loop":
