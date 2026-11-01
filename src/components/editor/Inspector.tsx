@@ -446,7 +446,7 @@ function emptyItem(field: ContentField): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const f of field.itemFields ?? []) {
     out[f.key] =
-      f.kind === "link" ? { label: "", href: "" } : f.kind === "image" ? { assetId: null, src: "", alt: "" } : f.kind === "number" ? (f.min ?? 0) : f.kind === "toggle" ? true : f.kind === "lines" ? [] : "";
+      f.kind === "link" ? { label: "", href: "" } : f.kind === "image" ? { assetId: null, src: "", alt: "" } : f.kind === "number" ? (f.min ?? 0) : f.kind === "toggle" ? true : f.kind === "lines" ? [] : f.kind === "choice" ? (f.options?.[0]?.value ?? "") : "";
   }
   return out;
 }
@@ -498,7 +498,24 @@ function ItemsEditor({
                 {(field.itemFields ?? []).map((f) => {
                   const v = it[f.key];
                   const label = `${f.label}`;
+                  if (f.when && !f.when.is.includes(String(it[f.when.key] ?? f.options?.[0]?.value ?? ""))) return null;
                   switch (f.kind) {
+                    case "choice":
+                      return (
+                        <label key={f.key} className="block text-[11px] text-zinc-600">
+                          {label}
+                          <select
+                            aria-label={`${noun} ${i + 1} ${label}`}
+                            className="mt-0.5 w-full rounded border border-zinc-300 bg-white px-1.5 py-1 text-xs text-zinc-900"
+                            value={String(v ?? f.options?.[0]?.value ?? "")}
+                            onChange={(e) => update(i, f.key, e.target.value)}
+                          >
+                            {(f.options ?? []).map((o) => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                          </select>
+                        </label>
+                      );
                     case "text":
                     case "multiline":
                       return (

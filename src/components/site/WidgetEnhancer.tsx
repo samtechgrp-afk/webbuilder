@@ -21,6 +21,7 @@ export function WidgetEnhancer() {
       openLightbox(link);
     };
     document.addEventListener("click", onClick);
+    document.addEventListener("submit", onSubmit);
     const roots = Array.from(document.querySelectorAll<HTMLElement>(".site-root"));
     const find = (sel: string) => roots.flatMap((r) => Array.from(r.querySelectorAll<HTMLElement>(sel)));
     const cleanups = [
@@ -30,11 +31,66 @@ export function WidgetEnhancer() {
     ];
     return () => {
       document.removeEventListener("click", onClick);
+      document.removeEventListener("submit", onSubmit);
       document.querySelector("dialog.wb-lightbox")?.remove();
       for (const c of cleanups) c();
     };
   }, []);
   return null;
+}
+
+/**
+ * Contact form and Newsletter: send in place and show the answer (or each
+ * field's problem) without leaving the page. Without JavaScript the browser
+ * posts the form itself and the server answers with a small page.
+ */
+function onSubmit(e: SubmitEvent) {
+  const form = e.target as HTMLFormElement | null;
+  if (!form?.matches?.("form[data-wb-form]") || !form.closest(".site-root") || !form.action) return;
+  e.preventDefault();
+  if (form.getAttribute("aria-busy") === "true") return;
+  const status = form.querySelector<HTMLElement>("[data-form-status]");
+  const say = (text: string, tone?: "error") => {
+    if (!status) return;
+    status.textContent = text;
+    if (tone) status.dataset.tone = tone;
+    else delete status.dataset.tone;
+  };
+  for (const el of Array.from(form.querySelectorAll("[aria-invalid]"))) el.removeAttribute("aria-invalid");
+  for (const el of Array.from(form.querySelectorAll<HTMLElement>("[data-field-error]"))) el.textContent = "";
+  const body = new FormData(form);
+  form.setAttribute("aria-busy", "true");
+  say("Sending…");
+  fetch(form.action, { method: "POST", body, headers: { accept: "application/json" } })
+    .then(async (res) => {
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string; errors?: Record<string, string> };
+      if (res.ok && data.ok) {
+        form.reset();
+        say("");
+        form.setAttribute("data-sent", "");
+        const done = form.querySelector<HTMLElement>("[data-form-success]");
+        if (done) {
+          done.hidden = false;
+          done.setAttribute("tabindex", "-1");
+          done.focus();
+        }
+        return;
+      }
+      let first: HTMLElement | null = null;
+      for (const [name, message] of Object.entries(data.errors ?? {})) {
+        const input = form.querySelector<HTMLElement>(`[name="${CSS.escape(name)}"]`);
+        if (!input) continue;
+        input.setAttribute("aria-invalid", "true");
+        const holder = input.closest("[data-field]") ?? input.closest("[data-form-body]");
+        const slot = holder?.querySelector<HTMLElement>("[data-field-error]");
+        if (slot) slot.textContent = message;
+        first ??= input;
+      }
+      say(data.message ?? "Something went wrong. Please try again.", "error");
+      first?.focus();
+    })
+    .catch(() => say("We couldn't reach the server. Check your connection and try again.", "error"))
+    .finally(() => form.removeAttribute("aria-busy"));
 }
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;

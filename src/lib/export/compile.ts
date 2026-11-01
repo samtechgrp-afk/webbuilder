@@ -16,6 +16,8 @@ export interface CompileContext {
   siteKey: string;
   /** Where the bundle will be hosted, without a trailing slash. */
   baseUrl: string;
+  /** The platform's public origin. Forms keep posting there; without it they're hidden like the cart. */
+  platformOrigin?: string;
 }
 
 /** Where a site path lives in the bundle: "/" → index.html, "/shop/lamp" → shop/lamp/index.html. */
@@ -44,7 +46,11 @@ export function compileHtml(html: string, ctx: CompileContext): { html: string; 
   }
   const base = ctx.baseUrl.replace(/\/+$/, "");
   const sitePrefix = `/sites/${ctx.siteKey}`;
-  const out = html
+  // Contact and newsletter forms post to the platform (the copy has no server); runs before
+  // the origin rewrites below, which would otherwise point them at the static host.
+  const formAction = /action="(\/api\/v1\/sites\/[^"/]+\/forms)"/g;
+  const withForms = ctx.platformOrigin ? html.replace(formAction, (_m, path) => `action="${ctx.platformOrigin!.replace(/\/+$/, "")}${path}"`) : html;
+  const out = withForms
     // Runtime and RSC payload scripts; structured data stays.
     .replace(/<script\b(?![^>]*type="application\/ld\+json")[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<link\b[^>]*\bas="script"[^>]*\/?>/gi, "")
@@ -62,7 +68,8 @@ export function compileHtml(html: string, ctx: CompileContext): { html: string; 
   const shop = /data-w="(?:cart|product|productgrid)"/.test(out)
     ? out.replace("</head>", `<style data-static-shop="">[data-w="cart"],[data-add-to-cart],[data-choose-options],[data-grid-sort],[data-w="product"] form{display:none!important}</style></head>`)
     : out;
-  return { html: shop, assets: collectAssets(shop) };
+  const forms = !ctx.platformOrigin && /data-wb-form=""/.test(shop) ? shop.replace("</head>", `<style data-static-forms="">[data-w="form"],[data-w="newsletter"]{display:none!important}</style></head>`) : shop;
+  return { html: forms, assets: collectAssets(forms) };
 }
 
 /** Rewrites a stylesheet at `cssPath` (a bundle path) and collects what it loads, including relative url()s such as fonts. */

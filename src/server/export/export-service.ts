@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { PRODUCT_BASE } from "@/lib/commerce/types";
 import { assetSource, compileCss, compileHtml, outputPath } from "@/lib/export/compile";
 import { internalOrigin } from "@/lib/internal-origin";
+import { platformOrigin } from "@/server/email/links";
 import { readSiteSeo } from "@/lib/seo/settings";
 import { robotsTxt, sitemapXml } from "@/lib/seo/sitemap";
 import type { TenantContext } from "@/lib/tenant";
@@ -176,7 +177,7 @@ export async function runExport(id: string) {
     const { pages, content } = await exportTargets(site.id, notFoundPageId);
     await update({ status: "RUNNING", total: pages.length + 1 });
 
-    const ctx = { origin, siteKey: site.subdomain, baseUrl: job.baseUrl };
+    const ctx = { origin, siteKey: site.subdomain, baseUrl: job.baseUrl, platformOrigin: platformOrigin() };
     const files: Record<string, Uint8Array> = {};
     const assets = new Set<string>();
     const warnings: string[] = [];

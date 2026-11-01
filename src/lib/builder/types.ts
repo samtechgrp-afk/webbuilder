@@ -66,7 +66,9 @@ export type WidgetType =
   // Widget library (layout and basic content)
   | "spacer" | "divider" | "prose" | "video" | "icon" | "iconbox" | "map"
   // Widget library (advanced and interactive)
-  | "accordion" | "tabs" | "carousel" | "testimonial" | "pricing" | "countdown" | "flipbox" | "cta" | "progress" | "counter";
+  | "accordion" | "tabs" | "carousel" | "testimonial" | "pricing" | "countdown" | "flipbox" | "cta" | "progress" | "counter"
+  // Widget library (forms and lead capture)
+  | "form" | "newsletter" | "rating";
 
 export type SemanticTag =
   | "section" | "header" | "main" | "footer" | "article" | "aside" | "nav" | "div" | "figure"

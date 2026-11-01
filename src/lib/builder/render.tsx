@@ -47,6 +47,8 @@ interface RenderOptions {
   languages?: LanguageLink[];
   /** Products and shop settings for the commerce widgets. */
   commerce?: CommerceData;
+  /** Where Contact form and Newsletter widgets post. Without it (canvas, previews) forms render disabled. */
+  formAction?: string;
 }
 
 /** One entry of a language switcher. `href` is final (prefix or domain already applied). */
@@ -59,10 +61,10 @@ export interface LanguageLink {
   translated: boolean;
 }
 
-export function SiteDocument({ doc, tokens = {}, hooks, data, editor, linkBase = "", lang, languages, commerce }: RenderOptions) {
+export function SiteDocument({ doc, tokens = {}, hooks, data, editor, linkBase = "", lang, languages, commerce, formAction }: RenderOptions) {
   // Styles come from the template document; loop copies reuse the original's class.
   const view = data ? applyDynamic(doc, data, { editor }) : doc;
-  const ctx: Ctx = { doc: view, hooks, linkBase, languages, editor, lang, commerce };
+  const ctx: Ctx = { doc: view, hooks, linkBase, languages, editor, lang, commerce, formAction };
   return (
     <div className="site-root" lang={lang || undefined}>
       <style dangerouslySetInnerHTML={{ __html: buildCss(doc, tokens) }} />
@@ -81,6 +83,8 @@ interface Ctx {
   /** Formats prices the way readers of this language expect. */
   lang?: string;
   commerce?: CommerceData;
+  /** Where Contact form and Newsletter widgets post. Without it (canvas, previews) forms render disabled. */
+  formAction?: string;
 }
 
 const withBase = (href: string, base: string) => (base && /^\/(?!\/)/.test(href) ? `${base}${href === "/" ? "" : href}` || "/" : href);
@@ -115,7 +119,9 @@ function needsEnhancer(doc: BuilderDocument) {
       ((n.type === "image" || n.type === "gallery") && n.props.lightbox === true) ||
       n.type === "carousel" ||
       (n.type === "countdown" && typeof n.props.target === "string" && !!n.props.target) ||
-      (n.type === "counter" && n.props.duration !== 0),
+      (n.type === "counter" && n.props.duration !== 0) ||
+      n.type === "form" ||
+      n.type === "newsletter",
   );
 }
 
@@ -156,6 +162,126 @@ function Stars({ value, color }: { value: number; color?: string }) {
           <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" fill="currentColor" />
         </svg>
       ))}
+    </div>
+  );
+}
+
+const STAR_PATH = "M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z";
+
+const starRow = (count: number) =>
+  Array.from({ length: count }, (_, i) => (
+    <svg key={i} viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true">
+      <path d={STAR_PATH} fill="currentColor" />
+    </svg>
+  ));
+
+/** Accepted attachments: what the server accepts too (FORM_FILE_TYPES). */
+const FILE_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,.gif,.txt,.doc,.docx";
+
+/** Spam trap and form identity, shared by Contact form and Newsletter. */
+function FormChrome({ formId }: { formId: string }) {
+  return (
+    <>
+      <input type="hidden" name="_form" value={formId} />
+      <div data-hp="" aria-hidden="true">
+        <label>
+          Leave this empty
+          <input type="text" name="_hp" tabIndex={-1} autoComplete="off" defaultValue="" />
+        </label>
+      </div>
+    </>
+  );
+}
+
+function FormField({ field, i, base }: { field: Item; i: number; base: string }) {
+  const type = str(field.type) || "text";
+  const label = str(field.label) || `Field ${i + 1}`;
+  const required = field.required === true;
+  const id = `${base}-f${i}`;
+  const name = `f${i}`;
+  const placeholder = str(field.placeholder) || undefined;
+  const options = Array.isArray(field.options) ? field.options.filter((o): o is string => typeof o === "string" && !!o) : [];
+  const mark = required ? <span data-req="" aria-hidden="true"> *</span> : null;
+  const width = field.width === "half" ? "half" : "full";
+  if (type === "radio" || type === "rating") {
+    return (
+      <fieldset data-field="" data-type={type} data-width={width}>
+        <legend data-field-label="">
+          {label}
+          {mark}
+        </legend>
+        {type === "radio" ? (
+          <div data-choices="">
+            {options.map((o, j) => (
+              <label key={j}>
+                <input type="radio" name={name} value={String(j)} required={required || undefined} />
+                {o}
+              </label>
+            ))}
+          </div>
+        ) : (
+          <div data-rate="">
+            {[5, 4, 3, 2, 1].map((n) => (
+              <label key={n} title={`${n} out of 5`}>
+                <input type="radio" name={name} value={String(n)} required={required || undefined} />
+                <span data-sr="">{n} out of 5</span>
+                <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true">
+                  <path d={STAR_PATH} fill="currentColor" />
+                </svg>
+              </label>
+            ))}
+          </div>
+        )}
+        <span data-field-error="" id={`${id}-err`} />
+      </fieldset>
+    );
+  }
+  if (type === "checkbox") {
+    return (
+      <div data-field="" data-type="checkbox" data-width={width}>
+        <label data-check="">
+          <input type="checkbox" name={name} value="yes" required={required || undefined} aria-describedby={`${id}-err`} />
+          <span>
+            {label}
+            {mark}
+          </span>
+        </label>
+        <span data-field-error="" id={`${id}-err`} />
+      </div>
+    );
+  }
+  const shared = { id, name, required: required || undefined, "aria-describedby": `${id}-err` };
+  return (
+    <div data-field="" data-type={type} data-width={width}>
+      <label data-field-label="" htmlFor={id}>
+        {label}
+        {mark}
+      </label>
+      {type === "textarea" ? (
+        <textarea {...shared} rows={5} maxLength={5000} placeholder={placeholder} />
+      ) : type === "select" ? (
+        <select {...shared} defaultValue="">
+          <option value="" disabled={required || undefined}>
+            {placeholder ?? "Choose…"}
+          </option>
+          {options.map((o, j) => (
+            <option key={j} value={String(j)}>
+              {o}
+            </option>
+          ))}
+        </select>
+      ) : type === "file" ? (
+        <input {...shared} type="file" accept={FILE_ACCEPT} />
+      ) : (
+        <input
+          {...shared}
+          type={["email", "tel", "number", "url", "date"].includes(type) ? type : "text"}
+          maxLength={type === "date" || type === "number" ? undefined : type === "email" ? 254 : type === "tel" ? 40 : 500}
+          placeholder={placeholder}
+          autoComplete={type === "email" ? "email" : type === "tel" ? "tel" : /name/i.test(label) && type === "text" ? "name" : undefined}
+        />
+      )}
+      <span data-field-error="" id={`${id}-err`} />
     </div>
   );
 }
@@ -484,6 +610,80 @@ function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
           </p>
           {str(node.props.label) ? <p data-counter-label="">{str(node.props.label)}</p> : null}
         </div>
+      );
+    }
+    case "form": {
+      const fields = items(node.props.fields).slice(0, 20);
+      const formId = baseNodeId(node.id);
+      const live = !ctx.editor && !!ctx.formAction;
+      return (
+        <Tag {...common} data-labels={set.labels as string} data-button={set.buttonWidth as string} style={{ "--wb-accent": css(set.accent) } as Vars}>
+          <form method="post" action={live ? ctx.formAction : undefined} encType="multipart/form-data" data-wb-form="">
+            <FormChrome formId={formId} />
+            <fieldset data-form-body="" disabled={!live || undefined}>
+              {fields.map((f, i) => (
+                <FormField key={i} field={f} i={i} base={`form-${formId}`} />
+              ))}
+              <div data-form-actions="">
+                <button type="submit">{str(node.props.submitLabel) || "Send"}</button>
+              </div>
+            </fieldset>
+            <p data-form-status="" role="status" aria-live="polite" />
+            <p data-form-success="" hidden>
+              {str(node.props.successMessage) || "Thanks! Your message was sent."}
+            </p>
+          </form>
+        </Tag>
+      );
+    }
+    case "newsletter": {
+      const formId = baseNodeId(node.id);
+      const live = !ctx.editor && !!ctx.formAction;
+      const id = `nl-${formId}`;
+      return (
+        <Tag {...common} data-layout={set.layout as string} style={{ "--wb-accent": css(set.accent) } as Vars}>
+          {str(node.props.title) ? <h3>{str(node.props.title)}</h3> : null}
+          {str(node.props.text) ? <p data-nl-text="">{str(node.props.text)}</p> : null}
+          <form method="post" action={live ? ctx.formAction : undefined} encType="multipart/form-data" data-wb-form="">
+            <FormChrome formId={formId} />
+            <fieldset data-form-body="" disabled={!live || undefined}>
+              <div data-nl-row="">
+                {set.askName ? (
+                  <>
+                    <label data-sr="" htmlFor={`${id}-name`}>Name</label>
+                    <input id={`${id}-name`} type="text" name="name" maxLength={120} placeholder="Your name" autoComplete="name" />
+                  </>
+                ) : null}
+                <label data-sr="" htmlFor={`${id}-email`}>Email address</label>
+                <input id={`${id}-email`} type="email" name="email" required maxLength={254} placeholder={str(node.props.placeholder) || "you@example.com"} autoComplete="email" aria-describedby={`${id}-err`} />
+                <button type="submit">{str(node.props.buttonLabel) || "Subscribe"}</button>
+              </div>
+              <span data-field-error="" id={`${id}-err`} />
+            </fieldset>
+            {str(node.props.consent) ? <p data-consent="">{str(node.props.consent)}</p> : null}
+            <p data-form-status="" role="status" aria-live="polite" />
+            <p data-form-success="" hidden>
+              {str(node.props.successMessage) || "You're subscribed."}
+            </p>
+          </form>
+        </Tag>
+      );
+    }
+    case "rating": {
+      const max = Number(set.max);
+      const value = Math.max(0, Math.min(max, Number(node.props.value) || 0));
+      const shown = value.toLocaleString(ctx.lang || "en-US", { maximumFractionDigits: 1 });
+      return (
+        <Tag {...common} style={{ "--wb-star": css(set.color), "--wb-star-size": `${set.size}px` } as Vars}>
+          <span data-rating-stars="" role="img" aria-label={`Rated ${shown} out of ${max}`}>
+            <span data-rating-base="">{starRow(max)}</span>
+            <span data-rating-fill="" style={{ width: `${(value / max) * 100}%` }}>
+              {starRow(max)}
+            </span>
+          </span>
+          {set.showValue ? <strong data-rating-value="">{shown}</strong> : null}
+          {str(node.props.label) ? <span data-rating-label="">{str(node.props.label)}</span> : null}
+        </Tag>
       );
     }
     case "spacer":

@@ -1,6 +1,6 @@
 import path from "node:path";
 import { getEnv } from "@/lib/env.mjs";
-import { FILE_KINDS, mediaStorage } from "@/server/media-processing";
+import { FILE_KINDS, PRIVATE_PREFIX, mediaStorage } from "@/server/media-processing";
 
 /**
  * Serves media written after the server started. `next start` only serves
@@ -32,6 +32,8 @@ export async function GET(_req: Request, { params }: RouteContext<"/uploads/[...
   const type = TYPES[path.extname(file).slice(1).toLowerCase()];
   if (!type || !file.startsWith(root() + path.sep)) return new Response("Not found", { status: 404 });
   const key = path.relative(root(), file).split(path.sep).join("/");
+  // Form attachments live under private/ and are only served to admins, through their own route.
+  if (key.startsWith(PRIVATE_PREFIX)) return new Response("Not found", { status: 404 });
   const env = getEnv();
   if (env.STORAGE_DRIVER === "s3" && env.S3_PUBLIC_URL) {
     return Response.redirect(`${env.S3_PUBLIC_URL.replace(/\/+$/, "")}/${key}`, 308);

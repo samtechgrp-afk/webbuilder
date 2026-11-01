@@ -66,6 +66,57 @@ export function mediaStorage(): StorageAdapter {
   return selected;
 }
 
+/**
+ * Files that must not be public (form attachments). Locally they live outside
+ * public/ in .data/private; in a bucket under the `private/` prefix, which the
+ * uploads route refuses to serve. Admins download them through an authorised
+ * route that reads them back with `get`.
+ */
+export const PRIVATE_PREFIX = "private/";
+const privateDir = () => path.join(process.cwd(), ".data", "private");
+
+export const localPrivateStorage: StorageAdapter = {
+  async put(key, body) {
+    const file = path.resolve(privateDir(), key);
+    if (!file.startsWith(privateDir() + path.sep)) throw new Error("Bad key");
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, body);
+    return key;
+  },
+  async remove(key) {
+    const file = path.resolve(privateDir(), key);
+    if (!file.startsWith(privateDir() + path.sep)) return;
+    await rm(file, { force: true });
+  },
+  async get(key) {
+    const file = path.resolve(privateDir(), key);
+    if (!file.startsWith(privateDir() + path.sep)) return null;
+    try {
+      return { body: new Uint8Array(await readFile(file)), contentType: null };
+    } catch {
+      return null;
+    }
+  },
+};
+
+let privateSelected: StorageAdapter | undefined;
+export function privateStorage(): StorageAdapter {
+  if (!privateSelected) {
+    const cfg = s3ConfigFrom(process.env);
+    privateSelected = cfg
+      ? {
+          async put(key, body, contentType) {
+            await putObject(cfg, PRIVATE_PREFIX + key, body, contentType);
+            return key;
+          },
+          remove: (key) => deleteObject(cfg, PRIVATE_PREFIX + key),
+          get: (key) => getObject(cfg, PRIVATE_PREFIX + key),
+        }
+      : localPrivateStorage;
+  }
+  return privateSelected;
+}
+
 /** Responsive widths generated for every raster image (never upscaled). */
 export const VARIANT_WIDTHS = [320, 640, 960, 1280, 1920];
 const MAX_WIDTH = 2400;
