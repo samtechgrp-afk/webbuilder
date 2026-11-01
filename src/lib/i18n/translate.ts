@@ -1,6 +1,6 @@
 import { isBoundField } from "@/lib/builder/policy";
 import type { BuilderDocument, BuilderNode } from "@/lib/builder/types";
-import { SHARED_CONTENT_KINDS, WIDGETS, contentField, type ContentField } from "@/lib/builder/widgets";
+import { SHARED_CONTENT_KINDS, TRANSLATABLE_ITEM_KINDS, WIDGETS, contentField, type ContentField } from "@/lib/builder/widgets";
 import { isEmptyValue, type FieldDef, type FieldType } from "@/lib/cms/fields";
 
 /**
@@ -44,11 +44,29 @@ export function composeDocument(source: BuilderDocument, translation: unknown): 
     for (const [key, value] of Object.entries(fields)) {
       const def = contentField(node.type, key);
       if (!def || SHARED_CONTENT_KINDS.has(def.kind) || isEmptyValue(value) || isBoundField(source, nodeId, key)) continue;
-      props = { ...props, [key]: value };
+      props = { ...props, [key]: def.kind === "items" ? mergeItems(def, props[key], value) : value };
     }
     if (props !== node.props) nodes[nodeId] = { ...node, props };
   }
   return { ...source, nodes };
+}
+
+/**
+ * List records keep the original's structure (count, order, images, numbers,
+ * toggles); a translation only replaces their text and links, by position.
+ * A record the original added later simply shows in the original language.
+ */
+export function mergeItems(def: ContentField, source: unknown, translated: unknown): unknown {
+  if (!Array.isArray(source)) return source;
+  const keys = (def.itemFields ?? []).filter((f) => TRANSLATABLE_ITEM_KINDS.has(f.kind)).map((f) => f.key);
+  const tr = Array.isArray(translated) ? translated : [];
+  return source.map((item, i) => {
+    const t = tr[i];
+    if (!item || typeof item !== "object" || !t || typeof t !== "object") return item;
+    const out = { ...(item as Record<string, unknown>) };
+    for (const k of keys) if (!isEmptyValue((t as Record<string, unknown>)[k])) out[k] = (t as Record<string, unknown>)[k];
+    return out;
+  });
 }
 
 export interface TranslatableNode {

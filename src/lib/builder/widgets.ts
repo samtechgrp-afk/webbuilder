@@ -14,17 +14,47 @@ export type ContentFieldKind =
   /** A media library video or a YouTube / Vimeo / https address. */
   | "video"
   /** A Lucide icon name from the curated set. */
-  | "icon";
+  | "icon"
+  /** A number within min..max (a percentage, a counter's target, a star rating). */
+  | "number"
+  /** A local date and time, "2026-12-31T23:59" (countdowns). */
+  | "datetime"
+  /** A repeatable list of small records (accordion panels, tabs, slides, plan features). */
+  | "items";
+
+/** One field of an `items` record. */
+export interface ItemField {
+  key: string;
+  label: string;
+  kind: "text" | "multiline" | "link" | "image" | "number" | "icon" | "toggle" | "lines";
+  maxLength?: number;
+  min?: number;
+  max?: number;
+}
 
 export interface ContentField {
   key: string;
   label: string;
   kind: ContentFieldKind;
   maxLength?: number;
+  /** link: an empty address means "no button" instead of being an error. */
+  optionalLink?: boolean;
+  /** number: bounds. */
+  min?: number;
+  max?: number;
+  step?: number;
+  /** items: the record's fields, list bounds, and what one record is called ("Panel"). */
+  itemFields?: ItemField[];
+  minItems?: number;
+  maxItems?: number;
+  itemLabel?: string;
 }
 
 /** Content kinds that are the same in every language (a translation can't override them). */
-export const SHARED_CONTENT_KINDS: ReadonlySet<ContentFieldKind> = new Set<ContentFieldKind>(["video", "icon"]);
+export const SHARED_CONTENT_KINDS: ReadonlySet<ContentFieldKind> = new Set<ContentFieldKind>(["video", "icon", "number", "datetime"]);
+
+/** Item field kinds a translation overrides; the rest come from the original. */
+export const TRANSLATABLE_ITEM_KINDS: ReadonlySet<ItemField["kind"]> = new Set<ItemField["kind"]>(["text", "multiline", "link", "lines"]);
 
 /** Groups of the designer's widget palette, in display order. */
 export const WIDGET_CATEGORIES = {
@@ -344,6 +374,327 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     defaults: { props: { shape: "line" }, style: { desktop: { padding: "var(--space-sm, 1rem) 0" } } },
   },
 
+  // ── Advanced & interactive ────────────────────────────────────────────────
+  accordion: {
+    label: "Accordion",
+    category: "interactive",
+    icon: "list-collapse",
+    keywords: "faq collapse toggle questions",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "section"],
+    contentFields: [
+      {
+        key: "items",
+        label: "Panels",
+        kind: "items",
+        itemLabel: "Panel",
+        minItems: 1,
+        maxItems: 30,
+        itemFields: [
+          { key: "title", label: "Question / title", kind: "text", maxLength: 200 },
+          { key: "body", label: "Answer / content", kind: "multiline", maxLength: 3000 },
+        ],
+      },
+    ],
+    hint: "Collapsible panels, ideal for FAQs",
+    settings: [
+      { key: "mode", label: "Open panels", kind: "select", default: "single", options: [{ value: "single", label: "One at a time" }, { value: "multi", label: "Several at once" }] },
+      { key: "firstOpen", label: "First panel starts open", kind: "toggle", default: true },
+      { key: "marker", label: "Marker", kind: "select", default: "chevron", options: [{ value: "chevron", label: "Chevron" }, { value: "plus", label: "Plus / minus" }] },
+      { key: "titleTag", label: "Title tag", kind: "select", default: "h3", options: ["h2", "h3", "h4", "h5", "h6", "p"].map((v) => ({ value: v, label: v.toUpperCase() })), help: "Keeps the page outline right for screen readers and search." },
+    ],
+    defaults: {
+      props: {
+        items: [
+          { title: "How long does a project take?", body: "Most projects take six to ten weeks from the first conversation to launch." },
+          { title: "Can I update the site myself?", body: "Yes. You can change text, images and prices on the page, inside the guardrails your designer sets." },
+          { title: "Do you offer support?", body: "Every plan includes email support and a monthly check-in." },
+        ],
+      },
+      style: { desktop: { display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: "760px" } },
+    },
+  },
+  tabs: {
+    label: "Tabs",
+    category: "interactive",
+    icon: "panels-top-left",
+    keywords: "tabbed panels switch",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "section"],
+    contentFields: [
+      {
+        key: "items",
+        label: "Tabs",
+        kind: "items",
+        itemLabel: "Tab",
+        minItems: 1,
+        maxItems: 12,
+        itemFields: [
+          { key: "label", label: "Tab label", kind: "text", maxLength: 60 },
+          { key: "title", label: "Panel title", kind: "text", maxLength: 160 },
+          { key: "body", label: "Panel text", kind: "multiline", maxLength: 3000 },
+        ],
+      },
+    ],
+    hint: "Horizontal or vertical tabbed panels",
+    settings: [
+      { key: "orientation", label: "Orientation", kind: "select", default: "horizontal", options: [{ value: "horizontal", label: "Tabs on top" }, { value: "vertical", label: "Tabs on the side" }] },
+      { key: "look", label: "Tab style", kind: "select", default: "underline", options: [{ value: "underline", label: "Underline" }, { value: "pills", label: "Pills" }, { value: "boxed", label: "Boxed" }] },
+    ],
+    defaults: {
+      props: {
+        items: [
+          { label: "Design", title: "Design that fits your brand", body: "We start from your goals and your audience, then shape every page around them." },
+          { label: "Build", title: "Built to be fast", body: "Pages are rendered on the server and ship almost no JavaScript." },
+          { label: "Launch", title: "Launch with confidence", body: "We test on every screen size and hand over a site you can update yourself." },
+        ],
+      },
+      style: { desktop: { maxWidth: "900px" } },
+    },
+  },
+  carousel: {
+    label: "Carousel",
+    category: "interactive",
+    icon: "gallery-horizontal",
+    keywords: "slider slideshow hero banner swipe",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "section"],
+    contentFields: [
+      {
+        key: "items",
+        label: "Slides",
+        kind: "items",
+        itemLabel: "Slide",
+        minItems: 1,
+        maxItems: 20,
+        itemFields: [
+          { key: "image", label: "Image", kind: "image" },
+          { key: "title", label: "Title", kind: "text", maxLength: 160 },
+          { key: "text", label: "Text", kind: "multiline", maxLength: 600 },
+          { key: "link", label: "Button", kind: "link", maxLength: 80 },
+        ],
+      },
+    ],
+    hint: "Swipeable slides with arrows and dots",
+    settings: [
+      { key: "perView", label: "Slides visible", kind: "number", min: 1, max: 4, default: 1, help: "On phones one slide shows at a time." },
+      { key: "aspect", label: "Slide shape", kind: "select", default: "16 / 7", options: [{ value: "16 / 7", label: "Wide banner" }, { value: "16 / 9", label: "Widescreen" }, { value: "4 / 3", label: "Classic" }, { value: "1 / 1", label: "Square" }, { value: "3 / 4", label: "Portrait" }] },
+      { key: "textPosition", label: "Text", kind: "select", default: "overlay", options: [{ value: "overlay", label: "Over the image" }, { value: "below", label: "Below the image" }] },
+      { key: "arrows", label: "Arrows", kind: "toggle", default: true },
+      { key: "dots", label: "Pagination dots", kind: "toggle", default: true },
+      { key: "autoplay", label: "Autoplay", kind: "toggle", default: false, help: "Pauses while hovered or focused, and for visitors who prefer reduced motion." },
+      { key: "interval", label: "Seconds per slide", kind: "number", min: 2, max: 20, default: 5, when: { key: "autoplay", is: [true] } },
+      { key: "loop", label: "Loop back to the start", kind: "toggle", default: true },
+    ],
+    defaults: {
+      props: {
+        items: [
+          { image: { assetId: null, src: "", alt: "" }, title: "Spring collection", text: "New pieces, made to last.", link: { label: "Shop now", href: "/shop" } },
+          { image: { assetId: null, src: "", alt: "" }, title: "Designed in-house", text: "Every detail considered.", link: { label: "Our studio", href: "/about" } },
+        ],
+      },
+      style: { desktop: { borderRadius: "var(--radius-md)" } },
+    },
+  },
+  testimonial: {
+    label: "Testimonial",
+    category: "interactive",
+    icon: "quote",
+    keywords: "review quote customer rating stars",
+    isContainer: false,
+    defaultTag: "figure",
+    allowedTags: ["figure", "div", "article"],
+    contentFields: [
+      { key: "quote", label: "Quote", kind: "multiline", maxLength: 1000 },
+      { key: "name", label: "Name", kind: "text", maxLength: 80 },
+      { key: "role", label: "Role or company", kind: "text", maxLength: 120 },
+      { key: "avatar", label: "Photo", kind: "image" },
+      { key: "rating", label: "Stars", kind: "number", min: 0, max: 5, step: 1 },
+    ],
+    hint: "Customer quote with photo and star rating",
+    settings: [
+      { key: "layout", label: "Layout", kind: "select", default: "card", options: [{ value: "card", label: "Card" }, { value: "centered", label: "Centred" }, { value: "minimal", label: "Minimal" }] },
+      { key: "showRating", label: "Show stars", kind: "toggle", default: true },
+      COLOR("starColor", "Star colour", { default: "#f5a524" }),
+    ],
+    defaults: {
+      props: { quote: "They understood exactly what we wanted and delivered it ahead of schedule.", name: "Jordan Lee", role: "Founder, Northwind", avatar: { assetId: null, src: "", alt: "" }, rating: 5 },
+      style: { desktop: { padding: "var(--space-md, 2rem)", borderRadius: "var(--radius-md)", background: "var(--color-surface, rgba(0,0,0,.03))" } },
+    },
+  },
+  pricing: {
+    label: "Pricing table",
+    category: "interactive",
+    icon: "badge-dollar-sign",
+    keywords: "plan tier price package subscription ribbon",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "article"],
+    contentFields: [
+      { key: "plan", label: "Plan name", kind: "text", maxLength: 60 },
+      { key: "price", label: "Price", kind: "price" },
+      { key: "period", label: "Billing period", kind: "text", maxLength: 30 },
+      { key: "description", label: "Description", kind: "multiline", maxLength: 300 },
+      {
+        key: "features",
+        label: "Features",
+        kind: "items",
+        itemLabel: "Feature",
+        maxItems: 20,
+        itemFields: [
+          { key: "text", label: "Feature", kind: "text", maxLength: 120 },
+          { key: "included", label: "Included", kind: "toggle" },
+        ],
+      },
+      { key: "link", label: "Button", kind: "link", maxLength: 80 },
+      { key: "ribbon", label: "Ribbon", kind: "text", maxLength: 30 },
+    ],
+    hint: "Plan, price, feature checklist and button",
+    settings: [
+      { key: "featured", label: "Highlight this plan", kind: "toggle", default: false },
+      COLOR("accent", "Accent colour", { default: "var(--color-primary)" }),
+    ],
+    defaults: {
+      props: {
+        plan: "Studio",
+        price: { amount: 49, currency: "USD", compareAt: null },
+        period: "/month",
+        description: "For growing teams that want a site they can update themselves.",
+        features: [
+          { text: "Unlimited pages", included: true },
+          { text: "Custom domain", included: true },
+          { text: "Online shop", included: true },
+          { text: "Priority support", included: false },
+        ],
+        link: { label: "Start free trial", href: "/signup" },
+        ribbon: "",
+      },
+      style: { desktop: { padding: "var(--space-lg, 2.5rem)", borderRadius: "var(--radius-lg, 16px)", border: "1px solid var(--color-border, rgba(0,0,0,.1))", background: "var(--color-surface, #fff)" } },
+    },
+  },
+  countdown: {
+    label: "Countdown",
+    category: "interactive",
+    icon: "timer",
+    keywords: "timer launch deadline sale clock",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div"],
+    contentFields: [
+      { key: "target", label: "Counts down to", kind: "datetime" },
+      { key: "doneText", label: "Message when it ends", kind: "text", maxLength: 160 },
+    ],
+    hint: "Live countdown to a date and time",
+    settings: [
+      { key: "timezone", label: "Time zone", kind: "select", default: "local", options: [{ value: "local", label: "Each visitor's own time" }, { value: "UTC", label: "UTC" }], help: "Visitor time suits webinars; UTC means one moment worldwide." },
+      { key: "units", label: "Show", kind: "select", default: "dhms", options: [{ value: "dhms", label: "Days, hours, minutes, seconds" }, { value: "dhm", label: "Days, hours, minutes" }, { value: "hms", label: "Hours, minutes, seconds" }] },
+      { key: "onDone", label: "When it ends", kind: "select", default: "message", options: [{ value: "message", label: "Show the message" }, { value: "hide", label: "Hide the countdown" }, { value: "zero", label: "Stay at zero" }] },
+      { key: "look", label: "Style", kind: "select", default: "boxes", options: [{ value: "boxes", label: "Boxes" }, { value: "plain", label: "Plain numbers" }] },
+    ],
+    defaults: { props: { target: "", doneText: "We're live!" }, style: { desktop: { gap: "var(--space-sm, 1rem)" } } },
+  },
+  flipbox: {
+    label: "Flip box",
+    category: "interactive",
+    icon: "flip-horizontal-2",
+    keywords: "card 3d hover flip reveal",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div", "article"],
+    contentFields: [
+      { key: "icon", label: "Front icon", kind: "icon" },
+      { key: "title", label: "Front title", kind: "text", maxLength: 120 },
+      { key: "text", label: "Front text", kind: "multiline", maxLength: 400 },
+      { key: "backTitle", label: "Back title", kind: "text", maxLength: 120 },
+      { key: "backText", label: "Back text", kind: "multiline", maxLength: 600 },
+      { key: "link", label: "Back button", kind: "link", maxLength: 80, optionalLink: true },
+    ],
+    hint: "Two-sided card that flips on hover or tap",
+    settings: [
+      { key: "direction", label: "Flip", kind: "select", default: "horizontal", options: [{ value: "horizontal", label: "Left to right" }, { value: "vertical", label: "Bottom to top" }] },
+      COLOR("frontBg", "Front background", { default: "var(--color-surface, #f4f4f5)" }),
+      COLOR("backBg", "Back background", { default: "var(--color-deep, #18181b)" }),
+      COLOR("backColor", "Back text colour", { default: "var(--color-inverse, #fff)" }),
+    ],
+    defaults: {
+      props: { icon: "lightbulb", title: "Strategy", text: "Hover to see how we work.", backTitle: "Plan first", backText: "We map your goals, audience and content before a single pixel is drawn.", link: { label: "Learn more", href: "/services" } },
+      style: { desktop: { minHeight: "280px", borderRadius: "var(--radius-md)" } },
+    },
+  },
+  cta: {
+    label: "Call to action",
+    category: "interactive",
+    icon: "megaphone",
+    keywords: "banner cta promo signup",
+    isContainer: false,
+    defaultTag: "section",
+    allowedTags: ["section", "div", "aside"],
+    contentFields: [
+      { key: "image", label: "Background image", kind: "image" },
+      { key: "title", label: "Title", kind: "text", maxLength: 160 },
+      { key: "text", label: "Description", kind: "multiline", maxLength: 600 },
+      { key: "link", label: "Button", kind: "link", maxLength: 80 },
+      { key: "link2", label: "Second button", kind: "link", maxLength: 80, optionalLink: true },
+    ],
+    hint: "Banner with image, bold title and buttons",
+    settings: [
+      { key: "layout", label: "Layout", kind: "select", default: "overlay", options: [{ value: "overlay", label: "Text over the image" }, { value: "split", label: "Image beside the text" }, { value: "plain", label: "No image" }] },
+      { key: "align", label: "Align", kind: "select", default: "center", options: [{ value: "left", label: "Left" }, { value: "center", label: "Centre" }] },
+      COLOR("overlay", "Overlay colour", { default: "rgba(0,0,0,.45)", when: { key: "layout", is: ["overlay"] } }),
+    ],
+    defaults: {
+      props: { image: { assetId: null, src: "", alt: "" }, title: "Ready to start your project?", text: "Tell us about it and we'll reply within one working day.", link: { label: "Get in touch", href: "/contact" }, link2: { label: "", href: "" } },
+      style: { desktop: { padding: "var(--space-xl, 5rem) var(--space-lg, 3rem)", borderRadius: "var(--radius-lg, 16px)", background: "var(--color-deep, #18181b)", color: "var(--color-inverse, #fff)" }, mobile: { padding: "3rem 1.5rem" } },
+    },
+  },
+  progress: {
+    label: "Progress bar",
+    category: "interactive",
+    icon: "chart-bar",
+    keywords: "skill meter percentage bar",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div"],
+    contentFields: [
+      { key: "label", label: "Label", kind: "text", maxLength: 80 },
+      { key: "value", label: "Percent", kind: "number", min: 0, max: 100, step: 1 },
+    ],
+    hint: "Animated percentage meter",
+    settings: [
+      { key: "showValue", label: "Show the percentage", kind: "toggle", default: true },
+      { key: "thickness", label: "Thickness", kind: "number", min: 2, max: 40, unit: "px", default: 10 },
+      COLOR("barColor", "Bar colour", { default: "var(--color-primary)" }),
+      COLOR("trackColor", "Track colour"),
+      { key: "animate", label: "Fill when scrolled into view", kind: "toggle", default: true },
+    ],
+    defaults: { props: { label: "Brand strategy", value: 85 }, style: { desktop: {} } },
+  },
+  counter: {
+    label: "Counter",
+    category: "interactive",
+    icon: "hash",
+    keywords: "number stat count up statistic",
+    isContainer: false,
+    defaultTag: "div",
+    allowedTags: ["div"],
+    contentFields: [
+      { key: "value", label: "Number", kind: "number", min: -1_000_000_000, max: 1_000_000_000, step: 1 },
+      { key: "prefix", label: "Before the number", kind: "text", maxLength: 10 },
+      { key: "suffix", label: "After the number", kind: "text", maxLength: 10 },
+      { key: "label", label: "Label", kind: "text", maxLength: 120 },
+    ],
+    hint: "Number that counts up into view",
+    settings: [
+      { key: "duration", label: "Count duration", kind: "number", min: 0, max: 10, step: 0.5, unit: "s", default: 2, help: "0 shows the number straight away." },
+      { key: "separator", label: "Thousands separator", kind: "toggle", default: true },
+      { key: "decimals", label: "Decimals", kind: "number", min: 0, max: 3, default: 0 },
+    ],
+    defaults: { props: { value: 250, prefix: "", suffix: "+", label: "Projects delivered" }, style: { desktop: { textAlign: "center" } } },
+  },
+
   // ── Basic content ─────────────────────────────────────────────────────────
   prose: {
     label: "Rich text",
@@ -507,6 +858,23 @@ export const BINDABLE: Record<WidgetType, BindTarget[]> = {
   prose: [],
   video: [],
   icon: [],
+  accordion: [],
+  tabs: [],
+  carousel: [],
+  testimonial: [
+    { key: "quote", label: "Quote", accepts: "text" },
+    { key: "name", label: "Name", accepts: "text" },
+    { key: "avatar", label: "Photo", accepts: "image" },
+  ],
+  pricing: [{ key: "price", label: "Price", accepts: "price" }],
+  countdown: [],
+  flipbox: [],
+  cta: [
+    { key: "title", label: "Title", accepts: "text" },
+    { key: "image", label: "Background image", accepts: "image" },
+  ],
+  progress: [],
+  counter: [],
   iconbox: [
     { key: "title", label: "Title", accepts: "text" },
     { key: "text", label: "Text", accepts: "text" },

@@ -1,9 +1,10 @@
 // End-to-end widget library: a Designer finds widgets in the categorised,
 // searchable palette, drops a boxed container with a gradient heading, rich
 // text, a wave divider, a YouTube video, an icon box, a map, a spacer and an
-// outline button with an icon, configures them in the Settings tab, publishes,
-// and the live site renders each one. Then a Client edits the rich text but
-// gets no Settings tab.
+// outline button with an icon, then the interactive widgets (accordion, tabs,
+// carousel, pricing, countdown, counter and more), configures them, publishes,
+// and the live site renders each one and its interactions work. Then a Client
+// edits the rich text but gets no Settings tab.
 //
 // Usage: npm run db:seed && npm run build && npm start   (in another shell)
 //        npm run e2e:widgets
@@ -85,6 +86,38 @@ try {
   if (rowKids !== 2) throw new Error(`Row preset has ${rowKids} columns`);
   step("Designer adds and configures heading, rich text, divider, video, icon box, map, spacer, button and a two-column row");
 
+  // Interactive widgets, dropped into a fresh boxed container.
+  await page.locator("body").press("Escape");
+  await add("preset:boxed");
+  const accordion = await add("accordion");
+  const tabs = await add("tabs");
+  const carousel = await add("carousel");
+  const pricing = await add("pricing");
+  await tab("content");
+  const features = inspector.locator('[data-items-editor]');
+  const before = await features.locator("[data-item-row]").count();
+  await features.locator("[data-add-item]").click();
+  await features.locator("[data-item-row]").last().getByRole("textbox").first().fill("Priority support");
+  await features.locator("[data-item-row]").last().getByRole("textbox").first().press("Tab");
+  if ((await features.locator("[data-item-row]").count()) !== before + 1) throw new Error("Adding a pricing feature didn't add a row");
+  const countdown = await add("countdown");
+  await tab("content");
+  await inspector.getByLabel("Counts down to").fill("2031-06-01T09:00");
+  await inspector.getByLabel("Counts down to").press("Tab");
+  const counter = await add("counter");
+  await add("testimonial");
+  await add("cta");
+  await add("flipbox");
+  await add("progress");
+  for (const [sel, what] of [
+    [`[data-node-id="${accordion}"] details[open]`, "accordion panels"],
+    [`[data-node-id="${tabs}"] input[type=radio]`, "tabs"],
+    [`[data-node-id="${carousel}"] [data-slide]`, "carousel slides"],
+    [`[data-node-id="${pricing}"] li:has-text("Priority support")`, "new pricing feature"],
+    [`[data-node-id="${countdown}"][data-target="2031-06-01T09:00"]`, "countdown target"],
+  ]) if (!(await page.locator(sel).count())) throw new Error(`Canvas is missing the ${what}`);
+  step("Designer adds accordion, tabs, carousel, pricing (with a new feature row), countdown, counter, testimonial, CTA, flip box and progress bar");
+
   // The canvas renders them with the live renderer.
   const canvasChecks = [
     [`[data-node-id="${heading}"][data-gradient]`, "gradient heading"],
@@ -116,13 +149,35 @@ try {
   for (const [re, what] of liveChecks) if (!re.test(html)) throw new Error(`Live page is missing the ${what}`);
   const border = await live.locator(`.n-${button}`).evaluate((el) => getComputedStyle(el).borderTopStyle);
   if (border !== "solid") throw new Error(`Outline button border is ${border}`);
-  if (/WidgetEnhancer|data-lightbox/.test(html)) throw new Error("The enhancer shipped without a lightbox on the page");
   await live.locator(`.n-${box}`).scrollIntoViewIfNeeded();
   await live.screenshot({ path: `${SHOTS}/widgets-live.png` });
   await live.setViewportSize({ width: 390, height: 844 });
   await live.locator(`.n-${box}`).scrollIntoViewIfNeeded();
   await live.screenshot({ path: `${SHOTS}/widgets-live-mobile.png` });
   step("Live site renders every widget, with the outline variant applied");
+
+  // Interactive behaviour on the live site.
+  const acc = live.locator(`.n-${accordion} details`);
+  await acc.nth(1).locator("summary").click();
+  if (!(await acc.nth(1).evaluate((d) => d.open)) || (await acc.nth(0).evaluate((d) => d.open))) throw new Error("Accordion didn't switch to the second panel exclusively");
+  const tabEl = live.locator(`.n-${tabs}`);
+  await tabEl.locator("[data-tab] label").nth(1).click();
+  const visible = await tabEl.locator("[data-tab-panel]").evaluateAll((ps) => ps.map((p) => getComputedStyle(p).display !== "none"));
+  if (JSON.stringify(visible) !== "[false,true,false]") throw new Error(`Tabs show panels ${visible}`);
+  await live.locator(`.n-${carousel}[data-ready]`).waitFor();
+  const track = live.locator(`.n-${carousel} [data-track]`);
+  await live.locator(`.n-${carousel} [data-next]`).click();
+  await live.waitForFunction((el) => el.scrollLeft > 0, await track.elementHandle());
+  await live.locator(`.n-${countdown}[data-ready]`).waitFor();
+  const days = Number(await live.locator(`.n-${countdown} [data-cd-unit="d"] [data-cd-num]`).textContent());
+  if (!(days > 365)) throw new Error(`Countdown shows ${days} days`);
+  await live.locator(`.n-${counter}`).scrollIntoViewIfNeeded();
+  await live.waitForTimeout(2600);
+  const count = await live.locator(`.n-${counter} [data-count]`).textContent();
+  if (!/\d/.test(count ?? "")) throw new Error(`Counter shows "${count}"`);
+  await live.locator(`.n-${pricing}`).scrollIntoViewIfNeeded();
+  await live.screenshot({ path: `${SHOTS}/widgets-interactive-live.png` });
+  step("Live accordion, tabs, carousel arrows, countdown and counter all work");
 
   // A client edits the rich text but never sees designer settings. The designer
   // leaves through the toolbar first, which releases the page's edit lock.

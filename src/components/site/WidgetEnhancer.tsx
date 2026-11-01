@@ -5,7 +5,9 @@ import { useEffect } from "react";
 /**
  * Progressive enhancement for interactive widgets on the live site. The
  * widgets are server-rendered HTML that already works without JavaScript (a
- * lightbox link opens the image itself); this adds the nicer behaviour on
+ * lightbox link opens the image itself, a carousel swipes with CSS scroll
+ * snapping, a countdown shows its end date, a counter shows its number,
+ * accordions and tabs need no script at all); this adds the nicer behaviour on
  * top, through event delegation, so it needs no per-widget hydration and is
  * rendered once per page, only on pages that use such widgets.
  */
@@ -19,12 +21,172 @@ export function WidgetEnhancer() {
       openLightbox(link);
     };
     document.addEventListener("click", onClick);
+    const roots = Array.from(document.querySelectorAll<HTMLElement>(".site-root"));
+    const find = (sel: string) => roots.flatMap((r) => Array.from(r.querySelectorAll<HTMLElement>(sel)));
+    const cleanups = [
+      ...find('[data-w="carousel"]').map(carousel),
+      ...find('[data-w="countdown"][data-target]').map(countdown),
+      ...find('[data-w="counter"][data-count-to]').map(counter),
+    ];
     return () => {
       document.removeEventListener("click", onClick);
       document.querySelector("dialog.wb-lightbox")?.remove();
+      for (const c of cleanups) c();
     };
   }, []);
   return null;
+}
+
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** Arrows, dots and autoplay on top of a CSS scroll-snap track (which already swipes without JS). */
+function carousel(root: HTMLElement): () => void {
+  const track = root.querySelector<HTMLElement>("[data-track]");
+  if (!track || root.hasAttribute("data-ready")) return () => {};
+  const slides = Array.from(track.querySelectorAll<HTMLElement>("[data-slide]"));
+  const dots = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-dot]"));
+  const prev = root.querySelector<HTMLButtonElement>("[data-prev]");
+  const next = root.querySelector<HTMLButtonElement>("[data-next]");
+  const loop = root.hasAttribute("data-loop");
+  const current = () => {
+    const left = track.scrollLeft;
+    let best = 0;
+    slides.forEach((s, i) => {
+      if (Math.abs(s.offsetLeft - track.offsetLeft - left) < Math.abs(slides[best].offsetLeft - track.offsetLeft - left)) best = i;
+    });
+    return best;
+  };
+  const lastStart = () => Math.max(0, slides.length - Math.round(track.clientWidth / (slides[0]?.clientWidth || 1)));
+  const go = (i: number) => {
+    const max = lastStart();
+    const target = i > max ? (loop ? 0 : max) : i < 0 ? (loop ? max : 0) : i;
+    track.scrollTo({ left: slides[target].offsetLeft - track.offsetLeft, behavior: reducedMotion() ? "auto" : "smooth" });
+  };
+  const sync = () => {
+    const i = current();
+    dots.forEach((d, j) => d.setAttribute("aria-current", String(i === j)));
+    if (!loop) {
+      if (prev) prev.disabled = i <= 0;
+      if (next) next.disabled = i >= lastStart();
+    }
+  };
+  const onPrev = () => go(current() - 1);
+  const onNext = () => go(current() + 1);
+  prev?.addEventListener("click", onPrev);
+  next?.addEventListener("click", onNext);
+  const dotHandlers = dots.map((d, i) => {
+    const h = () => go(i);
+    d.addEventListener("click", h);
+    return h;
+  });
+  let raf = 0;
+  const onScroll = () => {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(sync);
+  };
+  track.addEventListener("scroll", onScroll, { passive: true });
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    if (e.key === "ArrowLeft") onPrev();
+    else onNext();
+  };
+  track.addEventListener("keydown", onKey);
+
+  // Autoplay pauses on hover, on focus, in background tabs and for reduced motion.
+  const interval = Number(root.dataset.autoplay ?? 0);
+  let paused = false;
+  const pause = () => (paused = true);
+  const resume = () => (paused = false);
+  root.addEventListener("pointerenter", pause);
+  root.addEventListener("pointerleave", resume);
+  root.addEventListener("focusin", pause);
+  root.addEventListener("focusout", resume);
+  const timer = interval >= 1000 && !reducedMotion() ? window.setInterval(() => !paused && !document.hidden && onNext(), interval) : 0;
+
+  root.setAttribute("data-ready", "");
+  sync();
+  return () => {
+    clearInterval(timer);
+    cancelAnimationFrame(raf);
+    prev?.removeEventListener("click", onPrev);
+    next?.removeEventListener("click", onNext);
+    dots.forEach((d, i) => d.removeEventListener("click", dotHandlers[i]));
+    track.removeEventListener("scroll", onScroll);
+    track.removeEventListener("keydown", onKey);
+    root.removeEventListener("pointerenter", pause);
+    root.removeEventListener("pointerleave", resume);
+    root.removeEventListener("focusin", pause);
+    root.removeEventListener("focusout", resume);
+    root.removeAttribute("data-ready");
+  };
+}
+
+/** Ticks a countdown every second. Without JS the widget shows the end date instead. */
+function countdown(root: HTMLElement): () => void {
+  const m = (root.dataset.target ?? "").match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!m) return () => {};
+  const [y, mo, d, h, mi] = m.slice(1).map(Number);
+  const end = root.dataset.tz === "UTC" ? Date.UTC(y, mo - 1, d, h, mi) : new Date(y, mo - 1, d, h, mi).getTime();
+  const units = Array.from(root.querySelectorAll<HTMLElement>("[data-cd-unit]"));
+  const hasDays = units.some((u) => u.dataset.cdUnit === "d");
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const tick = () => {
+    const left = Math.max(0, end - Date.now());
+    let secs = Math.floor(left / 1000);
+    const days = Math.floor(secs / 86400);
+    if (hasDays) secs -= days * 86400;
+    const values: Record<string, number> = { d: days, h: Math.floor(secs / 3600), m: Math.floor((secs % 3600) / 60), s: secs % 60 };
+    for (const u of units) {
+      const el = u.querySelector("[data-cd-num]");
+      if (el) el.textContent = pad(values[u.dataset.cdUnit ?? "s"] ?? 0);
+    }
+    if (left <= 0) {
+      root.setAttribute("data-done", "");
+      clearInterval(timer);
+    }
+  };
+  const timer = window.setInterval(tick, 1000);
+  tick();
+  root.setAttribute("data-ready", "");
+  return () => clearInterval(timer);
+}
+
+/** Counts up from zero when the number scrolls into view. Without JS the final number is shown. */
+function counter(root: HTMLElement): () => void {
+  const el = root.querySelector<HTMLElement>("[data-count]");
+  const to = Number(root.dataset.countTo);
+  const seconds = Number(root.dataset.duration ?? 2);
+  if (!el || !Number.isFinite(to) || seconds <= 0 || reducedMotion() || !("IntersectionObserver" in window)) return () => {};
+  const decimals = Number(root.dataset.decimals ?? 0);
+  const lang = root.closest<HTMLElement>("[lang]")?.lang || undefined;
+  const format = (n: number) => n.toLocaleString(lang, { minimumFractionDigits: decimals, maximumFractionDigits: decimals, useGrouping: root.hasAttribute("data-sep") });
+  const final = el.textContent;
+  let raf = 0;
+  const run = () => {
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / (seconds * 1000));
+      el.textContent = format(to * (1 - Math.pow(1 - t, 3)));
+      if (t < 1) raf = requestAnimationFrame(step);
+      else el.textContent = final;
+    };
+    raf = requestAnimationFrame(step);
+  };
+  const io = new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      io.disconnect();
+      run();
+    },
+    { threshold: 0.4 },
+  );
+  io.observe(root);
+  return () => {
+    io.disconnect();
+    cancelAnimationFrame(raf);
+    el.textContent = final;
+  };
 }
 
 function openLightbox(start: HTMLAnchorElement) {

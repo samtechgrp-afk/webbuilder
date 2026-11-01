@@ -194,3 +194,87 @@ describe("saving widget content", () => {
     await assert.rejects(normaliseContent(tenant({ img: { url: "/uploads/a.webp", mimeType: "image/webp" } }), other.doc, [{ nodeId: other.id, field: "video" }]));
   });
 });
+
+describe("interactive widgets", () => {
+  it("renders an exclusive accordion with native <details name>", () => {
+    const out = html(withWidget("accordion").doc);
+    assert.equal(out.match(/<details name="acc-[^"]+"/g)?.length, 3);
+    assert.match(out, /<details name="acc-[^"]+" open=""><summary><h3>How long does a project take\?<\/h3>/);
+    const multi = html(withWidget("accordion", { props: { mode: "multi", firstOpen: false } }).doc);
+    assert.doesNotMatch(multi, /name="acc-|open=""/);
+    // The canvas shows every panel open so they can be reviewed.
+    assert.equal(html(withWidget("accordion").doc, true).match(/open=""/g)?.length, 3);
+  });
+
+  it("drives tabs with radio buttons (no script) and ships CSS for every position", () => {
+    const out = html(withWidget("tabs").doc);
+    assert.equal(out.match(/<input type="radio"[^>]*name="tabs-/g)?.length, 3);
+    assert.match(out, /checked=""/);
+    assert.equal(out.match(/data-tab-panel=""/g)?.length, 3);
+  });
+
+  it("renders carousel slides on a scroll-snap track and loads the enhancer", () => {
+    const { doc } = withWidget("carousel", { props: { autoplay: true, interval: 4 } });
+    const out = renderToStaticMarkup(createElement(SiteDocument, { doc }));
+    assert.match(out, /data-autoplay="4000"/);
+    assert.equal(out.match(/data-slide=""/g)?.length, 2);
+    assert.match(out, /aria-label="Next slide"/);
+    assert.match(out, /<a href="\/shop" data-slide-link="">Shop now<\/a>/);
+  });
+
+  it("renders testimonials, pricing tables, CTAs, flip boxes, progress bars and counters", () => {
+    assert.match(html(withWidget("testimonial").doc), /<figure[^>]*data-w="testimonial"[^>]*><div data-stars="" role="img" aria-label="5 out of 5 stars"/);
+    const pricing = html(withWidget("pricing", { props: { featured: true, ribbon: "Popular" } }).doc);
+    assert.match(pricing, /data-featured=""/);
+    assert.match(pricing, /<strong>\$49<\/strong><span>\/month<\/span>/);
+    assert.match(pricing, /data-excluded=""><svg[^>]*data-icon="x"/);
+    assert.match(pricing, /<span data-ribbon="">Popular<\/span>/);
+    const cta = html(withWidget("cta").doc);
+    assert.match(cta, /data-cta-button="primary">Get in touch<\/a>/);
+    assert.doesNotMatch(cta, /secondary/, "an empty second button is hidden");
+    assert.match(html(withWidget("flipbox").doc), /data-flip-back=""[^>]*><h3>Plan first<\/h3>/);
+    assert.match(html(withWidget("progress").doc), /role="progressbar" aria-valuenow="85"[^>]*><span data-progress-fill="" style="width:85%"/);
+    assert.match(html(withWidget("counter", { props: { value: 12500 } }).doc), /<span data-count="">12,500<\/span><span>\+<\/span>/);
+  });
+
+  it("renders a countdown that shows its end date without JavaScript", () => {
+    assert.equal(html(withWidget("countdown").doc), '<div class="site-root"><section class="n-root" data-w="section"></section></div>');
+    const out = html(withWidget("countdown", { props: { target: "2027-01-31T18:30" } }).doc);
+    assert.match(out, /data-target="2027-01-31T18:30"/);
+    assert.match(out, /Ends <time dateTime="2027-01-31T18:30">31 January 2027, 18:30<\/time>/);
+    assert.equal(out.match(/data-cd-unit=/g)?.length, 4);
+  });
+
+  it("validates list, number and date content", () => {
+    const panels = contentSchema(contentField("accordion", "items")!);
+    assert.ok(panels.safeParse([{ title: "Q", body: "A" }]).success);
+    assert.equal(panels.safeParse([]).success, false, "at least one panel");
+    assert.deepEqual(panels.parse([{ title: "Q", body: "A", evil: "<script>" }]), [{ title: "Q", body: "A" }]);
+    const slides = contentSchema(contentField("carousel", "items")!);
+    assert.equal(slides.safeParse([{ link: { label: "x", href: "javascript:alert(1)" } }]).success, false);
+    assert.ok(slides.safeParse([{ link: { label: "", href: "" } }]).success);
+    assert.equal(contentSchema(contentField("progress", "value")!).safeParse(101).success, false);
+    assert.ok(contentSchema(contentField("countdown", "target")!).safeParse("2027-01-31T18:30").success);
+    assert.equal(contentSchema(contentField("countdown", "target")!).safeParse("tomorrow").success, false);
+  });
+
+  it("resolves slide images from the media library on save", async () => {
+    const t = { db: { mediaAsset: { findUnique: async ({ where }: { where: { id: string } }) => (where.id === "a1" ? { id: "a1", url: "/uploads/s/a1.webp", mimeType: "image/webp", width: 800, height: 600, altText: "Lamp", variants: {} } : null) } } } as unknown as TenantContext;
+    const { doc, id } = withWidget("carousel", { props: { items: [{ image: { assetId: "a1", src: "https://evil.example/x.png", alt: "" }, title: "A" }] } });
+    await normaliseContent(t, doc, [{ nodeId: id, field: "items" }]);
+    const img = (doc.nodes[id].props.items as { image: { src: string } }[])[0].image;
+    assert.equal(img.src, "/uploads/s/a1.webp");
+    const bad = withWidget("carousel", { props: { items: [{ image: { assetId: "nope", src: "", alt: "" } }] } });
+    await assert.rejects(normaliseContent(t, bad.doc, [{ nodeId: bad.id, field: "items" }]));
+  });
+
+  it("translates list text by position but keeps the original's structure", () => {
+    const { doc, id } = withWidget("pricing");
+    const composed = composeDocument(doc, { type: "translation", version: 1, overrides: { [id]: { features: [{ text: "Pages illimitées", included: false }], plan: "Atelier" } } });
+    const features = composed.nodes[id].props.features as { text: string; included: boolean }[];
+    assert.equal(features.length, 4);
+    assert.deepEqual(features[0], { text: "Pages illimitées", included: true });
+    assert.equal(features[1].text, "Custom domain");
+    assert.equal(composed.nodes[id].props.plan, "Atelier");
+  });
+});

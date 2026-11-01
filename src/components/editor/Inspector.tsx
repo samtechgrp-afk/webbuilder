@@ -349,11 +349,57 @@ function ContentEditor({
 
     case "link": {
       const link = (value as LinkValue) ?? { label: "", href: "" };
+      if (field.optionalLink) {
+        return (
+          <div className="space-y-1">
+            <OptionalLinkEditor link={link} noun={field.label} onChange={set} />
+            <p className="text-[11px] text-zinc-500">Leave the link empty to hide this button.</p>
+          </div>
+        );
+      }
       return <LinkEditor link={link} onChange={set} />;
     }
 
     case "html":
       return <HtmlEditor label={field.label} value={typeof value === "string" ? value : ""} onCommit={set} />;
+
+    case "number":
+      return (
+        <CommitInput
+          aria-label={field.label}
+          type="number"
+          min={field.min}
+          max={field.max}
+          step={field.step ?? "any"}
+          value={value === undefined || value === null ? "" : String(value)}
+          onCommit={(v) => {
+            const n = Number(v);
+            if (v !== "" && Number.isFinite(n) && (field.min === undefined || n >= field.min) && (field.max === undefined || n <= field.max)) set(n);
+          }}
+        />
+      );
+
+    case "datetime":
+      return (
+        <div className="space-y-1">
+          <CommitInput aria-label={field.label} type="datetime-local" value={typeof value === "string" ? value : ""} onCommit={(v) => set(v.slice(0, 16))} />
+          <p className="text-[11px] text-zinc-500">Date and time the countdown reaches zero.</p>
+        </div>
+      );
+
+    case "items": {
+      const list = Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+      return (
+        <ItemsEditor
+          field={field}
+          items={list}
+          onChange={set}
+          imagePicker={(current, close, pick) => (
+            <MediaPicker siteId={siteId} assets={assets} canUpload={canUpload} currentId={current} onClose={close} onUploaded={onAssetUploaded} onPick={(a) => pick({ assetId: a.id, src: a.url, alt: a.altText ?? "", width: a.width ?? undefined, height: a.height ?? undefined })} />
+          )}
+        />
+      );
+    }
 
     case "icon":
       return <IconPicker label={field.label} value={typeof value === "string" ? value : ""} onChange={set} />;
@@ -394,6 +440,173 @@ function ContentEditor({
       );
     }
   }
+}
+
+function emptyItem(field: ContentField): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const f of field.itemFields ?? []) {
+    out[f.key] =
+      f.kind === "link" ? { label: "", href: "" } : f.kind === "image" ? { assetId: null, src: "", alt: "" } : f.kind === "number" ? (f.min ?? 0) : f.kind === "toggle" ? true : f.kind === "lines" ? [] : "";
+  }
+  return out;
+}
+
+/** A repeatable list (accordion panels, tabs, slides, plan features): add, remove, reorder, edit each record. */
+function ItemsEditor({
+  field,
+  items,
+  onChange,
+  imagePicker,
+}: {
+  field: ContentField;
+  items: Record<string, unknown>[];
+  onChange: (v: Record<string, unknown>[]) => void;
+  imagePicker: (currentId: string | null, close: () => void, pick: (img: ImageValue) => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState<number | null>(items.length ? 0 : null);
+  const [picking, setPicking] = useState<{ index: number; key: string } | null>(null);
+  const noun = field.itemLabel ?? "Item";
+  const max = field.maxItems ?? 50;
+  const min = field.minItems ?? 0;
+  const update = (i: number, key: string, v: unknown) => onChange(items.map((it, j) => (j === i ? { ...it, [key]: v } : it)));
+  const titleOf = (it: Record<string, unknown>, i: number) => {
+    const first = (field.itemFields ?? []).find((f) => f.kind === "text");
+    const t = first ? String(it[first.key] ?? "") : "";
+    return t || `${noun} ${i + 1}`;
+  };
+  return (
+    <div className="space-y-2" data-items-editor={field.key}>
+      <ol className="space-y-1.5">
+        {items.map((it, i) => (
+          <li key={i} className="rounded-md border border-zinc-200" data-item-row={i}>
+            <div className="flex items-center gap-1 px-2 py-1.5">
+              <button type="button" onClick={() => setOpen(open === i ? null : i)} className="min-w-0 flex-1 truncate text-left text-xs font-medium text-zinc-800" aria-expanded={open === i}>
+                {titleOf(it, i)}
+              </button>
+              <button type="button" disabled={i === 0} onClick={() => (onChange(swap(items, i, i - 1)), setOpen(i - 1))} className="rounded border border-zinc-300 px-1.5 text-[11px] disabled:opacity-40" aria-label={`Move ${noun.toLowerCase()} ${i + 1} up`}>
+                ↑
+              </button>
+              <button type="button" disabled={i === items.length - 1} onClick={() => (onChange(swap(items, i, i + 1)), setOpen(i + 1))} className="rounded border border-zinc-300 px-1.5 text-[11px] disabled:opacity-40" aria-label={`Move ${noun.toLowerCase()} ${i + 1} down`}>
+                ↓
+              </button>
+              <button type="button" disabled={items.length <= min} onClick={() => (onChange(items.filter((_, j) => j !== i)), setOpen(null))} className="rounded border border-red-200 px-1.5 text-[11px] text-red-700 disabled:opacity-40" aria-label={`Remove ${noun.toLowerCase()} ${i + 1}`}>
+                ✕
+              </button>
+            </div>
+            {open === i && (
+              <div className="space-y-2 border-t border-zinc-100 p-2">
+                {(field.itemFields ?? []).map((f) => {
+                  const v = it[f.key];
+                  const label = `${f.label}`;
+                  switch (f.kind) {
+                    case "text":
+                    case "multiline":
+                      return (
+                        <label key={f.key} className="block text-[11px] text-zinc-600">
+                          {label}
+                          <CommitInput aria-label={`${noun} ${i + 1} ${label}`} value={String(v ?? "")} maxLength={f.maxLength} multiline={f.kind === "multiline"} onCommit={(x) => update(i, f.key, x)} />
+                        </label>
+                      );
+                    case "number":
+                      return (
+                        <label key={f.key} className="block text-[11px] text-zinc-600">
+                          {label}
+                          <CommitInput aria-label={`${noun} ${i + 1} ${label}`} type="number" min={f.min} max={f.max} value={String(v ?? "")} onCommit={(x) => Number.isFinite(Number(x)) && x !== "" && update(i, f.key, Number(x))} />
+                        </label>
+                      );
+                    case "toggle":
+                      return (
+                        <label key={f.key} className="flex items-center gap-2 text-[11px] text-zinc-600">
+                          <input type="checkbox" aria-label={`${noun} ${i + 1} ${label}`} checked={v !== false} onChange={(e) => update(i, f.key, e.target.checked)} />
+                          {label}
+                        </label>
+                      );
+                    case "lines":
+                      return (
+                        <label key={f.key} className="block text-[11px] text-zinc-600">
+                          {label} <span className="text-zinc-400">(one per line)</span>
+                          <CommitInput aria-label={`${noun} ${i + 1} ${label}`} multiline value={(Array.isArray(v) ? (v as string[]) : []).join("\n")} onCommit={(x) => update(i, f.key, x.split("\n").map((l) => l.trim()).filter(Boolean))} />
+                        </label>
+                      );
+                    case "icon":
+                      return <IconPicker key={f.key} label={`${noun} ${i + 1} ${label}`} value={String(v ?? "")} onChange={(x) => update(i, f.key, x)} allowNone />;
+                    case "link":
+                      return (
+                        <div key={f.key} className="space-y-1 text-[11px] text-zinc-600">
+                          {label}
+                          <OptionalLinkEditor link={(v as LinkValue) ?? { label: "", href: "" }} noun={`${noun} ${i + 1}`} onChange={(x) => update(i, f.key, x)} />
+                        </div>
+                      );
+                    case "image": {
+                      const img = (v as ImageValue) ?? { assetId: null, src: "", alt: "" };
+                      return (
+                        <div key={f.key} className="space-y-1 text-[11px] text-zinc-600">
+                          {label}
+                          <div className="flex items-center gap-2">
+                            {img.src ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={img.src} alt="" className="h-10 w-14 rounded object-cover" />
+                            ) : (
+                              <span className="grid h-10 w-14 place-items-center rounded bg-zinc-100 text-[10px] text-zinc-400">none</span>
+                            )}
+                            <button type="button" onClick={() => setPicking({ index: i, key: f.key })} className="flex-1 rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-50">
+                              {img.src ? "Replace" : "Choose image"}
+                            </button>
+                          </div>
+                          {img.src && <CommitInput aria-label={`${noun} ${i + 1} alt text`} placeholder="Alt text" value={img.alt} maxLength={300} onCommit={(alt) => update(i, f.key, { ...img, alt })} />}
+                          {picking?.index === i && picking.key === f.key &&
+                            imagePicker(img.assetId, () => setPicking(null), (picked) => {
+                              update(i, f.key, picked);
+                              setPicking(null);
+                            })}
+                        </div>
+                      );
+                    }
+                  }
+                })}
+              </div>
+            )}
+          </li>
+        ))}
+      </ol>
+      <button
+        type="button"
+        disabled={items.length >= max}
+        onClick={() => {
+          onChange([...items, emptyItem(field)]);
+          setOpen(items.length);
+        }}
+        className="w-full rounded-md border border-dashed border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
+        data-add-item={field.key}
+      >
+        + Add {noun.toLowerCase()}
+      </button>
+    </div>
+  );
+}
+
+/** A link that may be left empty (no button). */
+function OptionalLinkEditor({ link, noun, onChange }: { link: LinkValue; noun: string; onChange: (l: LinkValue) => void }) {
+  const [href, setHref] = useState(link.href);
+  const [synced, setSynced] = useState(link.href);
+  if (synced !== link.href) {
+    setSynced(link.href);
+    setHref(link.href);
+  }
+  const valid = href === "" || isSafeHref(href);
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      <CommitInput aria-label={`${noun} button label`} placeholder="Label" value={link.label} maxLength={80} onCommit={(label) => onChange({ ...link, label })} />
+      <input
+        aria-label={`${noun} button link`}
+        className={`${inputCls} ${valid ? "" : "border-red-400"}`}
+        placeholder="/page or https://"
+        value={href}
+        onChange={(e) => setHref(e.target.value)}
+        onBlur={() => valid && href !== link.href && onChange({ ...link, href })}
+      />
+    </div>
+  );
 }
 
 /** The WYSIWYG editor commits when focus leaves it, so one editing pass is one undo step. */
