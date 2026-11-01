@@ -5,7 +5,7 @@
 //   3. One-click create: a designer creates a site from the modal and lands
 //      in the builder canvas, which holds the same nodes as the preview.
 //      Taken addresses are refused with a message.
-//   4. Every one of the 30 blueprints is instantiated through the same form;
+//   4. Every blueprint in the catalog is instantiated through the same form;
 //      each new site has exactly the pages, entries, field values, media,
 //      products and variants its manifest describes.
 //   5. Live render matches the spec: every page of every new site renders
@@ -73,7 +73,7 @@ const variantCount = (p) => (p.options?.length ? p.options.reduce((n, o) => n * 
 
 let designer, client;
 try {
-  if (blueprints.length !== 30) fail(`Expected 30 blueprint manifests, found ${blueprints.length}`);
+  if (blueprints.length !== 6) fail(`Expected 6 blueprint manifests (one per sector), found ${blueprints.length}`);
   const existing = await prisma.site.findMany({ select: { id: true, subdomain: true } });
   const before = Object.fromEntries(await Promise.all(existing.map(async (s) => [s.id, await siteCounts(s.id)])));
   const designerUser = await prisma.user.findUniqueOrThrow({ where: { email: "designer@studio.test" } });
@@ -93,7 +93,7 @@ try {
   await designer.goto(`${BASE}/admin`);
   await designer.locator("[data-new-site]").click();
   await designer.waitForURL(/\/admin\/sites\/new$/);
-  if ((await designer.locator("[data-template-card]").count()) !== 30) fail("The gallery doesn't show 30 templates");
+  if ((await designer.locator("[data-template-card]").count()) !== blueprints.length) fail(`The gallery doesn't show ${blueprints.length} templates`);
   const sectors = [...new Set(blueprints.map((b) => b.sector))];
   for (const sector of sectors) {
     await designer.locator(`[data-sector-filter="${sector}"]`).click();
@@ -103,11 +103,11 @@ try {
     if ((await designer.locator(`[data-sector-filter="${sector}"]`).getAttribute("aria-pressed")) !== "true") fail("The active filter isn't marked pressed");
   }
   await designer.locator('[data-sector-filter="all"]').click();
-  if ((await designer.locator("[data-template-card]:visible").count()) !== 30) fail("Clearing the filter doesn't bring back all 30");
+  if ((await designer.locator("[data-template-card]:visible").count()) !== blueprints.length) fail(`Clearing the filter doesn't bring back all ${blueprints.length}`);
   step(`The gallery filters by sector (${sectors.length} sectors, ${sectors.map((s) => blueprints.filter((b) => b.sector === s).length).join(" + ")} templates)`);
 
-  await designer.locator('[data-preview="tech-summit"]').click();
-  const modal = designer.locator('[data-preview-modal="tech-summit"]');
+  await designer.locator('[data-preview="boutique-hotel"]').click();
+  const modal = designer.locator('[data-preview-modal="boutique-hotel"]');
   await modal.waitFor();
   for (const [device, width] of [["desktop", 1440], ["tablet", 820], ["mobile", 390]]) {
     await modal.locator(`[data-device="${device}"]`).click();
@@ -120,9 +120,9 @@ try {
     if (innerWidth !== width) fail(`The ${device} preview renders at ${innerWidth}px`);
     await designer.screenshot({ path: path.join(SHOTS, `templates-01-preview-${device}.png`) });
   }
-  await modal.locator("[data-preview-page]").selectOption("agenda");
+  await modal.locator("[data-preview-page]").selectOption("rooms");
   const agenda = await modal.locator("[data-preview-frame]").elementHandle().then((h) => h.contentFrame());
-  await agenda.waitForFunction(() => document.body?.innerText.includes("Registration and coffee"));
+  await agenda.waitForFunction(() => document.body?.innerText.includes("Every room faces the sea"));
   await modal.locator('[data-device="desktop"]').click();
   await modal.locator("[data-close-preview]").click();
   await modal.waitFor({ state: "hidden" });
@@ -139,29 +139,29 @@ try {
     return m;
   }
 
-  await create("tech-summit", "Horizon Summit");
+  await create("boutique-hotel", "Casa Alba");
   await designer.waitForURL(/\/admin\/sites\/[^/]+\/pages\/[^/]+\/edit$/, { timeout: 60_000 });
-  const [, summitId] = designer.url().match(/\/admin\/sites\/([^/]+)\//);
-  const summitSite = await prisma.site.findUniqueOrThrow({ where: { id: summitId } });
-  if (summitSite.subdomain !== "horizon-summit") fail(`The address wasn't suggested from the name: ${summitSite.subdomain}`);
+  const [, hotelId] = designer.url().match(/\/admin\/sites\/([^/]+)\//);
+  const hotelSite = await prisma.site.findUniqueOrThrow({ where: { id: hotelId } });
+  if (hotelSite.subdomain !== "casa-alba") fail(`The address wasn't suggested from the name: ${hotelSite.subdomain}`);
   await designer.locator("[data-node-id]").first().waitFor();
   const canvasIds = new Set(await designer.locator("[data-node-id]").evaluateAll((els) => els.map((e) => e.getAttribute("data-node-id"))));
-  const previewHome = signature(await (await designer.request.get(`${BASE}/admin/sites/new/preview/tech-summit`)).text());
+  const previewHome = signature(await (await designer.request.get(`${BASE}/admin/sites/new/preview/boutique-hotel`)).text());
   const previewIds = new Set(previewHome.nodes.map((n) => n.split(":")[0].slice(2)));
   const missing = [...previewIds].filter((id) => ![...canvasIds].some((c) => c === id || c.startsWith(`${id}`)));
   if (missing.length) fail(`The canvas is missing preview nodes: ${missing.slice(0, 5).join(", ")}`);
   await designer.screenshot({ path: path.join(SHOTS, "templates-02-canvas.png") });
-  step(`“Use this template” creates horizon-summit and opens its home page in the builder canvas, with all ${previewIds.size} preview nodes`);
+  step(`“Use this template” creates casa-alba and opens its home page in the builder canvas, with all ${previewIds.size} preview nodes`);
 
-  const dup = await create("fine-dining", "Another", "horizon-summit");
+  const dup = await create("devtools-api", "Another", "casa-alba");
   await dup.locator("[data-create-error]").waitFor();
   if (!/taken/i.test(await dup.locator("[data-create-error]").textContent())) fail("A taken address isn't explained");
-  const reserved = await create("fine-dining", "Another", "admin");
+  const reserved = await create("devtools-api", "Another", "admin");
   await reserved.locator("[data-create-error]").waitFor();
   step("Taken and reserved addresses are refused with a message, and nothing is created");
 
-  // ── 4. All 30 blueprints ────────────────────────────────────────────────────
-  const sites = { "tech-summit": summitSite };
+  // ── 4. Every blueprint ────────────────────────────────────────────────────
+  const sites = { "boutique-hotel": hotelSite };
   const t0 = Date.now();
   for (const bp of blueprints) {
     if (sites[bp.key]) continue;
@@ -196,7 +196,7 @@ try {
     if (unpublished) fail(`${bp.key}: ${unpublished} posts aren't published`);
     if (site.status !== "DRAFT") fail(`${bp.key}: new site isn't a draft`);
   }
-  step(`All 30 templates were created through the form in ${seconds}s; each site has exactly the pages, entries, field values, media, products and variants in its manifest`);
+  step(`All ${blueprints.length} templates were created through the form in ${seconds}s; each site has exactly the pages, entries, field values, media, products and variants in its manifest`);
 
   // ── 5. Live render matches the preview ──────────────────────────────────────
   let pageCount = 0;
@@ -222,9 +222,9 @@ try {
       pageCount++;
     }
   }
-  await designer.goto(`${BASE}/sites/e2e-fine-dining/menu`);
+  await designer.goto(`${BASE}/sites/e2e-fashion-store/shop`);
   await designer.screenshot({ path: path.join(SHOTS, "templates-03-live-menu.png"), fullPage: true });
-  step(`${pageCount} live pages across the 30 sites render the same node tree and text as their template previews`);
+  step(`${pageCount} live pages across the ${blueprints.length} sites render the same node tree and text as their template previews`);
 
   // ── 6. Tenant isolation ─────────────────────────────────────────────────────
   for (const s of existing) {
@@ -233,8 +233,8 @@ try {
   }
   const newIds = Object.values(sites).map((s) => s.id);
   const memberships = await prisma.membership.findMany({ where: { siteId: { in: newIds } }, include: { role: true } });
-  if (memberships.length !== 30 || memberships.some((m) => m.userId !== designerUser.id || m.role.key !== "designer")) fail("New sites have memberships other than their creator as Designer");
-  if ((await prisma.membership.count({ where: { userId: designerUser.id } })) !== membershipsBefore + 30) fail("The creator gained memberships outside the new sites");
+  if (memberships.length !== blueprints.length || memberships.some((m) => m.userId !== designerUser.id || m.role.key !== "designer")) fail("New sites have memberships other than their creator as Designer");
+  if ((await prisma.membership.count({ where: { userId: designerUser.id } })) !== membershipsBefore + blueprints.length) fail("The creator gained memberships outside the new sites");
   // Every child row's parent belongs to the same site as the row itself.
   const cross = await Promise.all(
     newIds.map(async (id) => {
@@ -251,7 +251,7 @@ try {
     }),
   );
   if (cross.some((n) => n)) fail(`${cross.reduce((a, b) => a + b, 0)} rows in new sites point at another tenant's rows or files`);
-  step(`Tenant isolation holds: ${existing.length} existing sites are unchanged, the creator is Designer on the 30 new sites only, and no row points across tenants`);
+  step(`Tenant isolation holds: ${existing.length} existing sites are unchanged, the creator is Designer on the ${blueprints.length} new sites only, and no row points across tenants`);
 
   console.log("\nStarter templates passed.");
 } catch (err) {

@@ -44,10 +44,10 @@ after(async () => {
 });
 
 describe("blueprint catalog", () => {
-  it("ships 30 blueprints, at least four in every sector", () => {
-    assert.equal(BLUEPRINTS.length, 30);
-    for (const sector of Object.keys(SECTORS)) assert.ok(BLUEPRINTS.filter((b) => b.sector === sector).length >= 4, sector);
-    assert.equal(new Set(BLUEPRINTS.map((b) => b.key)).size, 30);
+  it("ships exactly one blueprint per sector", () => {
+    assert.equal(BLUEPRINTS.length, Object.keys(SECTORS).length);
+    for (const sector of Object.keys(SECTORS)) assert.equal(BLUEPRINTS.filter((b) => b.sector === sector).length, 1, sector);
+    assert.equal(new Set(BLUEPRINTS.map((b) => b.key)).size, BLUEPRINTS.length);
   });
 
   it("every blueprint passes the cross-checks", () => {
@@ -174,7 +174,7 @@ describe("instantiating a blueprint", () => {
           );
       },
     });
-    await assert.rejects(instantiateBlueprint({ blueprint: getBlueprint("tech-summit")!, name: "Doomed", subdomain: "unit-test-doomed", ownerId: owner.id }, { db: failing, storage: storage.adapter }), /boom/);
+    await assert.rejects(instantiateBlueprint({ blueprint: getBlueprint("boutique-hotel")!, name: "Doomed", subdomain: "unit-test-doomed", ownerId: owner.id }, { db: failing, storage: storage.adapter }), /boom/);
     assert.equal(await prisma.site.count(), sitesBefore);
     assert.equal(await prisma.post.count(), postsBefore);
     assert.equal(await prisma.site.findUnique({ where: { subdomain: "unit-test-doomed" } }), null);

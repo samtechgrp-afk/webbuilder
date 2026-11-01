@@ -84,7 +84,7 @@ STRIPE_API_BASE=http://127.0.0.1:4242 npm start   # for the shop suite, start th
 npm run e2e:ecommerce            # Playwright + Stripe mock: payments lockout, catalog, grid, variants, cart drawer, checkout, signed webhook, stock, orders
 npm run e2e:i18n                 # Playwright: languages, prefixed routing, Accept-Language, locale domain, translation drawer, structural lockout, hreflang, sitemap, GraphQL
 CRON_SECRET=… npm run e2e:cms    # Playwright: CPT + fields → client entry → loop grid binding → live site, media, trash, restore, schedule
-npm run e2e:templates            # Playwright: client lockout, gallery filters, device previews, one-click create → canvas, all 30 templates → entity counts, live = preview, tenant isolation
+npm run e2e:templates            # Playwright: client lockout, gallery filters, device previews, one-click create → canvas, every template → entity counts, live = preview, tenant isolation
 RESEND_API_KEY=re_e2e_test_key RESEND_API_BASE=http://127.0.0.1:4243 STRIPE_API_BASE=http://127.0.0.1:4242 npm start   # for the launch suite
 npm run e2e:launch-prep          # Playwright + Stripe and Resend mocks: env validation at boot, sign-up → wizard → site, welcome email, order receipt and store alert, replay safety, order status link, Client Mode badges, help drawer, system health
 npm run e2e:widgets              # Playwright: categorised palette + search, add and configure widget library widgets → publish → live site, client content-only editing
@@ -127,7 +127,7 @@ Limits in this version: product content isn't translated; no taxes, shipping rat
 
 ## Starter templates
 
-New sites start from one of 30 blueprints across six sectors: SaaS & Tech, E-Commerce, Agency & Services, Portfolio, Education & Health, and Hospitality & Events.
+New sites start from one of 6 blueprints, one per sector: SaaS & Tech, E-Commerce, Agency & Services, Portfolio, Education & Health, and Hospitality & Events.
 
 - **Onboarding** (`/admin/sites/new`, linked from **Your sites**): a gallery filtered by sector, with a live preview of every page at desktop (1440), tablet (820) and mobile (390) widths. "Use this template" takes a name and an address and opens the new site's home page in the builder canvas. Platform admins and anyone who is a Designer somewhere can create sites; the creator becomes the new site's Designer. New sites start as drafts.
 - **Blueprints** (`src/lib/templates/blueprints/*.json`) are data, not code: site settings and SEO, a full design-token preset, a few "look" switches (heading case, density, card style), header and footer, artwork specs, custom post types with fields and taxonomies, sample entries, products with options and variant prices, and pages made of sections (hero, features, pricing, loop grids bound to a post type, product grids, FAQ, contact and so on). `src/lib/templates/types.ts` is the schema; `schema.ts` validates it with zod and cross-checks links, slugs, route prefixes, field values and image references.
@@ -270,7 +270,7 @@ The designer's palette groups widgets into categories (Structure & layout, Basic
 | `src/app/admin/sites/[siteId]/products`, `orders`, `settings/payments` | Product manager, orders dashboard, payment settings |
 | `src/app/api/v1/sites/[site]/checkout`, `src/app/api/webhooks/stripe` | Checkout session API and Stripe webhook |
 | `src/lib/templates/*` | Blueprint schema and validation, compiler to builder documents, artwork, preview data, transactional seeder |
-| `src/lib/templates/blueprints/*.json` | The 30 starter template manifests |
+| `src/lib/templates/blueprints/*.json` | The 6 starter template manifests (one per sector) |
 | `src/server/template-service.ts`, `src/server/template-actions.ts` | Who can create sites, and the create-from-template action |
 | `src/app/admin/sites/new` | Template gallery, preview modal and preview routes |
 | `src/app/uploads/[...path]` | Serves uploads: local files added after the server started, or streamed from the S3 bucket |
