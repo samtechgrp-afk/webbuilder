@@ -70,6 +70,7 @@ export function createWidgetTree(doc: BuilderDocument, key: WidgetType | string)
   const type = key as WidgetType;
   const node = createWidget(doc, type);
   if (type === "tilted-grid-hero") return tiltedHeroChildren(doc, node);
+  if (type === "grid") return gridCells(doc, node);
   if (type !== "loop") return { node, extra: {} };
   const scratch: BuilderDocument = { ...doc, nodes: { ...doc.nodes, [node.id]: node } };
   const extra: Record<string, BuilderNode> = {};
@@ -303,4 +304,20 @@ export function cascadedStyle(node: BuilderNode, bp: Breakpoint, key: StyleKey):
     if (v !== undefined && v !== "") return { value: String(v), from: b };
   }
   return {};
+}
+
+/** A Grid arrives with three empty cells, so its columns show straight away. */
+function gridCells(doc: BuilderDocument, grid: BuilderNode): { node: BuilderNode; extra: Record<string, BuilderNode> } {
+  const scratch: BuilderDocument = { ...doc, nodes: { ...doc.nodes, [grid.id]: grid } };
+  const extra: Record<string, BuilderNode> = {};
+  const children: string[] = [];
+  for (let i = 0; i < 3; i++) {
+    const cell = createWidget(scratch, "container");
+    cell.name = `Cell ${i + 1}`;
+    cell.style = { desktop: { ...cell.style.desktop, minHeight: "120px" } };
+    scratch.nodes[cell.id] = cell;
+    extra[cell.id] = cell;
+    children.push(cell.id);
+  }
+  return { node: { ...grid, children }, extra };
 }
