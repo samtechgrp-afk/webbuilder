@@ -24,7 +24,8 @@ const HISTORY_LIMIT = 100;
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
 /** What is being dragged: a new widget from the palette, or an existing node. */
-export type DragItem = { kind: "new"; type: WidgetType } | { kind: "move"; id: string };
+/** `type` is a widget type or a palette preset key ("preset:row-2"). */
+export type DragItem = { kind: "new"; type: WidgetType | string } | { kind: "move"; id: string };
 
 /** What the designer can bind to: post types, their custom fields, and terms for loop filters. */
 export interface BindingCatalog {
@@ -79,10 +80,12 @@ interface EditorState {
   setViewport(bp: Breakpoint): void;
   setContent(nodeId: string, field: string, value: unknown): boolean;
   setStyle(nodeId: string, key: StyleKey, value: string | undefined): boolean;
+  /** Designer-only: several style values at one breakpoint in one undo step (e.g. a button variant). */
+  applyStyles(nodeId: string, breakpoint: Breakpoint, patch: Partial<Record<StyleKey, string | undefined>>): boolean;
   moveChild(parentId: string, childId: string, direction: -1 | 1): boolean;
   setLocks(nodeId: string, locks: LockSettings): boolean;
   /** Designer tree edits. Each returns false when the policy or the tree refuses it. */
-  insertWidget(type: WidgetType, parentId: string, index: number): boolean;
+  insertWidget(type: WidgetType | string, parentId: string, index: number): boolean;
   moveNodeTo(nodeId: string, parentId: string, index: number): boolean;
   removeNode(nodeId: string): boolean;
   duplicate(nodeId: string): boolean;
@@ -206,6 +209,25 @@ export const useEditor = create<EditorState>((set, get) => ({
     return true;
   },
 
+  applyStyles: (nodeId, bp, patch) => {
+    const s = get();
+    if (!s.doc.nodes[nodeId] || !nodeCapabilities(s.doc, nodeId, s.ctx).isDesigner) return false;
+    set(
+      commit(
+        s,
+        withNode(s.doc, nodeId, (n) => {
+          const current = { ...(n.style[bp] ?? {}) } as Record<string, string>;
+          for (const [k, v] of Object.entries(patch)) {
+            if (v === undefined || v === "") delete current[k];
+            else current[k] = v;
+          }
+          return { ...n, style: { ...n.style, [bp]: current } };
+        }),
+      ),
+    );
+    return true;
+  },
+
   moveChild: (parentId, childId, direction) => {
     const s = get();
     if (!nodeCapabilities(s.doc, parentId, s.ctx).canReorderChildren) return false;
@@ -237,12 +259,13 @@ export const useEditor = create<EditorState>((set, get) => ({
   insertWidget: (type, parentId, index) => {
     const s = get();
     if (!nodeCapabilities(s.doc, parentId, s.ctx).isDesigner) return false;
-    if (type === "loop" && (s.doc.nodes[parentId]?.type === "loop" || enclosingLoop(s.doc, parentId))) {
+    const { node, extra } = createWidgetTree(s.doc, type);
+    const bringsLoop = node.type === "loop" || Object.values(extra).some((n) => n.type === "loop");
+    if (bringsLoop && (s.doc.nodes[parentId]?.type === "loop" || enclosingLoop(s.doc, parentId))) {
       s.notify({ tone: "error", text: "Loop grids can't go inside another loop grid." });
       return false;
     }
-    const { node, extra } = createWidgetTree(s.doc, type);
-    if (type === "loop" && s.catalog.postTypes[0]) {
+    if (node.type === "loop" && s.catalog.postTypes[0]) {
       node.props = { ...node.props, query: { ...(node.props.query as object), postTypeId: s.catalog.postTypes[0].id } };
     }
     const next = insertNode(s.doc, node, parentId, index, extra);

@@ -7,7 +7,11 @@ import { FIELD_TYPE_INFO, type BindKind } from "@/lib/cms/fields";
 import { isBoundField, isDesigner, nodeCapabilities } from "@/lib/builder/policy";
 import { enclosingLoop, MAX_LOOP_ITEMS } from "@/lib/builder/tree";
 import { contrastRatio, resolveColor, type DesignTokens } from "@/lib/builder/styles";
-import type { Binding, BuilderDocument, ImageValue, LinkValue, LoopQuery, PriceValue, StyleKey } from "@/lib/builder/types";
+import type { Binding, BuilderDocument, ImageValue, LinkValue, LoopQuery, PriceValue, StyleKey, VideoValue } from "@/lib/builder/types";
+import { ICON_NAMES, SiteIcon, iconLabel } from "@/lib/builder/icons";
+import { parseVideoUrl } from "@/lib/builder/media";
+import { settingValue, settingVisible, type MediaRef, type SettingDef } from "@/lib/builder/settings";
+import { RichTextEditor } from "@/components/cms/RichTextEditor";
 import { MAX_GRID_PRODUCTS, type CartProps, type ProductDetailsProps, type ProductGridProps } from "@/lib/commerce/types";
 import { BINDABLE, WIDGETS, type BindTarget, type ContentField, type LanguageSwitcherProps } from "@/lib/builder/widgets";
 import { DesignPanel } from "./DesignPanel";
@@ -86,8 +90,14 @@ function DesignerInspector({ nodeId, ...props }: { nodeId: string } & InspectorP
   const def = WIDGETS[node.type];
   const settingsFirst = SETTINGS_WIDGETS.has(node.type);
   const dynamicTab = settingsFirst || BINDABLE[node.type].length > 0;
-  const [tab, setTab] = useState<"style" | "content" | "dynamic" | "guardrails">(settingsFirst ? "dynamic" : def.contentFields.length ? "content" : "style");
-  const tabs = [...(def.contentFields.length ? (["content"] as const) : []), ...(dynamicTab ? (["dynamic"] as const) : []), "style" as const, "guardrails" as const];
+  const [tab, setTab] = useState<"style" | "content" | "settings" | "dynamic" | "guardrails">(settingsFirst ? "dynamic" : def.contentFields.length ? "content" : "style");
+  const tabs = [
+    ...(def.contentFields.length ? (["content"] as const) : []),
+    ...(def.settings?.length ? (["settings"] as const) : []),
+    ...(dynamicTab ? (["dynamic"] as const) : []),
+    "style" as const,
+    "guardrails" as const,
+  ];
   const doc = useEditor((s) => s.doc);
   return (
     <div>
@@ -136,6 +146,7 @@ function DesignerInspector({ nodeId, ...props }: { nodeId: string } & InspectorP
           ) : (
             <BindingEditor nodeId={node.id} />
           ))}
+        {tab === "settings" && <SettingsEditor nodeId={node.id} {...props} />}
         {tab === "style" && <DesignPanel node={node} tokens={props.tokens} />}
         {tab === "guardrails" && (
           <div className="py-2">
@@ -341,6 +352,25 @@ function ContentEditor({
       return <LinkEditor link={link} onChange={set} />;
     }
 
+    case "html":
+      return <HtmlEditor label={field.label} value={typeof value === "string" ? value : ""} onCommit={set} />;
+
+    case "icon":
+      return <IconPicker label={field.label} value={typeof value === "string" ? value : ""} onChange={set} />;
+
+    case "video": {
+      const v = (value as VideoValue) ?? { assetId: null, src: "" };
+      return (
+        <VideoEditor
+          value={v}
+          onChange={set}
+          picker={(close, pick) => (
+            <MediaPicker siteId={siteId} assets={assets} canUpload={canUpload} currentId={v.assetId} accept="video" onClose={close} onUploaded={onAssetUploaded} onPick={(a) => pick({ assetId: a.id, src: a.url })} />
+          )}
+        />
+      );
+    }
+
     case "price": {
       const price = (value as PriceValue) ?? { amount: 0, currency: "USD" };
       return (
@@ -364,6 +394,237 @@ function ContentEditor({
       );
     }
   }
+}
+
+/** The WYSIWYG editor commits when focus leaves it, so one editing pass is one undo step. */
+function HtmlEditor({ label, value, onCommit }: { label: string; value: string; onCommit: (html: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const [synced, setSynced] = useState(value);
+  if (synced !== value) {
+    setSynced(value);
+    setDraft(value);
+  }
+  return (
+    <div
+      data-html-editor=""
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null) && draft !== value) onCommit(draft);
+      }}
+    >
+      <RichTextEditor label={label} value={draft} onChange={setDraft} minHeight={160} />
+      <p className="mt-1 text-[11px] text-zinc-400">Saved when you click outside the editor.</p>
+    </div>
+  );
+}
+
+const ICON_LIST = [...ICON_NAMES].sort();
+
+function IconPicker({ label, value, onChange, allowNone }: { label: string; value: string; onChange: (v: string) => void; allowNone?: boolean }) {
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const list = ICON_LIST.filter((n) => !q || n.includes(q.trim().toLowerCase().replace(/\s+/g, "-")));
+  return (
+    <div className="space-y-2" data-icon-picker="">
+      <div className="flex items-center gap-2">
+        <span className="grid h-9 w-9 place-items-center rounded-md border border-zinc-200 text-zinc-700">{value ? <SiteIcon name={value} size={20} /> : <span className="text-[10px] text-zinc-400">none</span>}</span>
+        <button type="button" onClick={() => setOpen(!open)} className="flex-1 rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-800 hover:bg-zinc-50" aria-expanded={open} aria-label={`Choose ${label}`}>
+          {value ? iconLabel(value) : "Choose an icon"}
+        </button>
+        {allowNone && value && (
+          <button type="button" onClick={() => onChange("")} className="rounded-md px-2 py-1.5 text-xs text-zinc-500 hover:bg-zinc-100">
+            Clear
+          </button>
+        )}
+      </div>
+      {open && (
+        <div className="space-y-2 rounded-md border border-zinc-200 p-2">
+          <input type="search" aria-label="Search icons" placeholder="Search icons…" className={inputCls} value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="grid max-h-56 grid-cols-6 gap-1 overflow-y-auto">
+            {list.map((name) => (
+              <button
+                key={name}
+                type="button"
+                title={iconLabel(name)}
+                aria-label={iconLabel(name)}
+                data-icon-option={name}
+                onClick={() => {
+                  onChange(name);
+                  setOpen(false);
+                }}
+                className={`grid aspect-square place-items-center rounded text-zinc-700 hover:bg-zinc-100 ${value === name ? "bg-indigo-50 ring-1 ring-indigo-400" : ""}`}
+              >
+                <SiteIcon name={name} size={18} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VideoEditor({ value, onChange, picker }: { value: VideoValue; onChange: (v: VideoValue) => void; picker: (close: () => void, pick: (v: VideoValue) => void) => ReactNode }) {
+  const [picking, setPicking] = useState(false);
+  const [url, setUrl] = useState(value.assetId ? "" : value.src);
+  const valid = !url || parseVideoUrl(url) !== null;
+  return (
+    <div className="space-y-2">
+      {value.assetId && value.src ? (
+        <p className="truncate rounded-md bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-700">From the media library: {value.src.split("/").pop()}</p>
+      ) : null}
+      <button type="button" onClick={() => setPicking(true)} className="w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50">
+        {value.assetId ? "Replace video" : "Choose from media library"}
+      </button>
+      <label className="block text-xs text-zinc-600">
+        Or a YouTube / Vimeo address
+        <input
+          aria-label="Video address"
+          className={`${inputCls} ${valid ? "" : "border-red-400"}`}
+          value={url}
+          placeholder="https://www.youtube.com/watch?v=…"
+          onChange={(e) => setUrl(e.target.value)}
+          onBlur={() => {
+            if (!valid) return;
+            if (url && url !== value.src) onChange({ assetId: null, src: url.trim() });
+            if (!url && !value.assetId && value.src) onChange({ assetId: null, src: "" });
+          }}
+        />
+      </label>
+      {!valid && <p className="text-xs text-red-600">Use a YouTube, Vimeo or https .mp4 / .webm address.</p>}
+      {picking &&
+        picker(
+          () => setPicking(false),
+          (v) => {
+            setUrl("");
+            onChange(v);
+            setPicking(false);
+          },
+        )}
+    </div>
+  );
+}
+
+/** Button variants restyle the button through ordinary style values, so the designer can fine-tune them. */
+const BUTTON_VARIANTS: Record<string, Partial<Record<StyleKey, string | undefined>>> = {
+  solid: { background: "var(--color-primary)", color: "var(--color-inverse, #fff)", border: "1px solid transparent" },
+  outline: { background: "transparent", color: "var(--color-primary)", border: "1.5px solid currentColor" },
+  ghost: { background: "transparent", color: "var(--color-primary)", border: "1px solid transparent" },
+};
+
+function SettingsEditor({ nodeId, ...props }: { nodeId: string } & InspectorProps) {
+  const node = useEditor((s) => s.doc.nodes[nodeId]);
+  const setDesignProp = useEditor((s) => s.setDesignProp);
+  const applyStyles = useEditor((s) => s.applyStyles);
+  const defs = WIDGETS[node.type].settings ?? [];
+  const [picking, setPicking] = useState<string | null>(null);
+
+  const change = (def: SettingDef, v: unknown) => {
+    setDesignProp(nodeId, def.key, v);
+    // Variants describe the desktop look; smaller screens inherit it.
+    if (node.type === "button" && def.key === "variant" && BUTTON_VARIANTS[v as string]) applyStyles(nodeId, "desktop", BUTTON_VARIANTS[v as string]);
+  };
+
+  return (
+    <div className="space-y-3.5 py-2 text-xs text-zinc-700" data-settings="">
+      {defs
+        .filter((d) => settingVisible(defs, d, node))
+        .map((def) => {
+          const value = settingValue(defs, node, def.key);
+          const id = `set-${nodeId}-${def.key}`;
+          return (
+            <div key={def.key} className="space-y-1" data-setting={def.key}>
+              {def.kind === "toggle" ? (
+                <label className="flex items-center gap-2 font-medium">
+                  <input id={id} type="checkbox" checked={!!value} onChange={(e) => change(def, e.target.checked)} />
+                  {def.label}
+                </label>
+              ) : (
+                <label htmlFor={id} className="block font-medium">
+                  {def.label}
+                  {def.kind === "number" && (
+                    <span className="ml-1 font-normal text-zinc-400">
+                      {String(value)}
+                      {def.unit ?? ""}
+                    </span>
+                  )}
+                </label>
+              )}
+              {def.kind === "select" && (
+                <select id={id} className={inputCls} value={String(value)} onChange={(e) => change(def, e.target.value)}>
+                  {def.options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {def.kind === "number" && (
+                <input id={id} type="range" className="w-full" min={def.min} max={def.max} step={def.step ?? 1} value={Number(value)} onChange={(e) => change(def, Number(e.target.value))} />
+              )}
+              {def.kind === "text" && <CommitInput id={id} aria-label={def.label} value={String(value ?? "")} maxLength={def.maxLength} placeholder={def.placeholder} onCommit={(v) => change(def, v)} />}
+              {def.kind === "color" && <ColorSetting id={id} value={String(value ?? "")} tokens={props.tokens} onChange={(v) => change(def, v)} />}
+              {def.kind === "icon" && <IconPicker label={def.label} value={String(value ?? "")} onChange={(v) => change(def, v)} allowNone />}
+              {def.kind === "media" && (
+                <div className="space-y-1.5">
+                  {value ? <p className="truncate rounded bg-zinc-50 px-2 py-1">{(value as MediaRef).src.split("/").pop()}</p> : null}
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setPicking(def.key)} className="flex-1 rounded-md border border-zinc-300 px-3 py-1.5 font-medium hover:bg-zinc-50">
+                      {value ? "Replace video" : "Choose video"}
+                    </button>
+                    {value ? (
+                      <button type="button" onClick={() => change(def, null)} className="rounded-md px-2 py-1.5 text-zinc-500 hover:bg-zinc-100">
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                  {picking === def.key && (
+                    <MediaPicker
+                      siteId={props.siteId}
+                      assets={props.assets}
+                      canUpload={props.canUpload}
+                      currentId={(value as MediaRef | null)?.assetId ?? null}
+                      accept="video"
+                      onClose={() => setPicking(null)}
+                      onUploaded={props.onAssetUploaded}
+                      onPick={(a) => {
+                        change(def, { assetId: a.id, src: a.url });
+                        setPicking(null);
+                      }}
+                    />
+                  )}
+                </div>
+              )}
+              {def.help && <p className="text-[11px] leading-relaxed text-zinc-500">{def.help}</p>}
+            </div>
+          );
+        })}
+    </div>
+  );
+}
+
+function ColorSetting({ id, value, tokens, onChange }: { id: string; value: string; tokens: DesignTokens; onChange: (v: string) => void }) {
+  const palette = Object.entries(tokens.colors ?? {});
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap gap-1.5">
+        {palette.map(([name, hex]) => {
+          const v = `var(--color-${name})`;
+          return (
+            <button
+              key={name}
+              type="button"
+              title={name}
+              aria-label={`Colour ${name}`}
+              onClick={() => onChange(value === v ? "" : v)}
+              className={`h-6 w-6 rounded-full border ${value === v ? "ring-2 ring-indigo-500 ring-offset-1" : "border-zinc-300"}`}
+              style={{ background: hex }}
+            />
+          );
+        })}
+      </div>
+      <CommitInput id={id} aria-label="Colour value" value={value} maxLength={120} placeholder="Inherit, or #hex / rgba() / var(--color-…)" onCommit={(v) => onChange(v.trim())} />
+    </div>
+  );
 }
 
 function swap<T>(list: T[], a: number, b: number) {

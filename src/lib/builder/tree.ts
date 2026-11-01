@@ -1,6 +1,8 @@
 import { isGridProps } from "@/lib/commerce/storefront";
 import type { Binding, Breakpoint, BuilderDocument, BuilderNode, LoopQuery, StyleKey, WidgetType } from "./types";
 import { BREAKPOINT_ORDER } from "./types";
+import { PRESETS } from "./presets";
+import { settingsProblem } from "./settings";
 import { BINDABLE, WIDGETS } from "./widgets";
 
 /**
@@ -14,6 +16,7 @@ const STYLE_KEYS = new Set<StyleKey>([
   "gridColumn", "padding", "margin", "width", "maxWidth", "minHeight", "aspectRatio", "objectFit",
   "background", "color", "fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing",
   "textAlign", "textTransform", "border", "borderRadius", "boxShadow", "backdropFilter", "opacity",
+  "order", "flex", "alignSelf", "height",
 ]);
 
 export function isContainer(doc: BuilderDocument, id: string) {
@@ -61,7 +64,10 @@ export function createWidget(doc: BuilderDocument, type: WidgetType): BuilderNod
  * ready-made card (image, title, excerpt, link) already bound to the loop
  * item, so a designer sees real entries the moment it lands.
  */
-export function createWidgetTree(doc: BuilderDocument, type: WidgetType): { node: BuilderNode; extra: Record<string, BuilderNode> } {
+export function createWidgetTree(doc: BuilderDocument, key: WidgetType | string): { node: BuilderNode; extra: Record<string, BuilderNode> } {
+  const preset = PRESETS[key];
+  if (preset) return preset.build(doc, createWidget);
+  const type = key as WidgetType;
   const node = createWidget(doc, type);
   if (type !== "loop") return { node, extra: {} };
   const scratch: BuilderDocument = { ...doc, nodes: { ...doc.nodes, [node.id]: node } };
@@ -196,6 +202,8 @@ export function structuralProblem(doc: BuilderDocument): string | null {
     if (node.type === "loop" && !isLoopQuery(node.props.query)) return "Loop grid query is invalid";
     const commerceIssue = commerceProblem(node);
     if (commerceIssue) return commerceIssue;
+    const settingsIssue = settingsProblem(def.settings, node.props ?? {});
+    if (settingsIssue) return `${def.label}: ${settingsIssue}`;
   }
   const reachable = subtreeIds(doc, doc.rootId);
   if (new Set(reachable).size !== reachable.length) return "The page contains a loop";

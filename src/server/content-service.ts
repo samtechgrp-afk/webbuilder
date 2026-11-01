@@ -3,9 +3,11 @@ import type { Prisma, RevisionKind } from "@prisma/client";
 import { updateTag } from "next/cache";
 import { contentSchema } from "@/lib/builder/content";
 import { authorizeChanges, diffDocuments, type Violation } from "@/lib/builder/policy";
-import { isBuilderDocument, type BuilderDocument, type ImageValue } from "@/lib/builder/types";
+import { isBuilderDocument, type BuilderDocument, type ImageValue, type VideoValue } from "@/lib/builder/types";
 import { structuralProblem } from "@/lib/builder/tree";
+import { mediaSettings } from "@/lib/builder/settings";
 import { WIDGETS, contentField } from "@/lib/builder/widgets";
+import { sanitizeRichText } from "./sanitize";
 import type { TenantContext } from "@/lib/tenant";
 import { toImage } from "./cms/dynamic";
 import { snapshotMeta } from "./cms/snapshot";
@@ -86,6 +88,12 @@ async function resolveImage(t: TenantContext, img: ImageValue): Promise<ImageVal
   return { ...toImage(asset), alt: img.alt || asset.altText || "" };
 }
 
+/** A video from this site's library: its URL always comes from the MediaAsset row. */
+async function resolveVideo(t: TenantContext, assetId: string): Promise<string | null> {
+  const asset = await t.db.mediaAsset.findUnique({ where: { id: assetId }, select: { url: true, mimeType: true } });
+  return asset && asset.mimeType.startsWith("video/") ? asset.url : null;
+}
+
 export async function normaliseContent(t: TenantContext, next: BuilderDocument, changed: { nodeId: string; field: string }[]) {
   const violations: Violation[] = [];
   for (const { nodeId, field } of changed) {
@@ -112,6 +120,18 @@ export async function normaliseContent(t: TenantContext, next: BuilderDocument, 
         continue;
       }
       value = resolved;
+    }
+    if (def.kind === "html") value = sanitizeRichText(parsed.data as string);
+    if (def.kind === "video") {
+      const v = parsed.data as VideoValue;
+      if (v.assetId) {
+        const src = await resolveVideo(t, v.assetId);
+        if (!src) {
+          violations.push({ nodeId, message: "That video isn't in this site's media library" });
+          continue;
+        }
+        value = { assetId: v.assetId, src } satisfies VideoValue;
+      }
     }
     if (def.kind === "gallery") {
       const out: ImageValue[] = [];
@@ -146,6 +166,11 @@ async function checkDynamicNodes(t: TenantContext, doc: BuilderDocument) {
       if (!(await t.db.product.findUnique({ where: { id: node.props.productId }, select: { id: true } }))) {
         throw new EditError("A product details widget points at a product that doesn't exist", "invalid");
       }
+    }
+    for (const { key, ref } of mediaSettings(WIDGETS[node.type].settings, node.props)) {
+      const src = await resolveVideo(t, ref.assetId);
+      if (!src) throw new EditError("A background video isn't in this site's media library", "invalid");
+      node.props = { ...node.props, [key]: { assetId: ref.assetId, src } };
     }
     if (node.type !== "loop") continue;
     const q = node.props.query as { postTypeId: string | null; termId?: string | null };

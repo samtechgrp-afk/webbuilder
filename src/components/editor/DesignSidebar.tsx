@@ -3,8 +3,10 @@
 import { useState, type DragEvent } from "react";
 import { effectiveLocks, parentMap } from "@/lib/builder/policy";
 import { findParent, isContainer, subtreeIds } from "@/lib/builder/tree";
+import { SiteIcon } from "@/lib/builder/icons";
+import { PRESETS } from "@/lib/builder/presets";
 import type { BuilderDocument, WidgetType } from "@/lib/builder/types";
-import { WIDGETS } from "@/lib/builder/widgets";
+import { WIDGET_CATEGORIES, WIDGETS, type WidgetCategory } from "@/lib/builder/widgets";
 import { useEditor } from "./store";
 
 /** Designer-only left panel: the widget palette and the layer navigator. */
@@ -31,23 +33,6 @@ export function DesignSidebar() {
   );
 }
 
-const ICONS: Record<WidgetType, string> = {
-  section: "▭",
-  container: "▦",
-  heading: "H",
-  text: "¶",
-  image: "◩",
-  button: "⬭",
-  price: "$",
-  gallery: "▤",
-  richtext: "≡",
-  loop: "↻",
-  langswitch: "文",
-  productgrid: "▣",
-  product: "◫",
-  cart: "⊡",
-};
-
 /** Where a clicked palette item lands: inside the selected container, after a selected leaf, else at the end of the page. */
 function clickTarget(doc: BuilderDocument, selectedId: string | null): { parentId: string; index: number } {
   if (selectedId && doc.nodes[selectedId]) {
@@ -58,41 +43,90 @@ function clickTarget(doc: BuilderDocument, selectedId: string | null): { parentI
   return { parentId: doc.rootId, index: doc.nodes[doc.rootId]?.children?.length ?? 0 };
 }
 
+interface PaletteItem {
+  key: string;
+  label: string;
+  hint: string;
+  icon: string;
+  category: WidgetCategory;
+  search: string;
+}
+
+const PALETTE: PaletteItem[] = [
+  ...(Object.keys(WIDGETS) as WidgetType[]).map((type) => {
+    const d = WIDGETS[type];
+    return { key: type, label: d.label, hint: d.hint, icon: d.icon, category: d.category, search: `${d.label} ${d.hint} ${d.keywords ?? ""} ${type}`.toLowerCase() };
+  }),
+  ...Object.entries(PRESETS).map(([key, p]) => ({ key, label: p.label, hint: p.hint, icon: p.icon, category: p.category, search: `${p.label} ${p.hint} ${p.keywords ?? ""}`.toLowerCase() })),
+];
+
 function Palette() {
   const insertWidget = useEditor((s) => s.insertWidget);
   const setDrag = useEditor((s) => s.setDrag);
-  const types = Object.keys(WIDGETS) as WidgetType[];
+  const [query, setQuery] = useState("");
+  const [closed, setClosed] = useState<Set<WidgetCategory>>(new Set());
+  const q = query.trim().toLowerCase();
+  const items = q ? PALETTE.filter((i) => q.split(/\s+/).every((w) => i.search.includes(w))) : PALETTE;
 
   return (
     <div className="space-y-3 p-3">
+      <input
+        type="search"
+        aria-label="Search widgets"
+        placeholder="Search widgets…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="w-full rounded-md border border-zinc-300 px-2.5 py-1.5 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+      />
       <p className="text-[11px] leading-relaxed text-zinc-500">Drag onto the page, or click to add inside the selected container.</p>
-      <div className="grid grid-cols-2 gap-2">
-        {types.map((type) => (
-          <button
-            key={type}
-            type="button"
-            draggable
-            data-palette={type}
-            title={WIDGETS[type].hint}
-            onDragStart={(e: DragEvent) => {
-              e.dataTransfer.effectAllowed = "copy";
-              e.dataTransfer.setData("text/plain", type);
-              setDrag({ kind: "new", type });
-            }}
-            onClick={() => {
-              const { doc, selectedId } = useEditor.getState();
-              const { parentId, index } = clickTarget(doc, selectedId);
-              insertWidget(type, parentId, index);
-            }}
-            className="flex cursor-grab flex-col items-center gap-1 rounded-lg border border-zinc-200 px-2 py-3 text-xs text-zinc-700 hover:border-zinc-400 hover:bg-zinc-50 active:cursor-grabbing"
-          >
-            <span aria-hidden className="text-lg leading-none text-zinc-500">
-              {ICONS[type]}
-            </span>
-            {WIDGETS[type].label}
-          </button>
-        ))}
-      </div>
+      {!items.length && <p className="text-xs text-zinc-500">No widget matches &ldquo;{query}&rdquo;.</p>}
+      {(Object.keys(WIDGET_CATEGORIES) as WidgetCategory[]).map((cat) => {
+        const list = items.filter((i) => i.category === cat);
+        if (!list.length) return null;
+        const open = !!q || !closed.has(cat);
+        return (
+          <section key={cat} data-palette-group={cat}>
+            <button
+              type="button"
+              aria-expanded={open}
+              onClick={() => setClosed((c) => { const n = new Set(c); if (n.has(cat)) n.delete(cat); else n.add(cat); return n; })}
+              className="mb-1.5 flex w-full items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-500"
+            >
+              {WIDGET_CATEGORIES[cat]}
+              <span aria-hidden className="text-zinc-400">{open ? "−" : "+"}</span>
+            </button>
+            {open && (
+              <div className="grid grid-cols-2 gap-2">
+                {list.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    draggable
+                    data-palette={item.key}
+                    title={item.hint}
+                    onDragStart={(e: DragEvent) => {
+                      e.dataTransfer.effectAllowed = "copy";
+                      e.dataTransfer.setData("text/plain", item.key);
+                      setDrag({ kind: "new", type: item.key });
+                    }}
+                    onClick={() => {
+                      const { doc, selectedId } = useEditor.getState();
+                      const { parentId, index } = clickTarget(doc, selectedId);
+                      insertWidget(item.key, parentId, index);
+                    }}
+                    className="flex cursor-grab flex-col items-center gap-1 rounded-lg border border-zinc-200 px-2 py-3 text-center text-xs leading-tight text-zinc-700 hover:border-zinc-400 hover:bg-zinc-50 active:cursor-grabbing"
+                  >
+                    <span aria-hidden className="text-lg leading-none text-zinc-500">
+                      <SiteIcon name={item.icon} size={18} />
+                    </span>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -177,8 +211,8 @@ function Layers() {
           >
             {mark === "before" && <span aria-hidden className="absolute inset-x-2 top-0 h-0.5 bg-indigo-500" />}
             {mark === "after" && <span aria-hidden className="absolute inset-x-2 bottom-0 h-0.5 bg-indigo-500" />}
-            <span aria-hidden className="w-4 text-center text-xs text-zinc-400">
-              {ICONS[node.type]}
+            <span aria-hidden className="flex w-4 justify-center text-zinc-400">
+              <SiteIcon name={WIDGETS[node.type].icon} size={13} />
             </span>
             <span className="min-w-0 flex-1 truncate">{node.name ?? WIDGETS[node.type].label}</span>
             {(own.layout || own.style || own.content) && (

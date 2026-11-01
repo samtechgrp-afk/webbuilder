@@ -50,3 +50,4 @@ body {
 }
 .editor-canvas [data-loop-clone] { opacity: .72; }
 .editor-canvas [data-loop-clone] [data-editor-node]:hover { outline: none; }
+.editor-canvas iframe, .editor-canvas video { pointer-events: none; }

@@ -1,6 +1,6 @@
 import { isBoundField } from "@/lib/builder/policy";
 import type { BuilderDocument, BuilderNode } from "@/lib/builder/types";
-import { WIDGETS, contentField, type ContentField } from "@/lib/builder/widgets";
+import { SHARED_CONTENT_KINDS, WIDGETS, contentField, type ContentField } from "@/lib/builder/widgets";
 import { isEmptyValue, type FieldDef, type FieldType } from "@/lib/cms/fields";
 
 /**
@@ -42,7 +42,8 @@ export function composeDocument(source: BuilderDocument, translation: unknown): 
     if (!node || !fields || typeof fields !== "object") continue;
     let props = node.props;
     for (const [key, value] of Object.entries(fields)) {
-      if (!contentField(node.type, key) || isEmptyValue(value) || isBoundField(source, nodeId, key)) continue;
+      const def = contentField(node.type, key);
+      if (!def || SHARED_CONTENT_KINDS.has(def.kind) || isEmptyValue(value) || isBoundField(source, nodeId, key)) continue;
       props = { ...props, [key]: value };
     }
     if (props !== node.props) nodes[nodeId] = { ...node, props };
@@ -63,7 +64,7 @@ export function translatableNodes(doc: BuilderDocument): TranslatableNode[] {
   const walk = (id: string, depth: number) => {
     const node = doc.nodes[id];
     if (!node || depth > 64) return;
-    const fields = WIDGETS[node.type].contentFields.filter((f) => !isBoundField(doc, id, f.key));
+    const fields = WIDGETS[node.type].contentFields.filter((f) => !SHARED_CONTENT_KINDS.has(f.kind) && !isBoundField(doc, id, f.key));
     if (fields.length) out.push({ id, type: node.type, name: node.name || WIDGETS[node.type].label, fields });
     for (const child of node.children ?? []) walk(child, depth + 1);
   };

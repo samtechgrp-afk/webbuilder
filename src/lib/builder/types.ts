@@ -50,6 +50,11 @@ export interface StyleProps {
   boxShadow?: string;
   backdropFilter?: string;
   opacity?: string;
+  /** Flex/grid child controls: column order per breakpoint, growth, self alignment. */
+  order?: string;
+  flex?: string;
+  alignSelf?: string;
+  height?: string;
 }
 
 export type StyleKey = keyof StyleProps;
@@ -57,11 +62,13 @@ export type ResponsiveStyle = Partial<Record<Breakpoint, StyleProps>>;
 
 export type WidgetType =
   | "section" | "container" | "heading" | "text" | "image" | "button" | "price"
-  | "gallery" | "richtext" | "loop" | "langswitch" | "productgrid" | "product" | "cart";
+  | "gallery" | "richtext" | "loop" | "langswitch" | "productgrid" | "product" | "cart"
+  // Widget library (layout and basic content)
+  | "spacer" | "divider" | "prose" | "video" | "icon" | "iconbox" | "map";
 
 export type SemanticTag =
   | "section" | "header" | "main" | "footer" | "article" | "aside" | "nav" | "div"
-  | "h1" | "h2" | "h3" | "h4" | "p" | "span";
+  | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "span";
 
 /**
  * Designer-controlled guardrails. Locks cascade: a locked section locks every
@@ -94,6 +101,15 @@ export interface LinkValue {
   label: string;
   href: string;
   newTab?: boolean;
+}
+
+/**
+ * A video: a file from the site's media library (assetId set, src resolved
+ * on the server), or a YouTube / Vimeo / https video address (assetId null).
+ */
+export interface VideoValue {
+  assetId: string | null;
+  src: string;
 }
 
 export interface PriceValue {
