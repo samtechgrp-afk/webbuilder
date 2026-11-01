@@ -1,8 +1,8 @@
-import { BRAND_ICONS } from "./brand-icons";
+import { CATALOG_WIDGETS, SOCIAL_NETWORKS } from "./widgets-catalog";
 import type { BindKind } from "@/lib/cms/fields";
 import type { CartProps, ProductDetailsProps, ProductGridProps } from "@/lib/commerce/types";
 import type { SettingDef } from "./settings";
-import type { LoopQuery, ResponsiveStyle, SemanticTag, StyleKey, WidgetType } from "./types";
+import type { CatalogWidgetType, LoopQuery, ResponsiveStyle, SemanticTag, StyleKey, WidgetType } from "./types";
 
 /**
  * What a client is allowed to edit inside each widget. The editor UI and the
@@ -39,15 +39,7 @@ export interface ItemField {
   when?: { key: string; is: string[] };
 }
 
-/** Networks a Social links profile can point at: brand icons plus email, phone and website. */
-export const SOCIAL_NETWORKS = [
-  ...Object.entries(BRAND_ICONS)
-    .map(([value, b]) => ({ value, label: b.label }))
-    .sort((a, b) => a.label.localeCompare(b.label)),
-  { value: "email", label: "Email" },
-  { value: "phone", label: "Phone" },
-  { value: "website", label: "Website" },
-];
+export { SOCIAL_NETWORKS } from "./widgets-catalog";
 
 /** Field types a Contact form offers. Values are stored; labels are what the inspector shows. */
 export const FORM_FIELD_TYPES = [
@@ -97,12 +89,15 @@ export const TRANSLATABLE_ITEM_KINDS: ReadonlySet<ItemField["kind"]> = new Set<I
 
 /** Groups of the designer's widget palette, in display order. */
 export const WIDGET_CATEGORIES = {
-  layout: "Structure & layout",
+  layout: "Layout & structure",
+  shapes: "Shapes & vectors",
   basic: "Basic content",
-  interactive: "Advanced & interactive",
+  media: "Media & embeds",
+  cards: "Composite cards",
+  interactive: "Interactive & UI",
+  code: "Custom code",
   forms: "Forms & lead capture",
   dynamic: "Dynamic & theme",
-  social: "Social & media",
   commerce: "Shop",
 } as const;
 
@@ -148,7 +143,7 @@ const BACKDROP: SettingDef[] = [
   { key: "overlayOpacity", label: "Overlay opacity", kind: "number", min: 0, max: 100, step: 5, unit: "%", default: 50 },
 ];
 
-export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
+const CORE_WIDGETS: Record<Exclude<WidgetType, CatalogWidgetType>, WidgetDefinition> = {
   section: {
     label: "Section",
     category: "layout",
@@ -207,7 +202,7 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
   },
   image: {
     label: "Image",
-    category: "basic",
+    category: "media",
     icon: "image",
     keywords: "picture photo",
     isContainer: false,
@@ -252,8 +247,8 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     defaults: { props: { link: { label: "Learn more", href: "/contact" } }, style: { desktop: { padding: ".9rem 1.5rem", borderRadius: "var(--radius-pill)", background: "var(--color-deep)", color: "var(--color-inverse)", fontWeight: "500" } } },
   },
   gallery: {
-    label: "Gallery",
-    category: "interactive",
+    label: "Basic gallery",
+    category: "media",
     icon: "layout-grid",
     keywords: "photos masonry lightbox",
     isContainer: false,
@@ -494,8 +489,8 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     },
   },
   carousel: {
-    label: "Carousel",
-    category: "interactive",
+    label: "Image carousel",
+    category: "media",
     icon: "gallery-horizontal",
     keywords: "slider slideshow hero banner swipe",
     isContainer: false,
@@ -540,7 +535,7 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
   },
   testimonial: {
     label: "Testimonial",
-    category: "interactive",
+    category: "cards",
     icon: "quote",
     keywords: "review quote customer rating stars",
     isContainer: false,
@@ -566,7 +561,7 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
   },
   pricing: {
     label: "Pricing table",
-    category: "interactive",
+    category: "cards",
     icon: "badge-dollar-sign",
     keywords: "plan tier price package subscription ribbon",
     isContainer: false,
@@ -637,7 +632,7 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
   },
   flipbox: {
     label: "Flip box",
-    category: "interactive",
+    category: "cards",
     icon: "flip-horizontal-2",
     keywords: "card 3d hover flip reveal",
     isContainer: false,
@@ -665,7 +660,7 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
   },
   cta: {
     label: "Call to action",
-    category: "interactive",
+    category: "cards",
     icon: "megaphone",
     keywords: "banner cta promo signup",
     isContainer: false,
@@ -824,7 +819,7 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
   },
   rating: {
     label: "Star rating",
-    category: "forms",
+    category: "interactive",
     icon: "star",
     keywords: "stars review score rating reviews",
     isContainer: false,
@@ -929,8 +924,8 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     defaults: { props: { placeholder: "Search…", buttonLabel: "Search" }, style: { desktop: { maxWidth: "420px" } } },
   },
   social: {
-    label: "Social links",
-    category: "social",
+    label: "Social icons",
+    category: "interactive",
     icon: "share-2",
     keywords: "social icons follow share facebook instagram x twitter linkedin youtube tiktok whatsapp",
     isContainer: false,
@@ -971,7 +966,7 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
   },
   audio: {
     label: "Audio player",
-    category: "social",
+    category: "media",
     icon: "headphones",
     keywords: "music podcast mp3 sound player episode",
     isContainer: false,
@@ -992,10 +987,10 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     defaults: { props: { audio: { assetId: null, src: "" }, title: "Episode 1: Light and space", artist: "The Aurelia podcast", cover: { assetId: null, src: "", alt: "" } }, style: {} },
   },
   embed: {
-    label: "Embed code",
-    category: "social",
+    label: "HTML / embed",
+    category: "code",
     icon: "code",
-    keywords: "html iframe widget script third party calendly typeform",
+    keywords: "html custom code iframe widget script third party calendly typeform",
     isContainer: false,
     defaultTag: "div",
     allowedTags: ["div"],
@@ -1028,7 +1023,7 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
   },
   video: {
     label: "Video",
-    category: "basic",
+    category: "media",
     icon: "clapperboard",
     keywords: "youtube vimeo mp4 movie embed",
     isContainer: false,
@@ -1075,7 +1070,7 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
   },
   iconbox: {
     label: "Icon box",
-    category: "basic",
+    category: "cards",
     icon: "square-dashed-bottom",
     keywords: "feature card service benefit",
     isContainer: false,
@@ -1101,7 +1096,7 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
   },
   map: {
     label: "Google Map",
-    category: "basic",
+    category: "media",
     icon: "map-pin",
     keywords: "location address directions google maps",
     isContainer: false,
@@ -1132,7 +1127,7 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
   },
   "tilted-grid-hero": {
     label: "Tilted grid hero",
-    category: "interactive",
+    category: "media",
     icon: "film",
     keywords: "hero banner 3d curved cylinder marquee images showcase premium motion",
     isContainer: true,
@@ -1184,6 +1179,9 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     },
   },
 };
+
+/** Every widget: the core library plus the master catalog additions. */
+export const WIDGETS: Record<WidgetType, WidgetDefinition> = { ...CORE_WIDGETS, ...CATALOG_WIDGETS };
 
 /** How the language switcher shows its links. */
 export interface LanguageSwitcherProps {
@@ -1257,6 +1255,51 @@ export const BINDABLE: Record<WidgetType, BindTarget[]> = {
     { key: "text", label: "Text", accepts: "text" },
   ],
   map: [{ key: "address", label: "Address", accepts: "text" }],
+  // Master catalog additions
+  frame: [{ key: BACKGROUND_TARGET, label: "Background image", accepts: "image" }],
+  grid: [{ key: BACKGROUND_TARGET, label: "Background image", accepts: "image" }],
+  sidebar: [{ key: BACKGROUND_TARGET, label: "Background image", accepts: "image" }],
+  anchor: [],
+  linkinbio: [
+    { key: "name", label: "Name", accepts: "text" },
+    { key: "avatar", label: "Photo", accepts: "image" },
+  ],
+  rectangle: [],
+  ellipse: [],
+  polygon: [],
+  star: [],
+  line: [],
+  textpath: [{ key: "text", label: "Text", accepts: "text" }],
+  readmore: [{ key: "text", label: "Text", accepts: "text" }],
+  detaillist: [],
+  tags: [],
+  buttongroup: [],
+  soundcloud: [{ key: "url", label: "SoundCloud address", accepts: "url" }],
+  herocarousel: [],
+  herobanner: [
+    { key: "title", label: "Headline", accepts: "text" },
+    { key: "text", label: "Text", accepts: "text" },
+    { key: "image", label: "Background image", accepts: "image" },
+  ],
+  imagebanner: [
+    { key: "title", label: "Title", accepts: "text" },
+    { key: "image", label: "Image", accepts: "image" },
+  ],
+  projectgrid: [],
+  imagebox: [
+    { key: "title", label: "Title", accepts: "text" },
+    { key: "text", label: "Text", accepts: "text" },
+    { key: "image", label: "Image", accepts: "image" },
+  ],
+  iconlist: [],
+  profilecard: [
+    { key: "name", label: "Name", accepts: "text" },
+    { key: "bio", label: "Bio", accepts: "text" },
+    { key: "photo", label: "Photo", accepts: "image" },
+  ],
+  alert: [],
+  shortcode: [],
+  codesnippet: [],
 };
 
 /** The content field a binding target belongs to ("link.href" → "link"). */

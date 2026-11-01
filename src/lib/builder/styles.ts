@@ -3,6 +3,7 @@ import { BREAKPOINTS, BREAKPOINT_ORDER } from "./types";
 import { safeCssValue, safeIdent } from "../design/css-values";
 import { tokensToCss, type DesignTokens } from "../design/tokens";
 import { fontFacesCss } from "../design/fonts";
+import { CATALOG_CSS } from "./styles-catalog";
 
 /**
  * Real-time style injection. Each node gets a class (`n-<id>`) and its
@@ -431,7 +432,7 @@ const BASE_CSS = `
 export function buildCss(doc: BuilderDocument, tokens: DesignTokens = {}): string {
   // Custom fonts go first: CSS ignores an @import that follows any other rule.
   const fonts = fontFacesCss(tokens.fontFaces);
-  const parts = fonts ? [fonts, BASE_CSS, tokensToCss(tokens)] : [BASE_CSS, tokensToCss(tokens)];
+  const parts = fonts ? [fonts, BASE_CSS + CATALOG_CSS, tokensToCss(tokens)] : [BASE_CSS + CATALOG_CSS, tokensToCss(tokens)];
   for (const bp of BREAKPOINT_ORDER) {
     const rules: string[] = [];
     for (const node of Object.values(doc.nodes)) {

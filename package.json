@@ -28,6 +28,7 @@
     "e2e:forms": "node scripts/e2e-forms.mjs",
     "e2e:site-widgets": "node scripts/e2e-site-widgets.mjs",
     "e2e:tilted-hero": "node scripts/e2e-tilted-hero.mjs",
+    "e2e:catalog": "node scripts/e2e-catalog.mjs",
     "e2e:fonts": "node scripts/e2e-fonts.mjs",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate && prisma migrate deploy && next build"

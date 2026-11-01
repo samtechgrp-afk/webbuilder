@@ -72,7 +72,28 @@ export type WidgetType =
   // Widget library (site, navigation, social and media)
   | "nav" | "breadcrumbs" | "search" | "social" | "audio" | "embed"
   // Premium heroes
-  | "tilted-grid-hero";
+  | "tilted-grid-hero"
+  | CatalogWidgetType;
+
+/**
+ * The master catalog additions (see widgets-catalog.ts): layout, shapes and
+ * vectors, basic content, media, composite cards, interactive UI and custom code.
+ */
+export type CatalogWidgetType =
+  // Layout & structure
+  | "frame" | "grid" | "anchor" | "sidebar" | "linkinbio"
+  // Shapes & vectors
+  | "rectangle" | "ellipse" | "polygon" | "star" | "line"
+  // Basic content
+  | "textpath" | "readmore" | "detaillist" | "tags" | "buttongroup"
+  // Media & embeds
+  | "soundcloud" | "herocarousel" | "herobanner" | "imagebanner"
+  // Composite cards
+  | "projectgrid" | "imagebox" | "iconlist" | "profilecard"
+  // Interactive & UI
+  | "alert"
+  // Custom code
+  | "shortcode" | "codesnippet";
 
 export type SemanticTag =
   | "section" | "header" | "main" | "footer" | "article" | "aside" | "nav" | "div" | "figure"

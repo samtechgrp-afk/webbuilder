@@ -13,6 +13,7 @@ import { baseFor, languageLinks, metadataLanguages, siteLocaleContext } from "@/
 import { PRODUCT_BASE } from "@/lib/commerce/types";
 import { toMajor } from "@/lib/commerce/money";
 import { getProductPage, loadCommerceData } from "@/server/commerce/catalog";
+import { siteClock } from "@/server/site-clock";
 
 /**
  * A client's live website. Reached directly at /sites/<subdomain>/… or via
@@ -159,7 +160,7 @@ async function pageContext(r: Resolved, target: SeoTarget): Promise<PageContext>
     crumbs.push({ label: pt.labelPlural, href: pt.hasArchive ? prefix : "" });
   }
   if (path !== "/") crumbs.push({ label: target.title, href: path });
-  return { url, title: target.title, path, crumbs };
+  return { url, title: target.title, path, crumbs, now: await siteClock() };
 }
 
 function SiteBody({ r, page }: { r: Resolved; page: PageContext }) {

@@ -15,6 +15,8 @@ export function WidgetEnhancer() {
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const copy = (e.target as Element | null)?.closest?.<HTMLButtonElement>('[data-w="codesnippet"] button[data-copy]');
+      if (copy && copy.closest(".site-root")) return copyCode(copy);
       const link = (e.target as Element | null)?.closest?.<HTMLAnchorElement>("a[data-lightbox]");
       if (!link || !link.closest(".site-root")) return;
       e.preventDefault();
@@ -25,7 +27,8 @@ export function WidgetEnhancer() {
     const roots = Array.from(document.querySelectorAll<HTMLElement>(".site-root"));
     const find = (sel: string) => roots.flatMap((r) => Array.from(r.querySelectorAll<HTMLElement>(sel)));
     const cleanups = [
-      ...find('[data-w="carousel"]').map(carousel),
+      ...find('[data-w="carousel"],[data-w="herocarousel"]').map(carousel),
+      ...find('[data-w="codesnippet"]').map(markReady),
       ...find('[data-w="countdown"][data-target]').map(countdown),
       ...find('[data-w="counter"][data-count-to]').map(counter),
       ...find('[data-w="nav"]').map(navDrawer),
@@ -127,6 +130,27 @@ function navDrawer(root: HTMLElement): () => void {
     root.removeEventListener("click", onClick);
     document.documentElement.style.overflow = "";
   };
+}
+
+/** Shows a widget's script-only controls (the code snippet's copy button). */
+function markReady(root: HTMLElement): () => void {
+  root.setAttribute("data-ready", "");
+  return () => root.removeAttribute("data-ready");
+}
+
+/** Code snippet: copies the code (without line numbers) and confirms on the button. */
+function copyCode(button: HTMLButtonElement) {
+  const code = button.closest('[data-w="codesnippet"]')?.querySelector("code")?.textContent ?? "";
+  const label = button.querySelector<HTMLElement>("[data-copy-label]");
+  const done = (text: string) => {
+    if (!label) return;
+    label.textContent = text;
+    window.setTimeout(() => (label.textContent = "Copy"), 1800);
+  };
+  navigator.clipboard?.writeText(code).then(
+    () => done("Copied"),
+    () => done("Press Ctrl+C"),
+  );
 }
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;

@@ -13,6 +13,10 @@ import { CartWidget } from "@/components/commerce/CartWidget";
 import { ProductDetails } from "@/components/commerce/ProductDetails";
 import { ProductGrid } from "@/components/commerce/ProductGrid";
 import { TiltedGridHero } from "@/components/ui/tilted-grid-hero";
+import { catalogNeedsEnhancer, renderCatalogWidget } from "./render-catalog";
+import { CATALOG_WIDGETS } from "./widgets-catalog";
+import type { CatalogWidgetType } from "./types";
+import type { DynamicSite } from "@/lib/cms/binding";
 import type { CartProps, CommerceData, ProductDetailsProps, ProductGridProps } from "@/lib/commerce/types";
 
 /**
@@ -63,6 +67,8 @@ export interface PageContext {
   path: string;
   /** Trail after Home; the last item is the current page. Empty on the home page. */
   crumbs: { label: string; href: string }[];
+  /** ISO time the page was rendered (cached), for [year] and [date] shortcodes. */
+  now?: string;
 }
 
 /** One entry of a language switcher. `href` is final (prefix or domain already applied). */
@@ -78,7 +84,7 @@ export interface LanguageLink {
 export function SiteDocument({ doc, tokens = {}, hooks, data, editor, linkBase = "", lang, languages, commerce, formAction, page }: RenderOptions) {
   // Styles come from the template document; loop copies reuse the original's class.
   const view = data ? applyDynamic(doc, data, { editor }) : doc;
-  const ctx: Ctx = { doc: view, hooks, linkBase, languages, editor, lang, commerce, formAction, page };
+  const ctx: Ctx = { doc: view, hooks, linkBase, languages, editor, lang, commerce, formAction, page, site: data?.site };
   return (
     <div className="site-root" lang={lang || undefined}>
       <style dangerouslySetInnerHTML={{ __html: buildCss(doc, tokens) }} />
@@ -100,6 +106,8 @@ interface Ctx {
   /** Where Contact form and Newsletter widgets post. Without it (canvas, previews) forms render disabled. */
   formAction?: string;
   page?: PageContext;
+  /** Site identity for shortcodes ([site_name]). */
+  site?: DynamicSite;
 }
 
 const withBase = (href: string, base: string) => (base && /^\/(?!\/)/.test(href) ? `${base}${href === "/" ? "" : href}` || "/" : href);
@@ -137,7 +145,8 @@ function needsEnhancer(doc: BuilderDocument) {
       (n.type === "counter" && n.props.duration !== 0) ||
       n.type === "form" ||
       n.type === "newsletter" ||
-      n.type === "nav",
+      n.type === "nav" ||
+      catalogNeedsEnhancer(n),
   );
 }
 
@@ -403,6 +412,10 @@ function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
   const set = settingValues(def.settings, node);
   // Iframes would swallow clicks on the canvas, so the element couldn't be selected.
   const frameStyle: CSSProperties | undefined = ctx.editor ? { pointerEvents: "none" } : undefined;
+
+  if (node.type in CATALOG_WIDGETS) {
+    return renderCatalogWidget(node.type as CatalogWidgetType, { node, set, common, Tag, kids, editor: ctx.editor, linkBase, site: ctx.site, page: ctx.page, Img });
+  }
 
   switch (node.type) {
     case "section":
