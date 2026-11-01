@@ -3,10 +3,16 @@
 import { useState, type ReactNode } from "react";
 import { contrastRatio, resolveColor, type DesignTokens } from "@/lib/builder/styles";
 import { isTokenRef, tokenOptions, type TokenKind } from "@/lib/design/tokens";
+import { fontFamilyOptions } from "@/lib/design/fonts";
+import { FONT_CHOICES } from "@/lib/design/presets";
+import { hasPermission } from "@/lib/rbac";
 import { cascadedStyle, findParent, isContainer } from "@/lib/builder/tree";
 import { BREAKPOINTS, type BuilderNode, type SemanticTag, type StyleKey } from "@/lib/builder/types";
 import { WIDGETS } from "@/lib/builder/widgets";
 import { useEditor } from "./store";
+
+/** Widgets with no text of their own; every other widget gets Typography (fonts cascade into its text). */
+const NO_TEXT = new Set(["image", "gallery", "spacer", "divider", "video", "audio", "map", "embed", "icon"]);
 
 /**
  * Designer style panel. Every value is written to the breakpoint currently
@@ -15,7 +21,6 @@ import { useEditor } from "./store";
  */
 export function DesignPanel({ node, tokens }: { node: BuilderNode; tokens: DesignTokens }) {
   const def = WIDGETS[node.type];
-  const textual = ["heading", "text", "button", "price"].includes(node.type);
   return (
     <div className="space-y-1">
       <ElementSection node={node} />
@@ -34,7 +39,7 @@ export function DesignPanel({ node, tokens }: { node: BuilderNode; tokens: Desig
         {node.type === "image" && <Choice node={node} k="objectFit" label="Fit" options={["cover", "contain"]} />}
         <StyleField node={node} k="gridColumn" label="Grid column (inside a grid)" placeholder="span 2" />
       </Section>
-      {(textual || def.isContainer) && <TypeSection node={node} tokens={tokens} />}
+      {!NO_TEXT.has(node.type) && <TypeSection node={node} tokens={tokens} />}
       <Section title="Fill & border">
         <ColorField node={node} k="background" label="Background" tokens={tokens} />
         <div className="grid grid-cols-2 gap-2">
@@ -189,6 +194,72 @@ function StyleField({
         </datalist>
       )}
     </label>
+  );
+}
+
+/**
+ * Font picker: the design system's font tokens (follow the tokens), the
+ * site's custom fonts from the font manager, the built-in families, or any
+ * raw CSS stack. Designers get a shortcut to the font manager.
+ */
+function FontField({ node, tokens }: { node: BuilderNode; tokens: DesignTokens }) {
+  const setStyle = useEditor((s) => s.setStyle);
+  const canManage = useEditor((s) => hasPermission(s.ctx.permissions, "design.tokens"));
+  const { own, inherited } = useStyleValue(node, "fontFamily");
+  const groups = [
+    { label: "Design system", options: tokenOptions(tokens, "font").map((o) => ({ label: o.label, value: o.value })) },
+    { label: "Custom fonts", options: fontFamilyOptions(tokens.fontFaces).map((f) => ({ label: f.family, value: f.value })) },
+    { label: "Built-in", options: FONT_CHOICES.map((f) => ({ label: f.label, value: f.value as string })) },
+  ];
+  const known = !own || groups.some((g) => g.options.some((o) => o.value === own));
+  const [raw, setRaw] = useState(!known);
+  return (
+    <div className="col-span-2">
+      <FieldLabel label="Font" own={own} from={inherited.from} onReset={() => setStyle(node.id, "fontFamily", undefined)} />
+      {raw ? (
+        <div className="flex gap-1">
+          <CommitText
+            key={`${node.id}:fontFamily:${own}`}
+            value={own ?? ""}
+            placeholder={inherited.value ?? "'Brand', system-ui, sans-serif"}
+            onCommit={(v) => setStyle(node.id, "fontFamily", v.trim() || undefined)}
+            aria-label="Font"
+            data-style="fontFamily"
+          />
+          <button type="button" onClick={() => setRaw(false)} className="shrink-0 rounded border border-zinc-200 px-1.5 text-[10px] text-zinc-600 hover:bg-zinc-50">
+            List
+          </button>
+        </div>
+      ) : (
+        <select
+          className={selectCls}
+          aria-label="Font"
+          data-style="fontFamily"
+          data-font-select=""
+          value={own ?? ""}
+          onChange={(e) => (e.target.value === "__raw__" ? setRaw(true) : setStyle(node.id, "fontFamily", e.target.value || undefined))}
+        >
+          <option value="">{inherited.value ? "Inherited" : "Default"}</option>
+          {groups.map((g) =>
+            g.options.length ? (
+              <optgroup key={g.label} label={g.label}>
+                {g.options.map((o) => (
+                  <option key={o.value} value={o.value} style={{ fontFamily: o.value }}>
+                    {o.label}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null,
+          )}
+          <option value={"__raw__"}>Custom CSS stack…</option>
+        </select>
+      )}
+      {canManage && (
+        <button type="button" onClick={() => useEditor.getState().setFontManagerOpen(true)} className="mt-1 text-[11px] text-indigo-600 hover:underline" data-open-font-manager="">
+          Manage fonts…
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -415,7 +486,7 @@ function TypeSection({ node, tokens }: { node: BuilderNode; tokens: DesignTokens
   return (
     <Section title="Typography">
       <div className="grid grid-cols-2 gap-2">
-        <StyleField node={node} k="fontFamily" label="Font" tokens={tokens} tokenKind="font" />
+        <FontField node={node} tokens={tokens} />
         <StyleField node={node} k="fontSize" label="Size" tokens={tokens} tokenKind="text" />
         <StyleField node={node} k="fontWeight" label="Weight" placeholder="400" options={["300", "400", "500", "600", "700"].map((w) => ({ value: w, label: w }))} />
         <StyleField node={node} k="lineHeight" label="Line height" placeholder="1.5" tokens={tokens} tokenKind="leading" />

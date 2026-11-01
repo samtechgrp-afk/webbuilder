@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { safeCssValue } from "@/lib/design/css-values";
 import { CORE_COLORS, FONT_CHOICES, PRESETS, PRESET_KEYS } from "@/lib/design/presets";
+import { fontFamilyOptions, type FontFamilyOption, type SiteFontFace } from "@/lib/design/fonts";
 import { applyPreset, fluidTypeScale, TYPE_STEPS, type DesignTokens, type TokenGroup, type TypeScale, type TypeStep } from "@/lib/design/tokens";
 
 /**
@@ -25,7 +26,21 @@ const RATIOS = [
 const inputCls =
   "w-full rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 aria-[invalid=true]:border-red-400 aria-[invalid=true]:bg-red-50";
 
-export function TokensPanel({ value, onChange, disabled }: { value: DesignTokens; onChange: (next: DesignTokens) => void; disabled?: boolean }) {
+export function TokensPanel({
+  value,
+  onChange,
+  disabled,
+  fonts,
+  onManageFonts,
+}: {
+  value: DesignTokens;
+  onChange: (next: DesignTokens) => void;
+  disabled?: boolean;
+  /** The site's custom fonts; the global font tokens can use them. */
+  fonts?: SiteFontFace[];
+  onManageFonts?: () => void;
+}) {
+  const custom = fontFamilyOptions(fonts);
   const setGroup = (group: TokenGroup, key: string, v: string | undefined) => {
     const next = { ...(value[group] ?? {}) };
     if (v === undefined) delete next[key];
@@ -81,8 +96,13 @@ export function TokensPanel({ value, onChange, disabled }: { value: DesignTokens
       <Section title="Typography">
         <div className="grid grid-cols-1 gap-2">
           {(["heading", "display", "body", "mono"] as const).map((key) => (
-            <FontSelect key={key} label={`${key[0].toUpperCase()}${key.slice(1)} font`} value={value.fonts?.[key]} onChange={(v) => setGroup("fonts", key, v)} />
+            <FontSelect key={key} label={`${key[0].toUpperCase()}${key.slice(1)} font`} value={value.fonts?.[key]} custom={custom} onChange={(v) => setGroup("fonts", key, v)} />
           ))}
+          {onManageFonts && (
+            <button type="button" onClick={onManageFonts} className="justify-self-start text-[11px] text-indigo-600 hover:underline" data-open-font-manager="">
+              {custom.length ? `Manage custom fonts (${custom.length})…` : "Upload or link custom fonts…"}
+            </button>
+          )}
         </div>
         <TypeScaleEditor scale={value.typeScale} onChange={(typeScale) => set({ typeScale })} />
         <GroupRows title="Line height" group="lineHeights" value={value} onChange={setGroup} placeholder="1.5" suggested={["tight", "body"]} />
@@ -191,18 +211,29 @@ function ColorRow({ name, label, value, onChange, removable }: { name: string; l
   );
 }
 
-function FontSelect({ label, value, onChange }: { label: string; value?: string; onChange: (v: string | undefined) => void }) {
-  const known = FONT_CHOICES.some((f) => f.value === value);
+function FontSelect({ label, value, custom, onChange }: { label: string; value?: string; custom: FontFamilyOption[]; onChange: (v: string | undefined) => void }) {
+  const known = FONT_CHOICES.some((f) => f.value === value) || custom.some((f) => f.value === value);
   return (
     <label className="flex items-center gap-2">
       <span className="w-24 shrink-0 text-[11px] text-zinc-600">{label}</span>
       <select className={inputCls} aria-label={label} value={value ?? ""} onChange={(e) => onChange(e.target.value || undefined)}>
         <option value="">Inherit</option>
-        {FONT_CHOICES.map((f) => (
-          <option key={f.value} value={f.value}>
-            {f.label}
-          </option>
-        ))}
+        {custom.length > 0 && (
+          <optgroup label="Custom fonts">
+            {custom.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.family}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        <optgroup label="Built-in">
+          {FONT_CHOICES.map((f) => (
+            <option key={f.value} value={f.value}>
+              {f.label}
+            </option>
+          ))}
+        </optgroup>
         {value && !known && <option value={value}>Custom: {value.slice(0, 28)}</option>}
       </select>
     </label>

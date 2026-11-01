@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { DefaultNotFound } from "@/components/site/DefaultLayouts";
 import { SiteDocument } from "@/lib/builder/render";
-import type { DesignTokens } from "@/lib/builder/styles";
 import { LOCALE_HEADER, localeLinkBase } from "@/lib/i18n/locales";
 import { SITE_ROOT_HEADER, siteLinkBase } from "@/lib/site-url";
 import { getSiteLocales } from "@/server/i18n/locale-service";
-import { getNotFoundPage, resolveSite } from "@/server/public-site";
+import { getNotFoundPage, resolveSite, siteTokens } from "@/server/public-site";
 
 /**
  * A client site's "page not found". The proxy rewrites every public URL that
@@ -37,7 +36,7 @@ export default async function SiteNotFound({ params }: PageProps<"/site-404/[sit
   const hostLocale = locales.find((l) => l.domain === host && !l.isDefault)?.code ?? null;
   const locale = locales.find((l) => l.code === (h.get(LOCALE_HEADER) ?? hostLocale) && !l.isDefault) ?? null;
   const linkBase = localeLinkBase(siteBase, locale, hostLocale);
-  const tokens = (row.designTokens ?? {}) as DesignTokens;
+  const tokens = siteTokens(row);
   const custom = await getNotFoundPage({ id: row.id, name: row.name, settings: row.settings, branding: row.branding }, linkBase, locale?.code ?? "");
   const lang = custom?.locale || locales.find((l) => l.isDefault)?.code;
   return custom ? (

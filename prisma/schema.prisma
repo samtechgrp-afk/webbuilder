@@ -168,6 +168,7 @@ model Site {
   formSubmissions      FormSubmission[]
   formFiles            FormFile[]
   subscribers          Subscriber[]
+  fonts                SiteFont[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -548,6 +549,44 @@ model MediaAsset {
   @@unique([siteId, storageKey])
   @@index([siteId, createdAt])
   @@index([siteId, mimeType])
+}
+
+enum FontSource {
+  /// A .ttf/.otf/.woff/.woff2 file uploaded to the site's storage (R2 in production).
+  UPLOAD
+  /// A stylesheet on a font host (Google Fonts, Bunny, Adobe…) or a direct font file URL.
+  LINK
+}
+
+/// A custom font family the site can use: one row per face (family + weight +
+/// style). Every renderer (canvas, live site, 404, static export) emits an
+/// @font-face for uploads and an @import for linked stylesheets, and the
+/// inspector's font pickers list each family.
+model SiteFont {
+  id           String     @id @default(cuid())
+  siteId       String
+  family       String
+  source       FontSource
+  /// Uploads: the storage key under the site's prefix, deleted with the row.
+  storageKey   String?
+  /// Uploads: /uploads/<key>. Links: the https stylesheet or font file URL.
+  url          String
+  /// Uploads and direct font file links: truetype | opentype | woff | woff2. Null for stylesheets.
+  format       String?
+  /// CSS font-weight ("400", "700", or a range "100 900" for variable fonts).
+  weight       String     @default("400")
+  /// normal | italic
+  style        String     @default("normal")
+  /// Fallback stack written after the family: "sans-serif", "serif", "monospace"…
+  fallback     String     @default("sans-serif")
+  originalName String?
+  sizeBytes    Int?
+  createdById  String?
+  createdAt    DateTime   @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, family])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

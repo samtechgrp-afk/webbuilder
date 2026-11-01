@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { FontManagerModal } from "@/components/design/FontManager";
+import type { ManagedFont } from "@/lib/design/fonts";
 import type { DesignTokens } from "@/lib/builder/styles";
 import { BREAKPOINT_ORDER, BREAKPOINTS, type BuilderDocument } from "@/lib/builder/types";
 import type { DynamicData } from "@/lib/cms/binding";
@@ -36,6 +38,8 @@ export interface ClientEditorProps {
   roleName: string;
   tokens: DesignTokens;
   tokensVersion: number;
+  /** The site's custom fonts, loaded on the canvas and offered by every Font picker. */
+  fonts?: ManagedFont[];
   assets: PickerAsset[];
   revisions: RevisionSummary[];
   lock: { ok: true } | { ok: false; holder: string };
@@ -81,7 +85,11 @@ export function ClientEditor(props: ClientEditorProps) {
   const designMode = can("design.layout") && !readOnly;
   // Global tokens are a Designer tool; Client Mode never sees the drawer.
   const canTokens = designMode && can("design.tokens");
-  const tokens = useEditor((st) => st.tokens) ?? props.tokens;
+  const workingTokens = useEditor((st) => st.tokens) ?? props.tokens;
+  const fonts = useEditor((st) => st.fonts);
+  const fontManagerOpen = useEditor((st) => st.fontManagerOpen);
+  // Fonts ride along with the tokens for rendering only; the token drawer saves the store's tokens, which never carry them.
+  const tokens = useMemo(() => (fonts.length ? { ...workingTokens, fontFaces: fonts } : workingTokens), [workingTokens, fonts]);
 
   // Load the server document once per page/version. A read-only session gets no permissions at all.
   useEffect(() => {
@@ -89,6 +97,7 @@ export function ClientEditor(props: ClientEditorProps) {
     useEditor.getState().initDynamic(props.dynamic, props.catalog, props.contextPostTypeId);
     useEditor.getState().initTokens(props.tokens, props.tokensVersion);
     useEditor.getState().initCommerce(props.commerce ?? null);
+    useEditor.getState().setFonts(props.fonts ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id, readOnly]);
 
@@ -322,6 +331,15 @@ export function ClientEditor(props: ClientEditorProps) {
 
       {helpOpen && <HelpDrawer siteId={site.id} designMode={designMode} canManageFields={can("schema.manage")} onClose={closeHelp} />}
       {canTokens && tokensOpen && <DesignSystemDrawer siteId={site.id} onClose={() => setTokensOpen(false)} />}
+      {canTokens && (
+        <FontManagerModal
+          open={fontManagerOpen}
+          onClose={() => useEditor.getState().setFontManagerOpen(false)}
+          siteId={site.id}
+          fonts={fonts}
+          onChange={(f) => useEditor.getState().setFonts(f)}
+        />
+      )}
 
       {historyOpen && (
         <HistoryPanel revisions={props.revisions} canRestore={can("revisions.restore") && !readOnly} onRestore={restore} onClose={() => setHistoryOpen(false)} pending={pending} />

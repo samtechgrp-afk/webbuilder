@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { TokenSpecimen } from "@/components/design/TokenSpecimen";
 import { TokensPanel } from "@/components/design/TokensPanel";
+import { FontManagerModal } from "@/components/design/FontManager";
+import type { ManagedFont } from "@/lib/design/fonts";
 import type { DesignTokens } from "@/lib/design/tokens";
 import { restoreTokenRevisionAction, saveDesignTokensAction } from "@/server/design-actions";
 import type { TokenRevisionSummary } from "@/server/design/tokens-service";
@@ -13,8 +15,10 @@ interface State {
   revisions: TokenRevisionSummary[];
 }
 
-export function DesignSystemEditor({ siteId, initial }: { siteId: string; initial: State }) {
+export function DesignSystemEditor({ siteId, initial, fonts: initialFonts = [] }: { siteId: string; initial: State; fonts?: ManagedFont[] }) {
   const [saved, setSaved] = useState(initial);
+  const [fonts, setFonts] = useState(initialFonts);
+  const [fontsOpen, setFontsOpen] = useState(false);
   const [draft, setDraft] = useState(initial.tokens);
   const [notice, setNotice] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -30,7 +34,8 @@ export function DesignSystemEditor({ siteId, initial }: { siteId: string; initia
   return (
     <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
       <aside className="h-fit rounded-xl border border-zinc-200 bg-white p-4 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto">
-        <TokensPanel value={draft} onChange={setDraft} disabled={pending} />
+        <TokensPanel value={draft} onChange={setDraft} disabled={pending} fonts={fonts} onManageFonts={() => setFontsOpen(true)} />
+        <FontManagerModal open={fontsOpen} onClose={() => setFontsOpen(false)} siteId={siteId} fonts={fonts} onChange={setFonts} />
         <div className="sticky bottom-0 -mx-4 -mb-4 flex items-center gap-2 border-t border-zinc-200 bg-white p-3">
           <button
             type="button"
@@ -55,7 +60,7 @@ export function DesignSystemEditor({ siteId, initial }: { siteId: string; initia
           </p>
         )}
         <div className="overflow-hidden rounded-xl border border-zinc-200 shadow-sm">
-          <TokenSpecimen tokens={draft} />
+          <TokenSpecimen tokens={fonts.length ? { ...draft, fontFaces: fonts } : draft} />
         </div>
         <section className="rounded-xl border border-zinc-200 bg-white">
           <h2 className="border-b border-zinc-100 px-4 py-2.5 text-sm font-semibold text-zinc-900">History</h2>
