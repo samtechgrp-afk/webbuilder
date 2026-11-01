@@ -2,8 +2,12 @@ import type { CSSProperties, ReactNode } from "react";
 import { applyDynamic, baseNodeId, type DynamicData } from "@/lib/cms/binding";
 import { formatPrice } from "./content";
 import { buildCss, nodeClass, type DesignTokens } from "./styles";
-import type { BuilderDocument, BuilderNode, ImageValue, LinkValue, PriceValue } from "./types";
+import type { BuilderDocument, BuilderNode, ImageValue, LinkValue, PriceValue, VideoValue } from "./types";
 import { WIDGETS, type LanguageSwitcherProps } from "./widgets";
+import { SiteIcon } from "./icons";
+import { embedUrl, mapEmbedUrl, parseVideoUrl } from "./media";
+import { settingValues, type MediaRef } from "./settings";
+import { WidgetEnhancer } from "@/components/site/WidgetEnhancer";
 import { CartWidget } from "@/components/commerce/CartWidget";
 import { ProductDetails } from "@/components/commerce/ProductDetails";
 import { ProductGrid } from "@/components/commerce/ProductGrid";
@@ -63,6 +67,7 @@ export function SiteDocument({ doc, tokens = {}, hooks, data, editor, linkBase =
     <div className="site-root" lang={lang || undefined}>
       <style dangerouslySetInnerHTML={{ __html: buildCss(doc, tokens) }} />
       <NodeView id={view.rootId} ctx={ctx} />
+      {!editor && needsEnhancer(view) ? <WidgetEnhancer /> : null}
     </div>
   );
 }
@@ -99,6 +104,29 @@ function Img({ img, priority, sizes }: { img: ImageValue; priority?: boolean; si
   );
 }
 
+/**
+ * The small script behind lightboxes (and later counters, carousels, forms).
+ * Pages without such widgets ship none of it; without JavaScript (or in a
+ * static export) each widget still works in a simpler form.
+ */
+function needsEnhancer(doc: BuilderDocument) {
+  return Object.values(doc.nodes).some((n) => (n.type === "image" || n.type === "gallery") && n.props.lightbox === true);
+}
+
+type Vars = CSSProperties & Record<`--${string}`, string | number | undefined>;
+
+/** An empty string means "inherit"; React drops undefined style values. */
+const css = (v: unknown) => (typeof v === "string" && v ? v : undefined);
+
+const DIVIDER_SHAPES: Record<string, string> = {
+  wave: "M0,60 C150,120 350,0 600,60 C850,120 1050,0 1200,60 L1200,120 L0,120 Z",
+  curve: "M0,120 Q600,-40 1200,120 Z",
+  tilt: "M0,120 L1200,0 L1200,120 Z",
+  triangle: "M0,120 L600,0 L1200,120 Z",
+  zigzag: `M0,120 ${Array.from({ length: 13 }, (_, i) => `L${i * 100},${i % 2 ? 40 : 100}`).join(" ")} L1200,120 Z`,
+  mountains: "M0,120 L0,90 L200,40 L380,90 L600,10 L820,80 L1000,30 L1200,100 L1200,120 Z",
+};
+
 function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
   const { doc, hooks, linkBase } = ctx;
   const node = doc.nodes[id];
@@ -115,6 +143,9 @@ function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
     return hooks?.text ? hooks.text(node, field, value) : value;
   };
   const kids = () => (node.children ?? []).map((child) => <NodeView key={child} id={child} ctx={ctx} />);
+  const set = settingValues(def.settings, node);
+  // Iframes would swallow clicks on the canvas, so the element couldn't be selected.
+  const frameStyle: CSSProperties | undefined = ctx.editor ? { pointerEvents: "none" } : undefined;
 
   switch (node.type) {
     case "section":
@@ -123,10 +154,114 @@ function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
       const style: CSSProperties | undefined = bg
         ? { backgroundImage: `url("${bg}")`, backgroundSize: "cover", backgroundPosition: "center" }
         : undefined;
+      const video = set.bgVideo as MediaRef | null;
+      const overlay = css(set.overlay);
+      if (!video?.src && !overlay) {
+        return (
+          <Tag {...common} style={style}>
+            {kids()}
+          </Tag>
+        );
+      }
       return (
-        <Tag {...common} style={style}>
+        <Tag {...common} style={style} data-backdrop="">
+          {video?.src ? <video data-bg-layer="" src={video.src} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" /> : null}
+          {overlay ? <span data-bg-layer="" data-overlay="" aria-hidden="true" style={{ background: overlay, opacity: Number(set.overlayOpacity) / 100 }} /> : null}
           {kids()}
         </Tag>
+      );
+    }
+    case "spacer":
+      return <div {...common} aria-hidden="true" />;
+    case "divider": {
+      const shape = String(set.shape);
+      const color = css(set.color);
+      if (shape === "line" || !DIVIDER_SHAPES[shape]) {
+        const vars: Vars = { "--wb-line": `${set.thickness}px ${set.lineStyle} ${color ?? "var(--color-border, rgba(0,0,0,.15))"}`, "--wb-len": `${set.length}%` };
+        return (
+          <div {...common} role="separator" data-shape="line" data-align={set.align as string} style={vars}>
+            <span />
+          </div>
+        );
+      }
+      const flip = [set.flip ? "scaleX(-1)" : "", set.invert ? "scaleY(-1)" : ""].filter(Boolean).join(" ");
+      return (
+        <div {...common} role="separator" data-shape={shape} style={{ color }}>
+          <svg viewBox="0 0 1200 120" preserveAspectRatio="none" width="100%" height={Number(set.shapeHeight)} aria-hidden="true" style={flip ? { transform: flip } : undefined}>
+            <path d={DIVIDER_SHAPES[shape]} fill="currentColor" />
+          </svg>
+        </div>
+      );
+    }
+    case "prose": {
+      const html = typeof node.props.html === "string" ? node.props.html : "";
+      const cols = Number(set.columns);
+      const attrs = { ...common, "data-dropcap": set.dropCap ? "" : undefined, "data-cols": cols > 1 ? "" : undefined, style: cols > 1 ? ({ "--wb-cols": cols } as Vars) : undefined };
+      // Sanitised to the rich text allowlist on every write (content-service, translations).
+      return html ? <Tag {...attrs} dangerouslySetInnerHTML={{ __html: html }} /> : <Tag {...attrs} data-empty="" />;
+    }
+    case "video": {
+      const v = node.props.video as VideoValue | undefined;
+      const opts = { autoplay: !!set.autoplay, loop: !!set.loop, controls: set.controls !== false, muted: !!set.muted };
+      const parsed = v?.assetId ? (v.src ? ({ kind: "file", src: v.src } as const) : null) : parseVideoUrl(v?.src ?? "");
+      if (!parsed) return <div {...common} data-empty="" />;
+      if (parsed.kind === "file") {
+        return (
+          <div {...common}>
+            <video src={parsed.src} controls={opts.controls} autoPlay={opts.autoplay} muted={opts.autoplay || opts.muted} loop={opts.loop} playsInline preload="metadata" style={frameStyle} />
+          </div>
+        );
+      }
+      return (
+        <div {...common}>
+          <iframe
+            src={embedUrl(parsed, opts)}
+            title={parsed.kind === "youtube" ? "YouTube video" : "Vimeo video"}
+            loading="lazy"
+            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+            style={frameStyle}
+          />
+        </div>
+      );
+    }
+    case "icon": {
+      const shape = String(set.shape);
+      return (
+        <Tag {...common} data-shape={shape !== "none" ? shape : undefined} data-hover={set.hover !== "none" ? (set.hover as string) : undefined} style={shape !== "none" ? ({ "--wb-icon-bg": css(set.backdrop) } as Vars) : undefined}>
+          <SiteIcon name={String(node.props.icon ?? "")} size={Number(set.size)} strokeWidth={Number(set.strokeWidth)} />
+        </Tag>
+      );
+    }
+    case "iconbox": {
+      const TitleTag = String(set.titleTag) as "h3";
+      return (
+        <Tag {...common} data-layout={set.layout as string} data-hover={set.hover !== "none" ? (set.hover as string) : undefined}>
+          {node.props.icon ? (
+            <span data-iconbox-icon="" style={{ color: css(set.iconColor) }}>
+              <SiteIcon name={String(node.props.icon)} size={Number(set.iconSize)} />
+            </span>
+          ) : null}
+          <div data-iconbox-body="">
+            {node.props.title ? <TitleTag>{String(node.props.title)}</TitleTag> : null}
+            {node.props.text ? <p>{String(node.props.text)}</p> : null}
+          </div>
+        </Tag>
+      );
+    }
+    case "map": {
+      const address = String(node.props.address ?? "").trim();
+      if (!address) return <div {...common} data-empty="" />;
+      return (
+        <div {...common} data-tone={set.tone !== "color" ? (set.tone as string) : undefined}>
+          <iframe src={mapEmbedUrl(address, Number(set.zoom), String(set.mapType))} title={`Map of ${address}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" style={frameStyle} />
+          {set.pin ? (
+            <span data-map-pin="" style={{ color: css(set.pinColor) }}>
+              <SiteIcon name={String(set.pin)} size={40} strokeWidth={2} />
+            </span>
+          ) : null}
+        </div>
       );
     }
     case "loop":
@@ -143,34 +278,68 @@ function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
     }
     case "gallery": {
       const images = (node.props.images as ImageValue[] | undefined) ?? [];
+      const masonry = set.layout === "masonry";
+      const group = baseNodeId(node.id);
       return (
-        <Tag {...common}>
+        <Tag {...common} data-layout={masonry ? "masonry" : undefined} style={masonry ? ({ "--wb-cols": Number(set.columns) } as Vars) : undefined}>
           {images.filter((img) => img?.src).map((img, i) => (
             <figure key={`${img.assetId}-${i}`}>
-              <Img img={img} sizes="(max-width: 767px) 50vw, 33vw" />
+              {set.lightbox ? (
+                <a href={img.src} data-lightbox={group} aria-label={img.alt ? `Open ${img.alt}` : `Open image ${i + 1}`}>
+                  <Img img={img} sizes="(max-width: 767px) 50vw, 33vw" />
+                </a>
+              ) : (
+                <Img img={img} sizes="(max-width: 767px) 50vw, 33vw" />
+              )}
             </figure>
           ))}
         </Tag>
       );
     }
     case "heading":
+      if (set.gradient) {
+        const grad: Vars = { "--wb-grad": `linear-gradient(${Number(set.gradientAngle)}deg, ${css(set.gradientFrom) ?? "currentColor"}, ${css(set.gradientTo) ?? "currentColor"})` };
+        return (
+          <Tag {...common} data-gradient="" style={grad}>
+            {text("text")}
+          </Tag>
+        );
+      }
+      return <Tag {...common}>{text("text")}</Tag>;
     case "text":
       return <Tag {...common}>{text("text")}</Tag>;
     case "langswitch":
       return <LanguageSwitcher common={common} Tag={Tag} props={node.props as Partial<LanguageSwitcherProps>} languages={ctx.languages} editor={ctx.editor} />;
     case "image": {
       const img = node.props.image as ImageValue | undefined;
-      return <div {...common}>{img?.src ? <Img img={img} priority={!!node.props.priority} /> : null}</div>;
+      if (!img?.src) return <div {...common} />;
+      const picture = <Img img={img} priority={!!node.props.priority} />;
+      return (
+        <div {...common}>
+          {set.lightbox ? (
+            <a href={img.src} data-lightbox={baseNodeId(node.id)} aria-label={img.alt ? `Open ${img.alt}` : "Open image"}>
+              {picture}
+            </a>
+          ) : (
+            picture
+          )}
+          {set.caption && img.alt ? <span data-caption="">{img.alt}</span> : null}
+        </div>
+      );
     }
     case "button": {
       const link = node.props.link as LinkValue | undefined;
+      const icon = set.icon ? <SiteIcon name={String(set.icon)} /> : null;
       return (
         <a
           {...common}
           href={withBase(link?.href ?? "#", linkBase)}
           {...(link?.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          {...(set.hover !== "lift" ? { "data-hover": String(set.hover) } : {})}
         >
+          {icon && set.iconPosition === "before" ? icon : null}
           {link?.label}
+          {icon && set.iconPosition !== "before" ? icon : null}
         </a>
       );
     }

@@ -24,6 +24,7 @@
     "e2e:ecommerce": "node scripts/e2e-ecommerce.mjs",
     "e2e:templates": "node scripts/e2e-templates.mjs",
     "e2e:launch-prep": "node scripts/e2e-launch-prep.mjs",
+    "e2e:widgets": "node scripts/e2e-widgets.mjs",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate && prisma migrate deploy && next build"
   },
@@ -38,6 +39,8 @@
     "graphql": "^16.14.2",
     "jose": "^6.2.13",
     "jsdom": "^26.1.0",
+    "lucide": "^1.66.0",
+    "lucide-react": "^1.66.0",
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",

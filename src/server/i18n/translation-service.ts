@@ -4,7 +4,7 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 import { nodeCapabilities, parentMap, isBoundField, type Violation } from "@/lib/builder/policy";
 import { isBuilderDocument, type BuilderDocument } from "@/lib/builder/types";
-import { contentField } from "@/lib/builder/widgets";
+import { contentField, SHARED_CONTENT_KINDS } from "@/lib/builder/widgets";
 import { isEmptyValue, valueSchema, type FieldDef } from "@/lib/cms/fields";
 import { SLUG_RE, uniqueSlug } from "@/lib/cms/slug";
 import { defaultLocale, type SiteLocaleInfo } from "@/lib/i18n/locales";
@@ -252,6 +252,10 @@ async function validateOverrides(t: TenantContext, doc: BuilderDocument, raw: Tr
       const def = contentField(node.type, key);
       if (!def) {
         violations.push({ nodeId, message: `"${key}" isn't text, an image or a link. Layout and styles are shared by every language.` });
+        continue;
+      }
+      if (SHARED_CONTENT_KINDS.has(def.kind)) {
+        violations.push({ nodeId, message: `${def.label} is the same in every language` });
         continue;
       }
       if (isBoundField(doc, nodeId, key)) {

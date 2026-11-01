@@ -226,6 +226,8 @@ function SourceValue({ field, value }: { field: ContentField; value: unknown }) 
     }
     case "gallery":
       return <span>{(value as ImageValue[]).length} images</span>;
+    case "html":
+      return <div className="prose prose-sm max-h-60 overflow-y-auto" dangerouslySetInnerHTML={{ __html: String(value) }} />;
     case "link": {
       const l = value as LinkValue;
       return (
@@ -269,6 +271,15 @@ function OverrideInput({
   switch (field.kind) {
     case "text":
       return <input aria-label={`Translated ${field.label}`} data-override={testId} className={inputClass} disabled={disabled} maxLength={field.maxLength} value={(value as string) ?? ""} placeholder={String(source ?? "")} onChange={(e) => onChange(e.target.value)} />;
+    case "html":
+      return (
+        <div data-override={testId}>
+          <RichTextEditor label={`Translated ${field.label}`} value={(value as string) ?? ""} disabled={disabled} onChange={(html) => onChange(html || null)} minHeight={120} />
+        </div>
+      );
+    case "video":
+    case "icon":
+      return null;
     case "multiline":
       return <textarea aria-label={`Translated ${field.label}`} data-override={testId} className={inputClass} rows={3} disabled={disabled} maxLength={field.maxLength} value={(value as string) ?? ""} placeholder={String(source ?? "")} onChange={(e) => onChange(e.target.value)} />;
     case "link": {

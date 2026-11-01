@@ -86,6 +86,7 @@ CRON_SECRET=… npm run e2e:cms    # Playwright: CPT + fields → client entry �
 npm run e2e:templates            # Playwright: client lockout, gallery filters, device previews, one-click create → canvas, all 30 templates → entity counts, live = preview, tenant isolation
 RESEND_API_KEY=re_e2e_test_key RESEND_API_BASE=http://127.0.0.1:4243 STRIPE_API_BASE=http://127.0.0.1:4242 npm start   # for the launch suite
 npm run e2e:launch-prep          # Playwright + Stripe and Resend mocks: env validation at boot, sign-up → wizard → site, welcome email, order receipt and store alert, replay safety, order status link, Client Mode badges, help drawer, system health
+npm run e2e:widgets              # Playwright: categorised palette + search, add and configure widget library widgets → publish → live site, client content-only editing
 ```
 
 Reseed with the server stopped (or restart it after seeding): resolved sites are cached by subdomain. For scheduled publishing in production, set `CRON_SECRET`; `vercel.json` calls the cron route every minute. The proxy fetches the rendered 404 page from `INTERNAL_URL` (defaults to `https://$VERCEL_URL`, else `http://127.0.0.1:$PORT`); with Vercel Deployment Protection on, point `INTERNAL_URL` at a reachable origin.
@@ -177,6 +178,17 @@ Any Postgres 14+ works. Apply migrations with `npx prisma migrate deploy` (the V
 - **Supabase**: Project settings → Database → Connection string. Use the transaction pooler (port 6543) with `?pgbouncer=true` for `DATABASE_URL` on Vercel. Run migrations against the direct connection (port 5432), e.g. `DATABASE_URL=<direct url> npx prisma migrate deploy`.
 - **Self-managed** (a VM, RDS, Cloud SQL, or the compose `db` service): create a database and a user that owns it, then use `postgresql://user:password@host:5432/builder?schema=public` (add `&sslmode=require` when the server requires TLS). Back it up: everything except uploads lives there.
 
+## Widget library
+
+The designer's palette groups widgets into categories (Structure & layout, Basic content, Advanced & interactive, Forms & lead capture, Dynamic & theme, Social & media, Shop) and has a search box that matches names and keywords.
+
+- **Registry** (`src/lib/builder/widgets.ts`): every widget declares its category, palette icon, semantic tags, client-editable content fields, dynamic binding targets, designer **settings** and defaults. The editor, the renderer, the server-side save checks and translations all read this one registry.
+- **Settings** (`src/lib/builder/settings.ts`): declarative designer options (select, toggle, range, text, colour, icon, media). The same declaration renders the inspector's Settings tab, supplies defaults to the renderer and validates every save, so a widget saved before a setting existed renders exactly as it did. Settings are design changes: clients can't change them.
+- **Presets** (`src/lib/builder/presets.ts`): palette shortcuts (Row · 2 / 3 columns, Column, Boxed container) that drop ordinary containers, so they add nothing new to the saved JSON.
+- **Icons** (`src/lib/builder/icons.tsx`, `icon-set.ts`): a curated set of Lucide icons rendered as inline SVG on the server, with no client JavaScript.
+- **Widgets so far**: Section and Container (now with a background video and colour overlay), Spacer, Divider (line styles or SVG wave / curve / tilt / triangle / zigzag / mountains shapes), Heading (h1 to h6, gradient text), Text, Rich text (WYSIWYG, sanitised on the server, drop cap, newspaper columns), Button (solid / outline / ghost variants, hover effects, icon), Image (lightbox, caption), Video (media library MP4/WebM, YouTube via youtube-nocookie, Vimeo with Do Not Track; autoplay, loop, controls), Icon, Icon box, Google Map (keyless embed, zoom, satellite, tone filters, pin overlay), Gallery (grid or masonry, lightbox), plus the CMS and shop widgets.
+- **Interactivity without a framework on the page**: widgets render as plain HTML on the server. The few that need behaviour (the lightbox so far) get it from one small script (`src/components/site/WidgetEnhancer.tsx`) that only ships on pages that use them and works by event delegation; without JavaScript, or in a static export, each still works in a simpler form (the lightbox link opens the image).
+
 ## Where things live
 
 | Path | What |
@@ -190,6 +202,8 @@ Any Postgres 14+ works. Apply migrations with `npx prisma migrate deploy` (the V
 | `src/lib/builder/tree.ts` | Pure tree ops (insert, move, duplicate, remove), structural validation, cascade lookup |
 | `src/lib/builder/policy.ts` | Guardrail engine: lock inheritance, document diffing, change authorisation |
 | `src/lib/builder/render.tsx` | One renderer for the live site and the editor canvas |
+| `src/lib/builder/widgets.ts`, `settings.ts`, `presets.ts`, `icons.tsx`, `media.ts` | Widget registry, designer settings engine, palette presets, Lucide icon set, video and map embeds |
+| `src/components/site/WidgetEnhancer.tsx` | Progressive enhancement for interactive widgets on the live site |
 | `src/lib/builder/styles.ts` | Style injection (container queries), token-driven base CSS, WCAG contrast |
 | `src/lib/design/*` | Token types and compiler (fluid type, spacing grid), presets and fonts, zod validation |
 | `src/server/design/tokens-service.ts`, `src/server/design-actions.ts` | Save / apply preset / restore tokens, version check, revisions, cache expiry |
