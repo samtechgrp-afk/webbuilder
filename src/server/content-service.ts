@@ -133,6 +133,34 @@ export async function normaliseContent(t: TenantContext, next: BuilderDocument, 
         value = { assetId: v.assetId, src } satisfies VideoValue;
       }
     }
+    if (def.kind === "items") {
+      // Images inside list records get the same treatment as an image field.
+      const imageKeys = (def.itemFields ?? []).filter((f) => f.kind === "image").map((f) => f.key);
+      if (imageKeys.length) {
+        const out: Record<string, unknown>[] = [];
+        let bad = false;
+        for (const item of parsed.data as Record<string, unknown>[]) {
+          const copy = { ...item };
+          for (const k of imageKeys) {
+            const img = copy[k] as ImageValue | undefined;
+            if (!img) continue;
+            if (!img.assetId) {
+              copy[k] = { assetId: null, src: "", alt: img.alt } satisfies ImageValue;
+              continue;
+            }
+            const resolved = await resolveImage(t, img);
+            if (!resolved) bad = true;
+            else copy[k] = resolved;
+          }
+          out.push(copy);
+        }
+        if (bad) {
+          violations.push({ nodeId, message: `${def.label}: an image isn't in this site's media library` });
+          continue;
+        }
+        value = out;
+      }
+    }
     if (def.kind === "gallery") {
       const out: ImageValue[] = [];
       for (const img of parsed.data as ImageValue[]) {

@@ -110,7 +110,54 @@ function Img({ img, priority, sizes }: { img: ImageValue; priority?: boolean; si
  * static export) each widget still works in a simpler form.
  */
 function needsEnhancer(doc: BuilderDocument) {
-  return Object.values(doc.nodes).some((n) => (n.type === "image" || n.type === "gallery") && n.props.lightbox === true);
+  return Object.values(doc.nodes).some(
+    (n) =>
+      ((n.type === "image" || n.type === "gallery") && n.props.lightbox === true) ||
+      n.type === "carousel" ||
+      (n.type === "countdown" && typeof n.props.target === "string" && !!n.props.target) ||
+      (n.type === "counter" && n.props.duration !== 0),
+  );
+}
+
+type Item = Record<string, unknown>;
+const items = (v: unknown): Item[] => (Array.isArray(v) ? v.filter((x): x is Item => !!x && typeof x === "object") : []);
+const str = (v: unknown) => (typeof v === "string" ? v : "");
+const hasLink = (l: unknown): l is LinkValue => !!l && typeof l === "object" && !!(l as LinkValue).label && !!(l as LinkValue).href;
+
+/** Prices on pricing tables drop ".00" for whole amounts ("$49", "$49.50"). */
+function planPrice(amount: number, currency: string, lang?: string) {
+  const whole = Number.isInteger(amount);
+  try {
+    return new Intl.NumberFormat(lang || "en-US", { style: "currency", currency, minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 }).format(amount);
+  } catch {
+    return formatPrice(amount, currency, lang);
+  }
+}
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+/** "2026-12-31T23:59" → "31 December 2026, 23:59", without time zone conversion (the server's zone isn't the visitor's). */
+function readableDate(v: string) {
+  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  return m ? `${+m[3]} ${MONTHS[+m[2] - 1] ?? ""} ${m[1]}, ${m[4]}:${m[5]}` : v;
+}
+
+const COUNTDOWN_UNITS: Record<string, [string, string][]> = {
+  dhms: [["d", "Days"], ["h", "Hours"], ["m", "Minutes"], ["s", "Seconds"]],
+  dhm: [["d", "Days"], ["h", "Hours"], ["m", "Minutes"]],
+  hms: [["h", "Hours"], ["m", "Minutes"], ["s", "Seconds"]],
+};
+
+function Stars({ value, color }: { value: number; color?: string }) {
+  const n = Math.max(0, Math.min(5, Math.round(value)));
+  return (
+    <div data-stars="" role="img" aria-label={`${n} out of 5 stars`} style={{ color }}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <svg key={i} viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" data-on={i < n ? "" : undefined}>
+          <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" fill="currentColor" />
+        </svg>
+      ))}
+    </div>
+  );
 }
 
 type Vars = CSSProperties & Record<`--${string}`, string | number | undefined>;
@@ -169,6 +216,274 @@ function NodeView({ id, ctx }: { id: string; ctx: Ctx }) {
           {overlay ? <span data-bg-layer="" data-overlay="" aria-hidden="true" style={{ background: overlay, opacity: Number(set.overlayOpacity) / 100 }} /> : null}
           {kids()}
         </Tag>
+      );
+    }
+    case "accordion": {
+      const list = items(node.props.items);
+      const TitleTag = String(set.titleTag) as "h3";
+      const group = set.mode === "single" && !ctx.editor ? `acc-${baseNodeId(node.id)}` : undefined;
+      return (
+        <Tag {...common} data-marker={set.marker as string}>
+          {list.map((it, i) => (
+            // `name` makes the panels exclusive natively (one open at a time), no script needed.
+            <details key={i} name={group} open={ctx.editor || (i === 0 && !!set.firstOpen) || undefined}>
+              <summary>
+                <TitleTag>{str(it.title)}</TitleTag>
+                <span data-acc-marker="" aria-hidden="true" />
+              </summary>
+              <div data-acc-body="">{str(it.body)}</div>
+            </details>
+          ))}
+        </Tag>
+      );
+    }
+    case "tabs": {
+      const list = items(node.props.items).slice(0, 12);
+      const base = `tabs-${baseNodeId(node.id)}`;
+      // Radio buttons drive the panels with CSS alone: works without JavaScript, arrow keys switch tabs.
+      return (
+        <Tag {...common} data-orientation={set.orientation as string} data-look={set.look as string}>
+          <div data-tablist="">
+            {list.map((it, i) => (
+              <span key={i} data-tab="">
+                <input type="radio" name={base} id={`${base}-${i}`} defaultChecked={i === 0} />
+                <label htmlFor={`${base}-${i}`}>{str(it.label) || `Tab ${i + 1}`}</label>
+              </span>
+            ))}
+          </div>
+          <div data-tab-panels="">
+            {list.map((it, i) => (
+              <div key={i} data-tab-panel="" aria-labelledby={`${base}-${i}`}>
+                {str(it.title) ? <h3>{str(it.title)}</h3> : null}
+                {str(it.body) ? <p>{str(it.body)}</p> : null}
+              </div>
+            ))}
+          </div>
+        </Tag>
+      );
+    }
+    case "carousel": {
+      const list = items(node.props.items);
+      const vars: Vars = { "--wb-per": Number(set.perView), "--wb-aspect": String(set.aspect) };
+      return (
+        <Tag
+          {...common}
+          data-text={set.textPosition as string}
+          data-autoplay={set.autoplay ? Number(set.interval) * 1000 : undefined}
+          data-loop={set.loop ? "" : undefined}
+          style={vars}
+          aria-roledescription="carousel"
+          aria-label={node.name ?? "Slides"}
+        >
+          <div data-track="" tabIndex={0}>
+            {list.map((it, i) => {
+              const img = it.image as ImageValue | undefined;
+              return (
+                <div key={i} data-slide="" role="group" aria-roledescription="slide" aria-label={`${i + 1} of ${list.length}`}>
+                  <div data-slide-media="">{img?.src ? <Img img={img} priority={i === 0 && !!node.props.priority} sizes={`(max-width: 767px) 100vw, ${Math.round(100 / Number(set.perView))}vw`} /> : null}</div>
+                  {str(it.title) || str(it.text) || hasLink(it.link) ? (
+                    <div data-slide-text="">
+                      {str(it.title) ? <h3>{str(it.title)}</h3> : null}
+                      {str(it.text) ? <p>{str(it.text)}</p> : null}
+                      {hasLink(it.link) ? (
+                        <a href={withBase(it.link.href, linkBase)} data-slide-link="" {...(it.link.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+                          {it.link.label}
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+          {set.arrows && list.length > 1 ? (
+            <>
+              <button type="button" data-prev="" aria-label="Previous slide">
+                <SiteIcon name="chevron-left" />
+              </button>
+              <button type="button" data-next="" aria-label="Next slide">
+                <SiteIcon name="chevron-right" />
+              </button>
+            </>
+          ) : null}
+          {set.dots && list.length > 1 ? (
+            <div data-dots="">
+              {list.map((_, i) => (
+                <button key={i} type="button" data-dot={i} aria-label={`Go to slide ${i + 1}`} />
+              ))}
+            </div>
+          ) : null}
+        </Tag>
+      );
+    }
+    case "testimonial": {
+      const avatar = node.props.avatar as ImageValue | undefined;
+      const Cap = (Tag === "figure" ? "figcaption" : "div") as "div";
+      const rating = Number(node.props.rating ?? 0);
+      return (
+        <Tag {...common} data-layout={set.layout as string}>
+          {set.showRating && rating > 0 ? <Stars value={rating} color={css(set.starColor)} /> : null}
+          <blockquote>
+            <p>{str(node.props.quote)}</p>
+          </blockquote>
+          <Cap data-cite="">
+            {avatar?.src ? <Img img={avatar} sizes="64px" /> : null}
+            <span>
+              {str(node.props.name) ? <strong>{str(node.props.name)}</strong> : null}
+              {str(node.props.role) ? <span>{str(node.props.role)}</span> : null}
+            </span>
+          </Cap>
+        </Tag>
+      );
+    }
+    case "pricing": {
+      const price = node.props.price as PriceValue | undefined;
+      const features = items(node.props.features);
+      const link = node.props.link;
+      return (
+        <Tag {...common} data-featured={set.featured ? "" : undefined} style={{ "--wb-accent": css(set.accent) } as Vars}>
+          {str(node.props.ribbon) ? <span data-ribbon="">{str(node.props.ribbon)}</span> : null}
+          <h3 data-plan="">{str(node.props.plan)}</h3>
+          {price ? (
+            <p data-plan-price="">
+              <strong>{planPrice(price.amount, price.currency, ctx.lang)}</strong>
+              {str(node.props.period) ? <span>{str(node.props.period)}</span> : null}
+              {price.compareAt ? <s>{planPrice(price.compareAt, price.currency, ctx.lang)}</s> : null}
+            </p>
+          ) : null}
+          {str(node.props.description) ? <p data-plan-desc="">{str(node.props.description)}</p> : null}
+          {features.length ? (
+            <ul data-features="">
+              {features.map((f, i) => (
+                <li key={i} data-included={f.included === false ? undefined : ""} data-excluded={f.included === false ? "" : undefined}>
+                  <SiteIcon name={f.included === false ? "x" : "check"} strokeWidth={2.25} />
+                  <span>{str(f.text)}</span>
+                  {f.included === false ? <span data-sr="">(not included)</span> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {hasLink(link) ? (
+            <a href={withBase(link.href, linkBase)} data-plan-cta="" {...(link.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+              {link.label}
+            </a>
+          ) : null}
+        </Tag>
+      );
+    }
+    case "countdown": {
+      const target = str(node.props.target);
+      const units = COUNTDOWN_UNITS[String(set.units)] ?? COUNTDOWN_UNITS.dhms;
+      if (!target) return ctx.editor ? <div {...common} data-empty="" aria-label="Countdown (pick a date under Content)" /> : null;
+      return (
+        <div
+          {...common}
+          data-target={target}
+          data-tz={set.timezone as string}
+          data-on-done={set.onDone as string}
+          data-done-text={str(node.props.doneText) || undefined}
+          data-look={set.look as string}
+          // The canvas has no ticking script: show the boxes with placeholders so the design is visible.
+          data-ready={ctx.editor ? "" : undefined}
+          role="timer"
+          aria-live="off"
+        >
+          {units.map(([key, label]) => (
+            <span key={key} data-cd-unit={key}>
+              <span data-cd-num="">00</span>
+              <span data-cd-label="">{label}</span>
+            </span>
+          ))}
+          <p data-cd-fallback="">
+            Ends <time dateTime={target}>{readableDate(target)}</time>
+          </p>
+          <p data-cd-done="">{str(node.props.doneText)}</p>
+        </div>
+      );
+    }
+    case "flipbox": {
+      const link = node.props.link;
+      return (
+        <Tag {...common} data-dir={set.direction as string} tabIndex={ctx.editor ? undefined : 0}>
+          <div data-flip-inner="">
+            <div data-flip-front="" style={{ background: css(set.frontBg) }}>
+              {node.props.icon ? <SiteIcon name={String(node.props.icon)} size={40} /> : null}
+              {str(node.props.title) ? <h3>{str(node.props.title)}</h3> : null}
+              {str(node.props.text) ? <p>{str(node.props.text)}</p> : null}
+            </div>
+            <div data-flip-back="" style={{ background: css(set.backBg), color: css(set.backColor) }}>
+              {str(node.props.backTitle) ? <h3>{str(node.props.backTitle)}</h3> : null}
+              {str(node.props.backText) ? <p>{str(node.props.backText)}</p> : null}
+              {hasLink(link) ? (
+                <a href={withBase(link.href, linkBase)} data-flip-link="" {...(link.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+                  {link.label}
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </Tag>
+      );
+    }
+    case "cta": {
+      const img = node.props.image as ImageValue | undefined;
+      const layout = String(set.layout);
+      const showImage = layout !== "plain" && !!img?.src;
+      const links = [node.props.link, node.props.link2].filter(hasLink);
+      return (
+        <Tag {...common} data-layout={layout} data-align={set.align as string} data-has-image={showImage ? "" : undefined}>
+          {showImage ? (
+            <div data-cta-media="">
+              <Img img={img!} sizes={layout === "split" ? "(max-width: 767px) 100vw, 50vw" : "100vw"} />
+            </div>
+          ) : null}
+          {showImage && layout === "overlay" && css(set.overlay) ? <span data-cta-overlay="" aria-hidden="true" style={{ background: css(set.overlay) }} /> : null}
+          <div data-cta-body="">
+            {str(node.props.title) ? <h2>{str(node.props.title)}</h2> : null}
+            {str(node.props.text) ? <p>{str(node.props.text)}</p> : null}
+            {links.length ? (
+              <div data-cta-actions="">
+                {links.map((l, i) => (
+                  <a key={i} href={withBase(l.href, linkBase)} data-cta-button={i === 0 ? "primary" : "secondary"} {...(l.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+                    {l.label}
+                  </a>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </Tag>
+      );
+    }
+    case "progress": {
+      const value = Math.max(0, Math.min(100, Number(node.props.value ?? 0)));
+      const label = str(node.props.label);
+      const vars: Vars = { "--wb-bar": css(set.barColor), "--wb-track": css(set.trackColor), "--wb-h": `${Number(set.thickness)}px` };
+      return (
+        <div {...common} data-animate={set.animate ? "" : undefined} style={vars}>
+          {label || set.showValue ? (
+            <div data-progress-head="">
+              <span>{label}</span>
+              {set.showValue ? <span data-progress-value="">{value}%</span> : null}
+            </div>
+          ) : null}
+          <div data-progress-track="" role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} aria-label={label || "Progress"}>
+            <span data-progress-fill="" style={{ width: `${value}%` }} />
+          </div>
+        </div>
+      );
+    }
+    case "counter": {
+      const value = Number(node.props.value ?? 0);
+      const decimals = Number(set.decimals);
+      const shown = value.toLocaleString(ctx.lang || "en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals, useGrouping: !!set.separator });
+      return (
+        <div {...common} data-count-to={value} data-decimals={decimals} data-sep={set.separator ? "" : undefined} data-duration={Number(set.duration)}>
+          <p data-counter-number="">
+            {str(node.props.prefix) ? <span>{str(node.props.prefix)}</span> : null}
+            <span data-count="">{shown}</span>
+            {str(node.props.suffix) ? <span>{str(node.props.suffix)}</span> : null}
+          </p>
+          {str(node.props.label) ? <p data-counter-label="">{str(node.props.label)}</p> : null}
+        </div>
       );
     }
     case "spacer":

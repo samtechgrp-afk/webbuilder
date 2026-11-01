@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ICON_NAMES } from "./icons";
 import { parseVideoUrl } from "./media";
-import type { ContentField } from "./widgets";
+import type { ContentField, ItemField } from "./widgets";
 
 /** Links may be site-relative, anchors, http(s), mailto or tel. Never `javascript:` and friends. */
 export function isSafeHref(href: string) {
@@ -36,6 +36,9 @@ const linkSchema = z.object({
   newTab: z.boolean().optional(),
 });
 
+/** An optional button (a call to action's second button, a slide's link): empty means "no button". */
+const optionalLinkSchema = linkSchema.or(z.object({ label: plainText(80), href: z.literal(""), newTab: z.boolean().optional() }));
+
 const priceSchema = z.object({
   amount: z.number().nonnegative().max(1_000_000_000),
   currency: z.string().length(3),
@@ -46,6 +49,33 @@ const videoSchema = z
   .object({ assetId: z.string().min(1).max(40).nullable(), src: z.string().max(2048) })
   .refine((v) => v.assetId !== null || v.src === "" || parseVideoUrl(v.src) !== null, "Use a video from the media library, or a YouTube, Vimeo or https .mp4 address");
 
+const iconSchema = z.string().refine((v) => v === "" || ICON_NAMES.has(v), "Pick an icon from the list");
+
+const numberSchema = (min = -1e9, max = 1e9) => z.number().finite().min(min).max(max);
+
+function itemFieldSchema(f: ItemField) {
+  switch (f.kind) {
+    case "text":
+    case "multiline":
+      return plainText(f.maxLength ?? 1000);
+    case "link":
+      return optionalLinkSchema;
+    case "image":
+      return imageSchema;
+    case "number":
+      return numberSchema(f.min, f.max);
+    case "icon":
+      return iconSchema;
+    case "toggle":
+      return z.boolean();
+    case "lines":
+      return z.array(plainText(f.maxLength ?? 200)).max(30);
+  }
+}
+
+/** Local date and time as typed in a datetime-local input; empty means "not set". */
+export const DATETIME_RE = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})?$/;
+
 export function contentSchema(field: ContentField) {
   switch (field.kind) {
     case "text":
@@ -54,7 +84,7 @@ export function contentSchema(field: ContentField) {
     case "image":
       return imageSchema;
     case "link":
-      return linkSchema;
+      return field.optionalLink ? optionalLinkSchema : linkSchema;
     case "price":
       return priceSchema;
     case "gallery":
@@ -65,7 +95,16 @@ export function contentSchema(field: ContentField) {
     case "video":
       return videoSchema;
     case "icon":
-      return z.string().refine((v) => v === "" || ICON_NAMES.has(v), "Pick an icon from the list");
+      return iconSchema;
+    case "number":
+      return numberSchema(field.min, field.max);
+    case "datetime":
+      return z.string().regex(DATETIME_RE, "Use a date and time");
+    case "items": {
+      // Every field optional: records saved before a field existed stay valid. Unknown keys are dropped.
+      const shape = Object.fromEntries((field.itemFields ?? []).map((f) => [f.key, itemFieldSchema(f).optional()]));
+      return z.array(z.object(shape)).min(field.minItems ?? 0).max(field.maxItems ?? 50);
+    }
   }
 }
 

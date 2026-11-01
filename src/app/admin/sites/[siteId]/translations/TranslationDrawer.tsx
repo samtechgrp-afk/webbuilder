@@ -228,6 +228,14 @@ function SourceValue({ field, value }: { field: ContentField; value: unknown }) 
       return <span>{(value as ImageValue[]).length} images</span>;
     case "html":
       return <div className="prose prose-sm max-h-60 overflow-y-auto" dangerouslySetInnerHTML={{ __html: String(value) }} />;
+    case "items":
+      return (
+        <ol className="list-decimal space-y-1 pl-4">
+          {(Array.isArray(value) ? (value as Record<string, unknown>[]) : []).map((it, i) => (
+            <li key={i}>{(field.itemFields ?? []).filter((f) => f.kind === "text" || f.kind === "multiline").map((f) => String(it?.[f.key] ?? "")).filter(Boolean).join(" · ")}</li>
+          ))}
+        </ol>
+      );
     case "link": {
       const l = value as LinkValue;
       return (
@@ -279,7 +287,49 @@ function OverrideInput({
       );
     case "video":
     case "icon":
+    case "number":
+    case "datetime":
       return null;
+    case "items": {
+      const src = Array.isArray(source) ? (source as Record<string, unknown>[]) : [];
+      const cur = Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+      const fields = (field.itemFields ?? []).filter((f) => f.kind === "text" || f.kind === "multiline" || f.kind === "link");
+      const set = (i: number, key: string, v: unknown) => {
+        const next = src.map((_, j) => ({ ...(cur[j] ?? {}) }));
+        next[i][key] = v;
+        const empty = next.every((it) => Object.values(it).every((x) => x === "" || x == null || (typeof x === "object" && !(x as LinkValue).label && !(x as LinkValue).href)));
+        onChange(empty ? null : next);
+      };
+      return (
+        <div className="space-y-3" data-override={testId}>
+          {src.map((it, i) => (
+            <div key={i} className="space-y-1.5 rounded-md border border-zinc-200 p-2">
+              {fields.map((f) =>
+                f.kind === "link" ? (
+                  <input
+                    key={f.key}
+                    aria-label={`Translated ${field.itemLabel ?? "item"} ${i + 1} ${f.label}`}
+                    className={inputClass}
+                    disabled={disabled}
+                    maxLength={80}
+                    value={((cur[i]?.[f.key] as LinkValue | undefined)?.label) ?? ""}
+                    placeholder={((it?.[f.key] as LinkValue | undefined)?.label) ?? ""}
+                    onChange={(e) => {
+                      const s = (it?.[f.key] as LinkValue | undefined) ?? { label: "", href: "" };
+                      set(i, f.key, e.target.value ? { ...s, label: e.target.value } : null);
+                    }}
+                  />
+                ) : f.kind === "multiline" ? (
+                  <textarea key={f.key} aria-label={`Translated ${field.itemLabel ?? "item"} ${i + 1} ${f.label}`} className={inputClass} rows={2} disabled={disabled} maxLength={f.maxLength} value={String(cur[i]?.[f.key] ?? "")} placeholder={String(it?.[f.key] ?? "")} onChange={(e) => set(i, f.key, e.target.value)} />
+                ) : (
+                  <input key={f.key} aria-label={`Translated ${field.itemLabel ?? "item"} ${i + 1} ${f.label}`} className={inputClass} disabled={disabled} maxLength={f.maxLength} value={String(cur[i]?.[f.key] ?? "")} placeholder={String(it?.[f.key] ?? "")} onChange={(e) => set(i, f.key, e.target.value)} />
+                ),
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
     case "multiline":
       return <textarea aria-label={`Translated ${field.label}`} data-override={testId} className={inputClass} rows={3} disabled={disabled} maxLength={field.maxLength} value={(value as string) ?? ""} placeholder={String(source ?? "")} onChange={(e) => onChange(e.target.value)} />;
     case "link": {

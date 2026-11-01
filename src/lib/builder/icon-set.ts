@@ -1,6 +1,6 @@
 /* A curated subset of the lucide package, so the canvas and live pages ship only these. Regenerate by hand when adding icons. */
 import {
-  ArrowRight, ArrowLeft, ArrowUpRight, ChevronRight, ChevronDown, ChevronLeft, ChevronUp, Check, CircleCheck, X, Plus, Minus, Star, Heart, ThumbsUp, Sparkles, Zap, Rocket, Target, Award, Trophy, Gem, Crown, Shield, ShieldCheck, Lock, Key, Fingerprint, Eye, Search, Settings, Wrench, Hammer, Layers, LayoutGrid, Palette, PenTool, Brush, Camera, Image, Film, Video, Music, Mic, Headphones, Play, Pause, Volume2, Phone, Mail, MessageCircle, MessageSquare, Send, AtSign, MapPin, Map, Globe, Navigation, Compass, Building2, House, Store, ShoppingCart, ShoppingBag, CreditCard, Wallet, DollarSign, Tag, Gift, Package, Truck, Clock, Calendar, CalendarCheck, Timer, Hourglass, User, Users, UserCheck, Smile, Handshake, Briefcase, GraduationCap, BookOpen, FileText, Newspaper, Lightbulb, Leaf, Sun, Moon, Cloud, Coffee, Utensils, Wine, Dumbbell, Activity, HeartPulse, Stethoscope, Car, Plane, Bike, Code, Terminal, Cpu, Database, Server, Smartphone, Monitor, Laptop, Wifi, ChartBar, TrendingUp, ChartPie, Infinity, Quote, Info, CircleHelp, TriangleAlert, Bell, Bookmark, Flag, Download, Upload, Link, ExternalLink, Share2, Rss, Menu, Rows3, Box, Heading, Pilcrow, MousePointerClick, Repeat, Languages, MoveVertical, SeparatorHorizontal, TextCursorInput, Clapperboard, SquareDashedBottom, Columns2, Columns3, RectangleVertical, Square,
+  ArrowRight, ArrowLeft, ArrowUpRight, ChevronRight, ChevronDown, ChevronLeft, ChevronUp, Check, CircleCheck, X, Plus, Minus, Star, Heart, ThumbsUp, Sparkles, Zap, Rocket, Target, Award, Trophy, Gem, Crown, Shield, ShieldCheck, Lock, Key, Fingerprint, Eye, Search, Settings, Wrench, Hammer, Layers, LayoutGrid, Palette, PenTool, Brush, Camera, Image, Film, Video, Music, Mic, Headphones, Play, Pause, Volume2, Phone, Mail, MessageCircle, MessageSquare, Send, AtSign, MapPin, Map, Globe, Navigation, Compass, Building2, House, Store, ShoppingCart, ShoppingBag, CreditCard, Wallet, DollarSign, Tag, Gift, Package, Truck, Clock, Calendar, CalendarCheck, Timer, Hourglass, User, Users, UserCheck, Smile, Handshake, Briefcase, GraduationCap, BookOpen, FileText, Newspaper, Lightbulb, Leaf, Sun, Moon, Cloud, Coffee, Utensils, Wine, Dumbbell, Activity, HeartPulse, Stethoscope, Car, Plane, Bike, Code, Terminal, Cpu, Database, Server, Smartphone, Monitor, Laptop, Wifi, ChartBar, TrendingUp, ChartPie, Infinity, Quote, Info, CircleHelp, TriangleAlert, Bell, Bookmark, Flag, Download, Upload, Link, ExternalLink, Share2, Rss, Menu, Rows3, Box, Heading, Pilcrow, MousePointerClick, Repeat, Languages, MoveVertical, SeparatorHorizontal, TextCursorInput, Clapperboard, SquareDashedBottom, Columns2, Columns3, RectangleVertical, Square, ListCollapse, PanelsTopLeft, GalleryHorizontal, BadgeDollarSign, FlipHorizontal2, Megaphone, Hash,
   type IconNode,
 } from "lucide";
 
@@ -149,4 +149,11 @@ export const ICONS: Record<string, IconNode> = {
   "columns-3": Columns3,
   "rectangle-vertical": RectangleVertical,
   "square": Square,
+  "list-collapse": ListCollapse,
+  "panels-top-left": PanelsTopLeft,
+  "gallery-horizontal": GalleryHorizontal,
+  "badge-dollar-sign": BadgeDollarSign,
+  "flip-horizontal-2": FlipHorizontal2,
+  "megaphone": Megaphone,
+  "hash": Hash,
 };

@@ -64,10 +64,12 @@ export type WidgetType =
   | "section" | "container" | "heading" | "text" | "image" | "button" | "price"
   | "gallery" | "richtext" | "loop" | "langswitch" | "productgrid" | "product" | "cart"
   // Widget library (layout and basic content)
-  | "spacer" | "divider" | "prose" | "video" | "icon" | "iconbox" | "map";
+  | "spacer" | "divider" | "prose" | "video" | "icon" | "iconbox" | "map"
+  // Widget library (advanced and interactive)
+  | "accordion" | "tabs" | "carousel" | "testimonial" | "pricing" | "countdown" | "flipbox" | "cta" | "progress" | "counter";
 
 export type SemanticTag =
-  | "section" | "header" | "main" | "footer" | "article" | "aside" | "nav" | "div"
+  | "section" | "header" | "main" | "footer" | "article" | "aside" | "nav" | "div" | "figure"
   | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "span";
 
 /**
