@@ -30,7 +30,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/sites/[site
       processed = await processImage(t.site.id, await buffer(), file.name);
     } else if (type === "image/svg+xml") {
       if (file.size > MAX_SVG_BYTES) return NextResponse.json({ error: "SVGs must be under 1 MB" }, { status: 413 });
-      const clean = sanitizeSvg((await buffer()).toString("utf8"));
+      const clean = await sanitizeSvg((await buffer()).toString("utf8"));
       if (!clean) return NextResponse.json({ error: "That SVG couldn't be read safely" }, { status: 415 });
       processed = await processSvg(t.site.id, clean, file.name);
     } else if (FILE_KINDS[type]) {

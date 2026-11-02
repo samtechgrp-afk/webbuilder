@@ -121,7 +121,7 @@ export async function normaliseContent(t: TenantContext, next: BuilderDocument, 
       }
       value = resolved;
     }
-    if (def.kind === "html") value = sanitizeRichText(parsed.data as string);
+    if (def.kind === "html") value = await sanitizeRichText(parsed.data as string);
     if (def.kind === "video" || def.kind === "audio") {
       const v = parsed.data as VideoValue;
       if (v.assetId) {

@@ -5,7 +5,7 @@ import { run } from "./action-result";
 import { updateTag } from "next/cache";
 import { addFontLink, deleteFonts, listFonts, updateFontFamily, type AddFontLinkInput } from "./design/font-service";
 import { siteCacheTag } from "./public-site";
-import { applyDesignPreset, restoreTokenRevision, saveDesignTokens, type SaveTokensInput } from "./design/tokens-service";
+import { restoreTokenRevision, saveDesignTokens, type SaveTokensInput } from "./design/tokens-service";
 
 /**
  * Design-system actions. The tenant comes from the session, and each service
@@ -18,9 +18,6 @@ type WithSite<T> = T & { siteId: string };
 export async function saveDesignTokensAction(input: WithSite<SaveTokensInput>) {
   return run(async () => saveDesignTokens(await getTenant(input.siteId), input));
 }
-export async function applyDesignPresetAction(input: WithSite<{ preset: string; baseVersion: number }>) {
-  return run(async () => applyDesignPreset(await getTenant(input.siteId), input));
-}
 export async function restoreTokenRevisionAction(input: WithSite<{ revisionId: string; baseVersion: number }>) {
   return run(async () => restoreTokenRevision(await getTenant(input.siteId), input));
 }
@@ -30,9 +27,6 @@ export async function restoreTokenRevisionAction(input: WithSite<{ revisionId: s
 // action body); links, renames and deletes are actions. Each change expires
 // the public cache, since every live page embeds the font rules.
 
-export async function listFontsAction(input: { siteId: string }) {
-  return run(async () => ({ fonts: await listFonts(await getTenant(input.siteId)) }));
-}
 export async function addFontLinkAction(input: WithSite<AddFontLinkInput>) {
   return run(async () => {
     const t = await getTenant(input.siteId);

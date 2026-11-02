@@ -102,21 +102,21 @@ describe("slugs", () => {
 });
 
 describe("sanitizing", () => {
-  it("strips scripts, handlers and unsafe links from rich text", () => {
-    const out = sanitizeRichText(`<p onclick="x()">Hi <a href="javascript:alert(1)">x</a><script>alert(1)</script><a href="/ok" target="_blank">ok</a></p>`);
+  it("strips scripts, handlers and unsafe links from rich text", async () => {
+    const out = await sanitizeRichText(`<p onclick="x()">Hi <a href="javascript:alert(1)">x</a><script>alert(1)</script><a href="/ok" target="_blank">ok</a></p>`);
     assert.doesNotMatch(out, /script|onclick|javascript/);
     assert.match(out, /href="\/ok"/);
     assert.match(out, /rel="noopener noreferrer"/);
   });
 
-  it("removes scripts, foreign objects and external references from SVG", () => {
-    const out = sanitizeSvg(`<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><foreignObject><div></div></foreignObject><use href="https://evil/x.svg#a"/><rect width="5" height="5" onload="x()"/></svg>`) ?? "";
+  it("removes scripts, foreign objects and external references from SVG", async () => {
+    const out = (await sanitizeSvg(`<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><foreignObject><div></div></foreignObject><use href="https://evil/x.svg#a"/><rect width="5" height="5" onload="x()"/></svg>`)) ?? "";
     assert.doesNotMatch(out, /script|foreignObject|use|onload|evil/i);
     assert.match(out, /<rect/);
   });
 
-  it("refuses input that isn't an SVG", () => {
-    assert.equal(sanitizeSvg("<html><body>hi</body></html>"), null);
+  it("refuses input that isn't an SVG", async () => {
+    assert.equal(await sanitizeSvg("<html><body>hi</body></html>"), null);
   });
 });
 
