@@ -2,7 +2,7 @@ import "server-only";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { after } from "next/server";
-import { strToU8, zipSync, type Zippable } from "fflate";
+import type { Zippable } from "fflate";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PRODUCT_BASE } from "@/lib/commerce/types";
@@ -172,6 +172,8 @@ export async function runExport(id: string) {
   const { site } = job;
   const update = (data: Prisma.SiteExportUpdateInput) => prisma.siteExport.update({ where: { id }, data });
   try {
+    // The zip library is only needed while an export runs.
+    const { strToU8, zipSync } = await import("fflate");
     const origin = internalOrigin();
     const notFoundPageId = ((site.settings ?? {}) as { notFoundPageId?: string | null }).notFoundPageId ?? null;
     const { pages, content } = await exportTargets(site.id, notFoundPageId);

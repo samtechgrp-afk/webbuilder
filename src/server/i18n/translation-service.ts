@@ -320,7 +320,7 @@ export async function saveTranslation(t: TenantContext, raw: TranslationInput) {
     draft = asJson({ ...emptyTranslation(), overrides: await validateOverrides(t, doc, input.overrides, previous, violations) });
   } else {
     if (Object.keys(input.overrides).length) v("overrides", "Only builder pages have element overrides");
-    draft = asJson({ type: "html", html: sanitizeRichText(input.content ?? "") });
+    draft = asJson({ type: "html", html: await sanitizeRichText(input.content ?? "") });
   }
 
   // Translatable custom fields only; everything else always comes from the original.
@@ -343,7 +343,7 @@ export async function saveTranslation(t: TenantContext, raw: TranslationInput) {
       for (const issue of result.error.issues) v(key, `${def.label}: ${issue.message}`);
       continue;
     }
-    next.set(def, sanitizeValue(def, result.data));
+    next.set(def, await sanitizeValue(def, result.data));
   }
   violations.push(...(await verifyRefs(t, [...next.keys()], Object.fromEntries([...next].map(([d, val]) => [d.key, val])))));
   if (violations.length) throw new EditError("Some fields need fixing", "invalid", violations);

@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import sharp from "sharp";
 import { deleteObject, getObject, putObject, s3ConfigFrom, type S3Config } from "@/lib/storage/s3.mjs";
 
 /**
@@ -182,6 +181,8 @@ export async function processSvg(siteId: string, clean: string, originalName: st
 
 export async function processImage(siteId: string, input: Buffer, originalName: string, storage: StorageAdapter = mediaStorage()) {
   const id = randomUUID();
+  // libvips is the heaviest native module the server has; only image uploads load it.
+  const { default: sharp } = await import("sharp");
   const image = sharp(input, { failOn: "error" }).rotate();
   const meta = await image.metadata();
   if (!meta.width || !meta.height) throw new Error("Not a readable image");

@@ -122,20 +122,22 @@ export const entryInputSchema = z.object({
 export type EntryInput = z.input<typeof entryInputSchema>;
 
 /** Rich text anywhere in a value (including inside repeater rows and blocks) gets sanitised. */
-export function sanitizeValue(def: FieldDef, value: unknown): unknown {
+export async function sanitizeValue(def: FieldDef, value: unknown): Promise<unknown> {
   if (isEmptyValue(value)) return value;
+  const sanitizeFields = async (subFields: FieldDef[], values: Record<string, unknown>) =>
+    Object.fromEntries(await Promise.all(subFields.map(async (sf) => [sf.key, await sanitizeValue(sf, values[sf.key] ?? null)] as const)));
   switch (def.type) {
     case "RICH_TEXT":
       return sanitizeRichText(String(value));
     case "REPEATER":
-      return (value as RepeaterRow[]).map((row) =>
-        Object.fromEntries((def.config.subFields ?? []).map((sf) => [sf.key, sanitizeValue(sf, row[sf.key] ?? null)])),
-      );
+      return Promise.all((value as RepeaterRow[]).map((row) => sanitizeFields(def.config.subFields ?? [], row)));
     case "FLEXIBLE":
-      return (value as FlexibleBlock[]).map((block) => {
-        const layout = def.config.layouts?.find((l) => l.key === block.layout);
-        return { layout: block.layout, values: Object.fromEntries((layout?.subFields ?? []).map((sf) => [sf.key, sanitizeValue(sf, block.values[sf.key] ?? null)])) };
-      });
+      return Promise.all(
+        (value as FlexibleBlock[]).map(async (block) => {
+          const layout = def.config.layouts?.find((l) => l.key === block.layout);
+          return { layout: block.layout, values: await sanitizeFields(layout?.subFields ?? [], block.values) };
+        }),
+      );
     default:
       return value;
   }
@@ -281,7 +283,7 @@ export async function saveEntry(t: TenantContext, raw: EntryInput) {
       for (const issue of result.error.issues) v(def.key, issue.message);
       continue;
     }
-    nextValues.set(def.id!, sanitizeValue(def, result.data));
+    nextValues.set(def.id!, await sanitizeValue(def, result.data));
   }
   violations.push(...(await verifyRefs(t, applicable, Object.fromEntries(applicable.map((d) => [d.key, nextValues.get(d.id!)])))));
 
@@ -293,7 +295,7 @@ export async function saveEntry(t: TenantContext, raw: EntryInput) {
   if (violations.length) throw new EditError("Some fields need fixing", "invalid", violations);
 
   const usesBuilder = post.postType.usesBuilder;
-  const draft = usesBuilder ? post.draft : { type: "html", html: sanitizeRichText(input.content ?? "") };
+  const draft = usesBuilder ? post.draft : { type: "html", html: await sanitizeRichText(input.content ?? "") };
   const version = current + 1;
   const now = new Date();
 

@@ -239,10 +239,3 @@ export function applyDynamic(
   visit(doc.rootId, data.post, "");
   return { ...doc, nodes: out };
 }
-
-/** Bindings that read the current entry's custom fields, by node, for "where is this used" hints. */
-export function boundFieldKeys(doc: BuilderDocument): Set<string> {
-  const keys = new Set<string>();
-  for (const node of Object.values(doc.nodes)) for (const b of Object.values(node.bindings ?? {})) if (b.source === "field") keys.add(b.key);
-  return keys;
-}
