@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { assertEnv } from "./src/lib/env.mjs";
+import { TRACE_EXCLUDES } from "./scripts/trace-excludes.mjs";
 
 // Stop `next dev` / `next build` on a broken configuration (SKIP_ENV_VALIDATION=1 skips it for image builds).
 assertEnv({ quiet: true });
@@ -11,6 +12,8 @@ const nextConfig: NextConfig = {
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   // The health page compares applied migrations with the ones this build ships.
   outputFileTracingIncludes: { "/admin/system/health": ["./prisma/migrations/**/*"] },
+  // Unused Prisma engines and wrong-platform sharp binaries stay out of the functions (scripts/trace-excludes.mjs).
+  outputFileTracingExcludes: { "*": TRACE_EXCLUDES },
   // DOMPurify needs a real DOM on the server.
   serverExternalPackages: ["jsdom"],
   async headers() {
